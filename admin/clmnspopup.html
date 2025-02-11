@@ -6,17 +6,18 @@
     }
 
     .sortable-item {
-        padding: 12px 16px;
-        margin: 8px 0;
+        padding: 6px 12px;
+        margin: 4px 0;
         background: #1a2235;
         border: 1px solid #2a3245;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: move;
         display: flex;
         align-items: center;
         user-select: none;
         transition: all 0.2s ease;
         position: relative;
+        gap: 8px;
     }
 
     .sortable-item:hover {
@@ -77,10 +78,10 @@
     }
 
     #columnsContainer {
-        max-height: 400px;
+        padding: 8px;
+        max-height: 70vh;
         overflow-y: auto;
-        margin: 20px 0;
-        padding: 0 4px;
+        margin: 0;
     }
 
     #columnsContainer::-webkit-scrollbar {
@@ -106,23 +107,24 @@
         border-radius: 12px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         color: #e2e8f0;
+        width: 400px;
+        margin: 20px auto;
+        position: relative;
     }
 
     .modal-content h4 {
-        color: #e2e8f0;
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0 0 16px 0;
-        padding: 20px 24px;
+        margin: 0;
+        padding: 12px 16px;
         border-bottom: 1px solid #2a3245;
+        font-size: 18px;
     }
 
     .modal-footer {
-        padding: 16px 24px;
+        padding: 12px 16px;
         border-top: 1px solid #2a3245;
         display: flex;
         justify-content: flex-end;
-        gap: 12px;
+        gap: 8px;
     }
 
     .btn {
@@ -167,6 +169,9 @@
     </div>
 </div>
 <script>
+    function formatColumnName(field) {
+        return field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+    }
 
     function addColumnsToList(selectedClmns, availableClmns) {
         let $list = $('#columnsList');
@@ -176,7 +181,7 @@
             const $item = $(`
                 <li class="sortable-item">
                     <input type="checkbox" value="${column.field}" checked>
-                    <span>${column.field}</span>
+                    <span>${formatColumnName(column.field)}</span>
                 </li>`);
             $list.append($item);
         });
@@ -187,7 +192,7 @@
                 const $item = $(`
                     <li class="sortable-item">
                         <input type="checkbox" value="${column}">
-                        <span>${column}</span>
+                        <span>${formatColumnName(column)}</span>
                     </li>`);
                 $list.append($item);
             }
