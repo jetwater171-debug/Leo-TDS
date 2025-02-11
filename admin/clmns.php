@@ -215,19 +215,19 @@ class TableColumns
                 "tooltip" => "FSTARTfunction(e, cell, onRendered){ var data = cell.getValue(); var keys = Object.keys(data).sort(); var formattedData = ''; keys.forEach(function(key) { if (data.hasOwnProperty(key)) { formattedData += key + '=' + data[key] + '<br>'; } }); return formattedData;}FEND",
                 "formatter" => "FSTARTfunction(cell, formatterParams, onRendered){var data = cell.getValue();var keys = Object.keys(data).sort();var formattedData = ''; keys.forEach(function(key) { if (data.hasOwnProperty(key)) { formattedData += key + '=' + data[key] + '<br>';}}); return formattedData;}FEND"
             ],
-            [
+            "preland"=>[
                 "title" => "Preland",
                 "field" => "preland",
                 "headerTooltip" => "Chosen prelanding",
                 "headerFilter" => "input",
             ],
-            [
+            "land"=>[
                 "title" => "Land",
                 "field" => "land",
                 "headerTooltip" => "Chosen landing",
                 "headerFilter" => "input",
             ],
-            [
+            "reason"=>[
                 "title" => "Reason",
                 "headerTooltip" => "Why click was blocked",
                 "field" => "reason",
@@ -235,18 +235,19 @@ class TableColumns
                 "sorter" => "string",
                 "headerFilter" => "input"
             ],
-            [ 
+            "lpclick"=>[
                 "title" => "LpClick",
                 "field" => "lpclick",
                 "sorter" => "boolean",
-                "formatter" => "tickCross"
+                "formatter" => "tickCross",
+                "hozAlign" => "center"
             ],
-            [
+            "status"=>[
                 "title" => "Status",
                 "field" => "status",
                 "headerFilter" => "input",
             ],
-            [
+            "payout"=>[
                 "title" => "Payout",
                 "field" => "payout",
                 "headerFilter" => "input",

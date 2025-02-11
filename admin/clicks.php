@@ -65,8 +65,8 @@ $tColumns = get_clicks_columns($campId, $tz,$tableColumns);
         </div>
         <div id="t<?=$tName?>" style="clear: both;"></div>
         <script>
-            let t<?=$tName?>Data = <?=$dJson?>;
             let t<?=$tName?>Columns = <?=$tColumns?>;
+            let t<?=$tName?>Data = <?=$dJson?>;
             let t<?=$tName?>Table = new Tabulator('#t<?=$tName?>', {
                 layout: "fitColumns",
                 columns: t<?=$tName?>Columns,
