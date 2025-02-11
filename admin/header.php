@@ -186,30 +186,93 @@ function setupMatrixRain() {
     return () => clearInterval(interval);
 }
 
-function typeText(text, element, delay = 100) {
+function typeText(text, element) {
     let index = 0;
-    return new Promise((resolve) => {
-        function type() {
+    let isTyping = true;
+    element.textContent = '';
+    let animationRunning = true;
+    
+    function animate() {
+        if (!animationRunning) return;
+        
+        if (isTyping) {
             if (index < text.length) {
                 element.textContent += text.charAt(index);
                 index++;
-                setTimeout(type, delay);
+                setTimeout(animate, 100);
             } else {
                 setTimeout(() => {
-                    element.textContent = '';
-                    index = 0;
-                    type();
+                    if (!animationRunning) return;
+                    isTyping = false;
+                    animate();
                 }, 1000);
             }
+        } else {
+            if (index > 0) {
+                element.textContent = text.substring(0, index - 1);
+                index--;
+                setTimeout(animate, 50);
+            } else {
+                setTimeout(() => {
+                    if (!animationRunning) return;
+                    isTyping = true;
+                    animate();
+                }, 500);
+            }
         }
-        type();
-    });
+    }
+    
+    animate();
+    
+    // Return a cleanup function
+    return () => {
+        animationRunning = false;
+        element.textContent = '';
+    };
 }
 
-let matrixCleanup = null;
+document.addEventListener('DOMContentLoaded', function() {
+    const updateBasesLink = document.getElementById('updateBases');
+    const loadingAnimation = document.getElementById('loadingAnimation');
+    const updateOverlay = document.getElementById('updateOverlay');
+    const typingText = document.getElementById('typing-text');
+    let typingCleanup = null;
+
+    updateBasesLink.addEventListener('click', async function(e) {
+        e.preventDefault();
+        loadingAnimation.style.display = 'inline';
+        updateOverlay.style.display = 'flex';
+        setupMatrixRain();
+        typingCleanup = typeText('GEOIP UPDATING...', typingText);
+
+        try {
+            const response = await fetch('../bases/update.php');
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Error updating bases: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error updating bases: ' + error);
+        } finally {
+            if (typingCleanup) typingCleanup();
+            loadingAnimation.style.display = 'none';
+            updateOverlay.style.display = 'none';
+        }
+    });
+});
 
 // Modified checkForUpdates function
 async function checkForUpdates() {
+    const updateOverlay = document.getElementById('updateOverlay');
+    const typingText = document.getElementById('typing-text');
+    let typingCleanup = null;
+
+    updateOverlay.style.display = 'flex';
+    setupMatrixRain();
+    typingCleanup = typeText('SYSTEM UPDATING...', typingText);
+
     try {
         const response = await fetch('autoupdate.php', {
             method: 'POST',
@@ -219,8 +282,8 @@ async function checkForUpdates() {
             body: 'action=check'
         });
         
+
         const result = await response.json();
-        
         if (!result.success) {
             alert('Error checking for updates: ' + result.message);
             return;
@@ -232,12 +295,6 @@ async function checkForUpdates() {
         }
         
         if (confirm(`An update to version ${result.version} is available. Would you like to update now?`)) {
-            const overlay = document.getElementById('updateOverlay');
-            const typingText = document.getElementById('typing-text');
-            
-            overlay.style.display = 'flex';
-            matrixCleanup = setupMatrixRain();
-            typeText('UPDATING SYSTEM...', typingText);
             
             const updateResponse = await fetch('autoupdate.php', {
                 method: 'POST',
@@ -249,52 +306,20 @@ async function checkForUpdates() {
             
             const updateResult = await updateResponse.json();
             
-            if (matrixCleanup) {
-                matrixCleanup();
-                matrixCleanup = null;
-            }
-            overlay.style.display = 'none';
-            
             if (updateResult.success) {
                 alert('Update successful! The page will now reload.');
                 location.reload();
             } else {
-                alert('Update failed: ' + updateResult.message);
+                alert('Error updating system: ' + updateResult.error);
             }
         }
     } catch (error) {
-        if (matrixCleanup) {
-            matrixCleanup();
-            matrixCleanup = null;
-        }
-        document.getElementById('updateOverlay').style.display = 'none';
-        alert('Error checking for updates: ' + error.message);
+        alert('Error updating system: ' + error);
+    } finally {
+        if (typingCleanup) typingCleanup();
+        updateOverlay.style.display = 'none';
     }
 }
-
-// Geo database update functionality
-var updElement = document.getElementById("updateBases");
-var loadingAnimation = document.getElementById("loadingAnimation");
-
-updElement.onclick = async () => {
-    // Show loading animation
-    updElement.style.display = 'none';
-    loadingAnimation.style.display = '';
-
-    let res = await fetch("../bases/update.php", {
-        method: "GET",
-    });
-    let js = await res.json();
-    if (!js["error"]) {
-        loadingAnimation.style.display = 'none';
-        alert(js["result"]);
-        window.location.reload();
-    } else {
-        loadingAnimation.style.display = 'none';
-        updElement.style.display = '';
-        alert(`An error occured: ${js["result"]}`);
-    }
-};
 
 flatpickr("#litepicker", {
     dateFomat: "DD.MM.YY",
@@ -319,3 +344,67 @@ function update_datepicker_dates(selectedDates) {
     window.location.search = searchParams.toString();
 }
 </script>
+
+<style>
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.logo-link {
+    flex-shrink: 0;
+}
+.geo-version {
+    font-size: 14px;
+    color: #666;
+    white-space: nowrap;
+}
+.geo-version a {
+    color: #337ab7;
+    text-decoration: none;
+}
+.geo-version a:hover {
+    text-decoration: underline;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+#matrix-rain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.updating-text {
+    position: relative;
+    z-index: 1;
+    color: #0F0;
+    font-family: monospace;
+    font-size: 24px;
+    text-align: center;
+}
+
+.cursor {
+    display: inline-block;
+    width: 10px;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+</style>
