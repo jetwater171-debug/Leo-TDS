@@ -57,10 +57,10 @@ $tColumns = get_clicks_columns($campId, $tz,$tableColumns);
 <body>
     <?php include "header.php" ?>
     <div class="all-content-wrapper">
-        <div class="buttons-block">
-            <button id="columnsSelect" title="Select and order columns" class="btn btn-info"><i
+        <div class="buttons-block" style="text-align: right;">
+            <button id="columnsSelect" title="Select and order columns" class="btn btn-info" style="margin-left: 8px;"><i
                     class="bi bi-layout-three-columns"></i></button>
-            <button id="downloadCsv" title="Download table as CSV" class="btn btn-success" style="float: right;"><i
+            <button id="downloadCsv" title="Download table as CSV" class="btn btn-success" style="margin-left: 8px;"><i
                     class="bi bi-download"></i></button>
         </div>
         <div id="t<?=$tName?>" style="clear: both;"></div>
