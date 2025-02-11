@@ -53,6 +53,7 @@ function get_clicks_columns(?int $campId, string $timezone,  array $columns): st
                 "outputFormat" => "yyyy-MM-dd HH:mm:ss",
                 "timezone" => "$timezone"
             ],
+            "headerTooltip" => "Date and time according to selected timezone",
             "sorter" => "datetime",
             "sorterParams" => [
                 "format" => "unix"
