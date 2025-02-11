@@ -1,42 +1,43 @@
 <style>
-    .sortable-list {
+    .metricsColumns, .dimensionsColumns {
         list-style: none;
         padding: 0;
         margin: 0;
     }
 
-    .sortable-item {
-        padding: 12px 16px;
-        margin: 8px 0;
+    .column-item {
+        padding: 6px 12px;
+        margin: 4px 0;
         background: #1a2235;
         border: 1px solid #2a3245;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: move;
         display: flex;
         align-items: center;
         user-select: none;
         transition: all 0.2s ease;
         position: relative;
+        gap: 8px;
     }
 
-    .sortable-item:hover {
-        background: #212b40;
+    .column-item:hover {
+        background: #1e293b;
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
-    .sortable-item::before {
+    .column-item::before {
         content: "☰";
         margin-right: 12px;
         color: #4a5568;
         font-size: 14px;
     }
 
-    .sortable-item input[type="checkbox"] {
+    .column-item input[type="checkbox"] {
         margin-right: 12px;
         cursor: pointer;
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         border-radius: 4px;
         border: 2px solid #2d3748;
         appearance: none;
@@ -46,12 +47,12 @@
         transition: all 0.2s ease;
     }
 
-    .sortable-item input[type="checkbox"]:checked {
+    .column-item input[type="checkbox"]:checked {
         background: #0084ff;
         border-color: #0084ff;
     }
 
-    .sortable-item input[type="checkbox"]:checked::after {
+    .column-item input[type="checkbox"]:checked::after {
         content: "✓";
         position: absolute;
         color: white;
@@ -60,44 +61,44 @@
         top: -1px;
     }
 
-    .sortable-item span {
+    .column-item span {
         font-size: 14px;
         color: #e2e8f0;
         font-weight: 500;
     }
 
-    .sortable-item.sortable-ghost {
+    .column-item.sortable-ghost {
         opacity: 0.4;
         background: #2d3748;
     }
 
-    .sortable-item.sortable-chosen {
+    .column-item.sortable-chosen {
         background: #212b40;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
-    #columnsContainer {
-        max-height: 400px;
+    .columns-container {
+        max-height: 70vh;
         overflow-y: auto;
         margin: 20px 0;
         padding: 0 4px;
     }
 
-    #columnsContainer::-webkit-scrollbar {
+    .columns-container::-webkit-scrollbar {
         width: 8px;
     }
 
-    #columnsContainer::-webkit-scrollbar-track {
+    .columns-container::-webkit-scrollbar-track {
         background: #1a2235;
         border-radius: 4px;
     }
 
-    #columnsContainer::-webkit-scrollbar-thumb {
+    .columns-container::-webkit-scrollbar-thumb {
         background: #2d3748;
         border-radius: 4px;
     }
 
-    #columnsContainer::-webkit-scrollbar-thumb:hover {
+    .columns-container::-webkit-scrollbar-thumb:hover {
         background: #3a4759;
     }
 
@@ -106,23 +107,23 @@
         border-radius: 12px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         color: #e2e8f0;
+        width: 400px;
+        margin: 20px auto;
+        position: relative;
     }
 
-    .modal-content h4 {
-        color: #e2e8f0;
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0 0 16px 0;
-        padding: 20px 24px;
-        border-bottom: 1px solid #2a3245;
+    .modal-body {
+        padding: 8px;
+        background: #151b2d;
     }
 
     .modal-footer {
-        padding: 16px 24px;
+        padding: 12px 16px;
         border-top: 1px solid #2a3245;
         display: flex;
         justify-content: flex-end;
-        gap: 12px;
+        gap: 8px;
+        background: #151b2d;
     }
 
     .btn {
@@ -153,34 +154,488 @@
         background: #0066cc;
     }
 
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 4px;
+        color: #94a3b8;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 6px 12px;
+        background: #1a2235;
+        border: 1px solid #2a3245;
+        border-radius: 6px;
+        color: #e2e8f0;
+        font-size: 14px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0084ff;
+        box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+
+    .btn-outline-secondary {
+        background: transparent;
+        border: 1px solid #2d3748;
+        color: #e2e8f0;
+    }
+
+    .btn-outline-secondary:hover {
+        background: #2d3748;
+    }
+
+    /* Override jquery-modal styles */
+    .ywbmodal {
+        background: #151b2d !important;
+        padding: 0 !important;
+        border-radius: 12px !important;
+        width: 400px !important;
+        margin: 0 auto !important;
+    }
+
+    .jquery-modal {
+        z-index: 999999 !important;
+    }
+
+    .jquery-modal .modal {
+        max-width: none !important;
+    }
+
+    .jquery-modal.blocker {
+        background: rgba(0, 0, 0, 0.8) !important;
+    }
+</style>
+
+<div id="statsTableModal" class="ywbmodal">
+    <div class="modal-content">
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="tableName">Table Name</label>
+                <input type="text" id="tableName" class="form-control" placeholder="Enter table name">
+            </div>
+
+            <div class="form-group">
+                <label>Metrics (Table Columns)</label>
+                <div class="btn-group">
+                    <button id="selectAllMetrics" class="btn btn-sm btn-outline-secondary">Select All</button>
+                    <button id="deselectAllMetrics" class="btn btn-sm btn-outline-secondary">Deselect All</button>
+                </div>
+                <div id="metricsColumns" class="columns-container sortable-list"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Dimensions (Group By)</label>
+                <div class="btn-group">
+                    <button id="selectAllDimensions" class="btn btn-sm btn-outline-secondary">Select All</button>
+                    <button id="deselectAllDimensions" class="btn btn-sm btn-outline-secondary">Deselect All</button>
+                </div>
+                <div id="dimensionsColumns" class="columns-container sortable-list"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelTableBtn" onclick="$.modal.close();">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveTableBtn">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function initializeStatsTableEditor(availableColumns, selectedMetrics, selectedDimensions, tableName, saveUrl) {
+        // Set table name if provided
+        if (tableName) {
+            document.getElementById('tableName').value = tableName;
+        }
+
+        // Convert availableColumns from array of strings to array of objects if needed
+        if (Array.isArray(availableColumns) && availableColumns.length > 0 && typeof availableColumns[0] === 'string') {
+            availableColumns = availableColumns.map(field => ({
+                field: field,
+                title: field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ')
+            }));
+        }
+
+        // Convert selectedMetrics from array of strings to array of objects if needed
+        if (Array.isArray(selectedMetrics) && selectedMetrics.length > 0 && typeof selectedMetrics[0] === 'string') {
+            selectedMetrics = selectedMetrics.map(field => ({
+                field: field,
+                width: -1
+            }));
+        }
+
+        // Convert selectedDimensions from array of strings to array of objects if needed
+        if (Array.isArray(selectedDimensions) && selectedDimensions.length > 0 && typeof selectedDimensions[0] === 'string') {
+            selectedDimensions = selectedDimensions.map(field => ({
+                field: field,
+                width: -1
+            }));
+        }
+
+        // Initialize sortable lists
+        new Sortable(document.getElementById('metricsColumns'), {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen'
+        });
+
+        new Sortable(document.getElementById('dimensionsColumns'), {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen'
+        });
+
+        // Populate metrics list
+        const metricsContainer = document.getElementById('metricsColumns');
+        metricsContainer.innerHTML = '';
+        availableColumns.forEach(column => {
+            const isSelected = selectedMetrics.some(sc => sc.field === column.field);
+            const item = document.createElement('li');
+            item.className = 'column-item';
+            item.dataset.field = column.field;
+            item.innerHTML = `
+                <input type="checkbox" ${isSelected ? 'checked' : ''}>
+                <span>${column.title || column.field}</span>
+            `;
+            metricsContainer.appendChild(item);
+        });
+
+        // Populate dimensions list
+        const dimensionsContainer = document.getElementById('dimensionsColumns');
+        dimensionsContainer.innerHTML = '';
+        availableColumns.forEach(column => {
+            const isSelected = selectedDimensions.some(sd => sd.field === column.field);
+            const item = document.createElement('li');
+            item.className = 'column-item';
+            item.dataset.field = column.field;
+            item.innerHTML = `
+                <input type="checkbox" ${isSelected ? 'checked' : ''}>
+                <span>${column.title || column.field}</span>
+            `;
+            dimensionsContainer.appendChild(item);
+        });
+
+        // Select/Deselect All buttons handlers
+        document.getElementById('selectAllMetrics').onclick = () => {
+            metricsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        };
+
+        document.getElementById('deselectAllMetrics').onclick = () => {
+            metricsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        };
+
+        document.getElementById('selectAllDimensions').onclick = () => {
+            dimensionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        };
+
+        document.getElementById('deselectAllDimensions').onclick = () => {
+            dimensionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        };
+
+        // Save button handler
+        document.getElementById('saveTableBtn').onclick = async () => {
+            const tableName = document.getElementById('tableName').value;
+            if (!tableName) {
+                alert('Please enter a table name');
+                return;
+            }
+
+            const selectedMetrics = Array.from(metricsContainer.querySelectorAll('.column-item'))
+                .filter(item => item.querySelector('input').checked)
+                .map(item => ({
+                    field: item.dataset.field,
+                    width: -1
+                }));
+
+            const selectedDimensions = Array.from(dimensionsContainer.querySelectorAll('.column-item'))
+                .filter(item => item.querySelector('input').checked)
+                .map(item => item.dataset.field);
+
+            try {
+                const response = await fetch(saveUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: tableName,
+                        metrics: selectedMetrics,
+                        dimensions: selectedDimensions
+                    })
+                });
+
+                const result = await response.json();
+                if (!result.error) {
+                    window.location.reload();
+                } else {
+                    alert('Error saving table: ' + result.msg);
+                }
+            } catch (error) {
+                alert('Error saving table: ' + error.message);
+            }
+        };
+
+        // Show modal
+        $('#statsTableModal').modal({
+            modalClass: 'ywbmodal',
+            fadeDuration: 250,
+            fadeDelay: 0.80,
+            showClose: false
+        });
+    }
+</script>
+
+<style>
     .sortable-list {
-        border: 1px solid #ddd;
-        padding: 10px;
-        min-height: 100px;
-        max-height: 300px;
-        overflow-y: auto;
+        list-style: none;
+        padding: 0;
+        margin: 0;
     }
 
     .column-item {
+        padding: 6px 12px;
+        margin: 4px 0;
+        background: #1a2235;
+        border: 1px solid #2a3245;
+        border-radius: 6px;
+        cursor: move;
         display: flex;
         align-items: center;
-        padding: 5px;
-        margin: 5px 0;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        cursor: move;
-    }
-
-    .column-item input[type="checkbox"] {
-        margin-right: 10px;
-    }
-
-    .column-item span {
-        flex-grow: 1;
+        user-select: none;
+        transition: all 0.2s ease;
+        position: relative;
+        gap: 8px;
     }
 
     .column-item:hover {
-        background: #e9ecef;
+        background: #1e293b;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .column-item::before {
+        content: "☰";
+        margin-right: 12px;
+        color: #4a5568;
+        font-size: 14px;
+    }
+
+    .column-item input[type="checkbox"] {
+        margin-right: 12px;
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 2px solid #2d3748;
+        appearance: none;
+        -webkit-appearance: none;
+        position: relative;
+        background: #1a2235;
+        transition: all 0.2s ease;
+    }
+
+    .column-item input[type="checkbox"]:checked {
+        background: #0084ff;
+        border-color: #0084ff;
+    }
+
+    .column-item input[type="checkbox"]:checked::after {
+        content: "✓";
+        position: absolute;
+        color: white;
+        font-size: 12px;
+        left: 3px;
+        top: -1px;
+    }
+
+    .column-item span {
+        font-size: 14px;
+        color: #e2e8f0;
+        font-weight: 500;
+    }
+
+    .column-item.sortable-ghost {
+        opacity: 0.4;
+        background: #2d3748;
+    }
+
+    .column-item.sortable-chosen {
+        background: #212b40;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    #columnsContainer {
+        max-height: 70vh;
+        overflow-y: auto;
+        margin: 20px 0;
+        padding: 0 4px;
+    }
+
+    #columnsContainer::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #columnsContainer::-webkit-scrollbar-track {
+        background: #1a2235;
+        border-radius: 4px;
+    }
+
+    #columnsContainer::-webkit-scrollbar-thumb {
+        background: #2d3748;
+        border-radius: 4px;
+    }
+
+    #columnsContainer::-webkit-scrollbar-thumb:hover {
+        background: #3a4759;
+    }
+
+    .modal-content {
+        background: #151b2d;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        color: #e2e8f0;
+        width: 400px;
+        margin: 20px auto;
+        position: relative;
+    }
+
+    .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #2a3245;
+    }
+
+    .modal-header h4 {
+        color: #e2e8f0;
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .modal-body {
+        padding: 8px;
+        background: #151b2d;
+    }
+
+    .modal-footer {
+        padding: 12px 16px;
+        border-top: 1px solid #2a3245;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        background: #151b2d;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-secondary {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+
+    .btn-secondary:hover {
+        background: #3a4759;
+    }
+
+    .btn-primary {
+        background: #0084ff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0066cc;
+    }
+
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 4px;
+        color: #94a3b8;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 6px 12px;
+        background: #1a2235;
+        border: 1px solid #2a3245;
+        border-radius: 6px;
+        color: #e2e8f0;
+        font-size: 14px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0084ff;
+        box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+
+    .btn-outline-secondary {
+        background: transparent;
+        border: 1px solid #2d3748;
+        color: #e2e8f0;
+    }
+
+    .btn-outline-secondary:hover {
+        background: #2d3748;
+    }
+
+    /* Override jquery-modal styles */
+    .ywbmodal {
+        background: #151b2d !important;
+        padding: 0 !important;
+        border-radius: 12px !important;
+        width: 400px !important;
+        margin: 0 auto !important;
+    }
+
+    .jquery-modal {
+        z-index: 999999 !important;
+    }
+
+    .jquery-modal .modal {
+        max-width: none !important;
+    }
+
+    .jquery-modal.blocker {
+        background: rgba(0, 0, 0, 0.8) !important;
     }
 </style>
 
@@ -199,9 +654,6 @@
 
 <div id="statsTableModal" class="modal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h4>Edit Statistics Table</h4>
-        </div>
         <div class="modal-body">
             <!-- Table Name -->
             <div class="form-group mb-3">
@@ -323,6 +775,30 @@
         // Set table name if provided
         if (tableName) {
             document.getElementById('tableName').value = tableName;
+        }
+
+        // Convert availableColumns from array of strings to array of objects if needed
+        if (Array.isArray(availableColumns) && availableColumns.length > 0 && typeof availableColumns[0] === 'string') {
+            availableColumns = availableColumns.map(field => ({
+                field: field,
+                title: field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ')
+            }));
+        }
+
+        // Convert selectedMetrics from array of strings to array of objects if needed
+        if (Array.isArray(selectedMetrics) && selectedMetrics.length > 0 && typeof selectedMetrics[0] === 'string') {
+            selectedMetrics = selectedMetrics.map(field => ({
+                field: field,
+                width: -1
+            }));
+        }
+
+        // Convert selectedDimensions from array of strings to array of objects if needed
+        if (Array.isArray(selectedDimensions) && selectedDimensions.length > 0 && typeof selectedDimensions[0] === 'string') {
+            selectedDimensions = selectedDimensions.map(field => ({
+                field: field,
+                width: -1
+            }));
         }
 
         // Populate metrics list
