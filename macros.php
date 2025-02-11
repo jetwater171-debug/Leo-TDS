@@ -76,17 +76,14 @@ class MacrosProcessor
 
         $clickParamNames = ['ip', 'country', 'lang', 'os', 'osver', 'client', 'clientver', 'device', 'brand', 'model', 'isp', 'ua', 'preland', 'land', 'status'];
         if (in_array($macro, $clickParamNames)) {
-            if (empty($this->subid)) {
-                if (empty($this->clickParams)){
-                    add_log("macros", "Couldn't get macros $macro value from DB. Subid not set!");
-                    return false;
-                }
-                else 
-                    return $this->clickParams[$macro];
-            } else {
+            if (!empty($this->clickParams))
+                return $this->clickParams[$macro];
+            if (!empty($this->subid)) {
                 $clicks = $db->get_clicks_by_subid($this->subid, true);
                 return $clicks[0][$macro];
             }
+            add_log("macros", "Couldn't get macros $macro value. Clickparams and subid not set!");
+            return false;
         }
 
         //we need to find click parameter with this name, we can do that only if we know subid
