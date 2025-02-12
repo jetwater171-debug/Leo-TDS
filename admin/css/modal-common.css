@@ -95,12 +95,19 @@
     border: none;
 }
 
+.btn:disabled,
+.btn.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .btn-secondary {
     background: #2d3748;
     color: #e2e8f0;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled):not(.btn-disabled) {
     background: #3a4759;
 }
 
@@ -109,7 +116,7 @@
     color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled):not(.btn-disabled) {
     background: #0066cc;
 }
 

@@ -17,10 +17,31 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
     <div class="all-content-wrapper">
     <?php include __DIR__."/statstableeditor.html" ?>
 
-        <div class="buttons-block">
-            <button id="addNewTable" title="Add new statisctics table" class="btn btn-primary"><i
-                    class="bi bi-plus-circle-fill"></i>&nbsp;New</button>
-        </div>
+    <script>
+        let availableClmns = <?= json_encode(AvailableColumns::get_columns_for_type('stats')) ?>;
+        let availableDimensions = <?= json_encode(AvailableColumns::get_columns_for_type('groupby')) ?>;
+    </script>
+    <div class="buttons-block">
+        <button id="addNewTable" title="Add new statisctics table" class="btn btn-primary"><i
+                class="bi bi-plus-circle-fill"></i>&nbsp;New</button>
+    </div>
+    <script>
+        $('#addNewTable').click(() => {
+            initializeStatsTableEditor(
+                availableClmns,
+                [], // no selected columns
+                availableDimensions,
+                [], // no selected group by
+                '', // no table name
+                'clmnseditor.php?action=statstable'
+            );
+            $('#statsTableModal').modal({
+                escapeClose: false,
+                clickClose: false,
+                showClose: false
+            });
+        });
+    </script>
     <?php
     $tableData ='';
     $ss = $c->statistics;
@@ -84,16 +105,16 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                     t<?=$tName?>Table.download("csv", "<?=$tName?>_data.csv");
                 };
                 document.getElementById("columnsSelect<?=$tName?>").onclick = async () => {
-                    let availableClmns = <?= json_encode(AvailableColumns::get_columns_for_type('stats')) ?>;
                     let selectedClmns = <?= json_encode($tSettings->columns) ?>;
                     let selectedDimensions = <?= json_encode($tSettings->groupby) ?>;
                     
                     initializeStatsTableEditor(
                         availableClmns,
                         selectedClmns,
+                        availableDimensions,
                         selectedDimensions,
                         "<?=$tName?>",
-                        `clmnseditor.php?action=savecolumns&table=<?=$tName?>&campid=<?=$campId?>`
+                        `clmnseditor.php?action=statstable&table=<?=$tName?>&campid=<?=$campId?>`
                     );
 
                     $('#statsTableModal').modal({
@@ -103,6 +124,10 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                         showClose: false
                     });
                 };
+                $('#delete<?=$tName?>').click((e) => {
+                    const tableName = $(e.target).data('table-name');
+                    deleteStatsTable(tableName, 'clmnseditor.php?action=statstable');
+                });
             </script>
             <br/>
             <br/>

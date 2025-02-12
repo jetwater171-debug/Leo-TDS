@@ -88,10 +88,16 @@ class AvailableColumns
         "date",
         "preland",
         "land",
-        "isp",
         "country",
+        "isp",
         "lang",
-        "os"
+        "os",
+        "osver",
+        "device",
+        "brand",
+        "model",
+        "client",
+        "clientver"
     ];
 
     static $statsColumns = [

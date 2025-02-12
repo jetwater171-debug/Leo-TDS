@@ -36,6 +36,17 @@ function addColumnsToList(selectedClmns, availableClmns) {
     
     // Initialize new Sortable instance
     columnsSortable = initializeSortable('columnsList', 'columns');
+
+    // Setup select/deselect buttons
+    setupSelectButtons('selectAllColumns', 'deselectAllColumns', 'columnsList');
+
+    // Attach checkbox change handlers
+    $('#columnsList input[type="checkbox"]').on('change', function() {
+        updateSaveButtonState();
+    });
+
+    // Initial button state
+    updateSaveButtonState();
 }
 
 function getSelectedColumns() {

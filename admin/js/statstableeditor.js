@@ -1,108 +1,52 @@
 // Stats Table Editor functionality
-function initializeStatsTableEditor(availableColumns, selectedMetrics, selectedDimensions, tableName, saveUrl) {
+function initializeStatsTableEditor(availableColumns, selectedMetrics, availableDimensions, selectedDimensions, tableName, saveUrl) {
     // Initialize Sortable.js for both lists
-    new Sortable(document.getElementById('metricsColumns'), {
-        animation: 150,
-        group: 'metrics'
-    });
-    new Sortable(document.getElementById('dimensionsColumns'), {
-        animation: 150,
-        group: 'dimensions'
-    });
+    initializeSortable('metricsColumns', 'metrics');
+    initializeSortable('dimensionsColumns', 'dimensions');
 
     // Set table name if provided
     const tableNameInput = document.getElementById('tableName');
     if (tableName) {
-        console.log('Setting table name to:', tableName);
         tableNameInput.value = tableName;
     }
 
-    // Convert arrays to proper format
-    function convertToColumnObjects(array) {
-        if (Array.isArray(array) && array.length > 0 && typeof array[0] === 'string') {
-            return array.map(field => ({
-                field: field,
-                title: field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ')
-            }));
-        }
-        return array;
-    }
+    // Add metrics columns
+    addColumnsToList('metricsColumns', selectedMetrics, availableColumns.metrics, true);
 
-    function convertToMetricObjects(array) {
-        if (Array.isArray(array) && array.length > 0 && typeof array[0] === 'string') {
-            return array.map(field => (field));
-        }
-        return array;
-    }
+    // Add dimensions columns
+    addColumnsToList('dimensionsColumns', selectedDimensions, availableDimensions, true);
 
-    availableColumns = convertToColumnObjects(availableColumns);
-    selectedMetrics = convertToMetricObjects(selectedMetrics);
-    selectedDimensions = convertToMetricObjects(selectedDimensions);
+    // Setup select/deselect buttons
+    setupSelectButtons('selectAllMetrics', 'deselectAllMetrics', 'metricsColumns');
+    setupSelectButtons('selectAllDimensions', 'deselectAllDimensions', 'dimensionsColumns');
 
-    // Populate columns lists
-    function addColumnsToList($list, columns, selectedItems, fieldKey = 'field') {
-        $list.empty();
-        columns.forEach(column => {
-            const isSelected = selectedItems.some(item => 
-                (typeof item === 'string' ? item : item[fieldKey]) === column.field
-            );
-            const $item = $(`
-                <div class="column-item" data-field="${column.field}">
-                    <input type="checkbox" ${isSelected ? 'checked' : ''}>
-                    <span>${column.title || column.field}</span>
-                </div>
-            `);
-            $list.append($item);
-        });
-    }
+    // Attach checkbox change handlers
+    $('#metricsColumns input[type="checkbox"], #dimensionsColumns input[type="checkbox"]').on('change', function() {
+        updateSaveButtonState();
+    });
 
-    addColumnsToList($('#metricsColumns'), availableColumns, selectedMetrics);
-    addColumnsToList($('#dimensionsColumns'), availableColumns, selectedDimensions);
+    // Initial button state
+    updateSaveButtonState();
 
-    // Select/Deselect All handlers
-    function setupSelectButtons(prefix, containerId) {
-        $(`#selectAll${prefix}`).click(() => {
-            $(`#${containerId} input[type="checkbox"]`).prop('checked', true);
-        });
-
-        $(`#deselectAll${prefix}`).click(() => {
-            $(`#${containerId} input[type="checkbox"]`).prop('checked', false);
-        });
-    }
-
-    setupSelectButtons('Metrics', 'metricsColumns');
-    setupSelectButtons('Dimensions', 'dimensionsColumns');
-
-    // Save button handler
-    $('#saveTableBtn').off('click').click(async () => {
-        const tableName = $('#tableName').val().trim();
-        console.log('Saving with table name:', tableName);
-        
-        if (!tableName) {
+    // Setup save handler
+    $('#saveTableBtn').click(async () => {
+        const name = tableNameInput.value.trim();
+        if (!name) {
             alert('Please enter a table name');
             return;
         }
 
-        const selectedMetrics = $('#metricsColumns .column-item')
-            .filter((_, item) => $(item).find('input').is(':checked'))
-            .map((_, item) => $(item).data('field'))
-            .get();
-
-        const selectedDimensions = $('#dimensionsColumns .column-item')
-            .filter((_, item) => $(item).find('input').is(':checked'))
-            .map((_, item) => $(item).data('field'))
-            .get();
-
-        if (selectedMetrics.length === 0) {
-            alert('Please select at least one metric');
+        const columns = getSelectedItems('metricsColumns');
+        if (columns.length === 0) {
+            alert('Please select at least one metric column');
             return;
         }
 
-        const data = {
-            name: tableName,
-            columns: selectedMetrics,
-            groupby: selectedDimensions
-        };
+        const groupby = getSelectedItems('dimensionsColumns');
+        if (groupby.length === 0) {
+            alert('Please select at least one dimension for grouping');
+            return;
+        }
 
         try {
             const response = await fetch(saveUrl, {
@@ -110,22 +54,118 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, selectedD
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    action: 'statstable',
+                    table: {
+                        name: name,
+                        columns: columns,
+                        groupby: groupby
+                    }
+                })
             });
 
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
 
-            $.modal.close();
-            location.reload();
+            const data = await response.json();
+            if (!data.error) {
+                window.location.reload();
+            } else {
+                throw new Error(data.msg);
+            }
         } catch (error) {
             alert('Error saving table: ' + error.message);
         }
     });
 
-    // Cancel button handler
+    // Setup cancel handler
     $('#cancelTableBtn').click(() => {
         $.modal.close();
     });
+}
+
+function deleteStatsTable(tableName, deleteUrl) {
+    if (!confirm(`Are you sure you want to delete table "${tableName}"?`)) {
+        return;
+    }
+
+    fetch(deleteUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'statstable',
+            action: 'delete',
+            tableName: tableName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.error) {
+            window.location.reload();
+        } else {
+            throw new Error(data.msg);
+        }
+    })
+    .catch(error => {
+        alert('Error deleting table: ' + error.message);
+    });
+}
+
+// Helper functions
+function initializeSortable(containerId, group) {
+    new Sortable(document.getElementById(containerId), {
+        animation: 150,
+        group: group
+    });
+}
+
+function addColumnsToList(containerId, selectedItems, columns, isSelected) {
+    const $list = $('#' + containerId);
+    $list.empty();
+    
+    columns.forEach(column => {
+        const field = typeof column === 'string' ? column : column.field;
+        const title = typeof column === 'string' ? formatColumnName(column) : (column.title || formatColumnName(column.field));
+        const $item = $(`
+            <div class="column-item" data-field="${field}">
+                <span class="drag-handle">☰</span>
+                <input type="checkbox" ${isSelected ? 'checked' : ''}>
+                <span>${title}</span>
+            </div>
+        `);
+        $list.append($item);
+    });
+
+    // Attach checkbox change handlers
+    $(`#${containerId} input[type="checkbox"]`).on('change', function() {
+        updateSaveButtonState();
+    });
+}
+
+function setupSelectButtons(selectAllId, deselectAllId, containerId) {
+    $('#' + selectAllId).click(() => {
+        $('#' + containerId + ' input[type="checkbox"]').prop('checked', true);
+    });
+
+    $('#' + deselectAllId).click(() => {
+        $('#' + containerId + ' input[type="checkbox"]').prop('checked', false);
+    });
+}
+
+function getSelectedItems(containerId) {
+    return $('#' + containerId + ' .column-item')
+        .filter((_, item) => $(item).find('input').is(':checked'))
+        .map((_, item) => $(item).data('field'))
+        .get();
+}
+
+function updateSaveButtonState() {
+    const metricsSelected = $('#metricsColumns input[type="checkbox"]:checked').length > 0;
+    const dimensionsSelected = $('#dimensionsColumns input[type="checkbox"]:checked').length > 0;
+    const tableName = document.getElementById('tableName').value.trim();
+
+    $('#saveTableBtn').prop('disabled', !metricsSelected || !dimensionsSelected || !tableName);
 }

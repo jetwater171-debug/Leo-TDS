@@ -41,6 +41,42 @@ switch ($action) {
         $newColumns = get_new_columns($currentColumns, $data);
         save_columns_for_type($newColumns, $table, $campId);
         break;
+    case 'statstable':
+        $data = json_decode($postData, true);
+        if (empty($data)) {
+            return send_clmnseditor_result("Error: missing table data", true);
+        }
+
+        if (!isset($data['action'])) {
+            return send_clmnseditor_result("Error: missing action", true);
+        }
+
+        switch ($data['action']) {
+            case 'save':
+                if (!isset($data['table'])) {
+                    return send_clmnseditor_result("Error: missing table configuration", true);
+                }
+                
+                $tableConfig = $data['table'];
+                if (!isset($tableConfig['name']) || !isset($tableConfig['columns']) || !isset($tableConfig['groupby'])) {
+                    return send_clmnseditor_result("Error: invalid table configuration", true);
+                }
+
+                save_stats_table($campId, $tableConfig);
+                break;
+
+            case 'delete':
+                if (!isset($data['tableName'])) {
+                    return send_clmnseditor_result("Error: missing table name", true);
+                }
+
+                delete_stats_table($campId, $data['tableName']);
+                break;
+
+            default:
+                return send_clmnseditor_result("Error: unknown action", true);
+        }
+        break;
     default:
         return send_clmnseditor_result("Error: wrong action!",true);
 }
@@ -170,4 +206,77 @@ function save_columns_for_type(array $columns, string $table, ?int $campId = nul
             trigger_error($errMsg, E_USER_ERROR);
             exit;
     }
+}
+
+function save_stats_table($campId, $tableConfig) {
+    global $db;
+    $s = $db->get_campaign_settings($campId);
+    if (empty($s)) {
+        return send_clmnseditor_result("Error: campaign not found", true);
+    }
+    $campaign = new Campaign($campId, $s);
+
+    $settings = $campaign->getStatisticsSettings();
+    if (!$settings) {
+        $settings = new StatisticsSettings();
+    }
+
+    // Find if table with this name already exists
+    $existingTableIndex = -1;
+    foreach ($settings->tables as $index => $table) {
+        if ($table->name === $tableConfig['name']) {
+            $existingTableIndex = $index;
+            break;
+        }
+    }
+
+    // Create new table object
+    $table = new StatisticsTable($tableConfig['name'],$tableConfig['columns'],$tableConfig['groupby']);
+
+    // Update or add the table
+    if ($existingTableIndex >= 0) {
+        $settings->tables[$existingTableIndex] = $table;
+    } else {
+        $settings->tables[] = $table;
+    }
+
+    // Save settings
+    $campaign->setStatisticsSettings($settings);
+    $campaign->save();
+
+    return send_clmnseditor_result("Table saved successfully");
+}
+
+function delete_stats_table($campId, $tableName) {
+    global $db;
+    $s = $db->get_campaign_settings($campId);
+    if (empty($s)) {
+        return send_clmnseditor_result("Error: campaign not found", true);
+    }
+
+    $campaign = new Campaign($campId, $s);
+    $settings = $campaign->getStatisticsSettings();
+    if (!$settings) {
+        return send_clmnseditor_result("Error: no statistics settings found", true);
+    }
+
+    // Find and remove the table
+    $found = false;
+    foreach ($settings->tables as $index => $table) {
+        if ($table->name === $tableName) {
+            array_splice($settings->tables, $index, 1);
+            $found = true;
+            break;
+        }
+    }
+
+    if (!$found) {
+        return send_clmnseditor_result("Error: table not found", true);
+    }
+
+    // Save settings
+    $campaign->setStatisticsSettings($settings);
+    $campaign->save();
+
+    return send_clmnseditor_result("Table deleted successfully");
 }
