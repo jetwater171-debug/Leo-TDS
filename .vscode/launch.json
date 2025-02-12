@@ -2,31 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Listen for Xdebug",
-            "type": "php",
-            "request": "launch",
-            "port": 9003,
-            "pathMappings": {
-                "/var/www/html": "${workspaceFolder}"
-            }
-        },
-        {
             "name": "Launch PHP Server & Debug",
             "type": "php",
             "request": "launch",
+            "port": 9003,
+            "runtimeExecutable": "php",
             "runtimeArgs": [
                 "-S",
                 "localhost:8080",
                 "-t",
-                "${workspaceFolder}"
+                "."
             ],
-            "preLaunchTask": "Launch PHP Server",
-            "port": 9003
         },
         {
             "name": "Launch Firefox (Admin)",
             "type": "firefox",
-            "firefoxExecutable": "C:\\Users\\allsp\\AppData\\Local\\Mozilla Firefox\\firefox.exe",
             "request": "launch",
             "url": "http://localhost:8080/admin/",
             "webRoot": "${workspaceFolder}",
