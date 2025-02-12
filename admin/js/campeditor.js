@@ -5,7 +5,8 @@ async function campEditor(action, campId=null, name=null) {
     if (name)
         body += `&name=${name}`;
 
-    let curPath = window.location.href;
+    let url = new URL(window.location.href);
+    let curPath = url.origin + url.pathname;
     if (curPath.endsWith(".php"))
         curPath = curPath.split('/').slice(0, -1).join('/');
     if (!curPath.endsWith("/"))
