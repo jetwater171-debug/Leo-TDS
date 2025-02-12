@@ -276,21 +276,6 @@ class Db
                 case 'uniques_ratio':
                     $selectParts[] = "(COUNT(DISTINCT subid)*1.0/COUNT(*) * 100.0) AS uniques_ratio";
                     break;
-                case 'conversion':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN subid END) AS conversion";
-                    break;
-                case 'purchase':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Purchase' THEN subid END) AS purchase";
-                    break;
-                case 'hold':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Lead' THEN subid END) AS hold";
-                    break;
-                case 'reject':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Reject' THEN subid END) AS reject";
-                    break;
-                case 'trash':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Trash' THEN subid END) AS trash";
-                    break;
                 case 'lpclicks':
                     $selectParts[] = "COUNT(DISTINCT CASE WHEN lpclick = 1 THEN c.id END) AS lpclicks";
                     break;
@@ -302,6 +287,18 @@ class Db
                     break;
                 case 'crs':
                     $selectParts[] = "(COUNT(DISTINCT CASE WHEN status = 'Purchase' THEN c.id END) * 100.0 / COUNT(*)) AS crs";
+                    break;
+                case 'epc':
+                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(c.id)) AS epc";
+                    break;
+                case 'uepc':
+                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(DISTINCT(subid))) AS uepc";
+                    break;
+                case 'cpc':
+                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(c.id)) AS cpc";
+                    break;
+                case 'ucpc':
+                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(DISTINCT(subid))) AS ucpc";
                     break;
                 case 'appt':
                     $selectParts[] = "CASE
@@ -319,20 +316,32 @@ class Db
                             ELSE (COUNT(DISTINCT CASE WHEN status = 'Purchase' THEN c.id END) * 100.0 / COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN c.id END))
                        END AS app";
                     break;
-                case 'cpc':
-                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(c.id)) AS cpc";
+                case 'conversion':
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN subid END) AS conversion";
                     break;
-                case 'costs':
-                    $selectParts[] = "SUM(cost) AS costs";
+                case 'purchase':
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Purchase' THEN subid END) AS purchase";
                     break;
-                case 'epc':
-                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(c.id)) AS epc";
+                case 'hold':
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Lead' THEN subid END) AS hold";
                     break;
-                case 'epuc':
-                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(DISTINCT(subid))) AS epuc";
+                case 'reject':
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Reject' THEN subid END) AS reject";
+                    break;
+                case 'trash':
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Trash' THEN subid END) AS trash";
+                    break;
+                case 'ec':
+                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN subid END)) AS ec";
+                    break;
+                case 'cpa':
+                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN subid END)) AS cpa";
                     break;
                 case 'revenue':
                     $selectParts[] = "SUM(payout) AS revenue";
+                    break;
+                case 'costs':
+                    $selectParts[] = "SUM(cost) AS costs";
                     break;
                 case 'profit':
                     $selectParts[] = "(SUM(payout) - SUM(cost)) as profit";
