@@ -68,7 +68,6 @@ class AvailableColumns
         "phone"
     ];
     static $trafficbackColumns = [
-        "clicks",
         "ip",
         "country",
         "lang",
