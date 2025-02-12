@@ -462,6 +462,45 @@ class TableColumns
             ],
             "bottomCalc" => "avg"
         ],
+        'ucpc' => [
+            "title" => "CPuC",
+            "headerTooltip" => "Cost per unique click",
+            "field" => "ucpc",
+            "width" => "90",
+            "formatter" => "money",
+            "formatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
+            "bottomCalc" => "avg"
+        ],
+        'cpa' => [
+            "title" => "CPA",
+            "headerTooltip" => "Cost per action (conversion)",
+            "field" => "cpa",
+            "width" => "90",
+            "formatter" => "money",
+            "formatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
+            "bottomCalc" => "avg"
+        ],
+        'ec' => [
+            "title" => "EC",
+            "headerTooltip" => "Earnings per conversion",
+            "field" => "ec",
+            "width" => "90",
+            "formatter" => "money",
+            "formatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
+            "bottomCalc" => "avg"
+        ],
         'costs' => [
             "title" => "Costs",
             "headerTooltip" => "Traffic costs",
@@ -491,10 +530,10 @@ class TableColumns
             ],
             "bottomCalc" => "avg"
         ],
-        'epuc' => [
+        'uepc' => [
             "title" => "EPuC",
             "headerTooltip" => "Earnings Per Unique Click",
-            "field" => "epuc",
+            "field" => "uepc",
             "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
