@@ -11,7 +11,7 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
     }
 
     // Add metrics columns
-    addColumnsToList('metricsColumns', selectedMetrics, availableColumns.metrics, true);
+    addColumnsToList('metricsColumns', selectedMetrics, availableColumns, true);
 
     // Add dimensions columns
     addColumnsToList('dimensionsColumns', selectedDimensions, availableDimensions, true);

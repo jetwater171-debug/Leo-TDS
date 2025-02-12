@@ -10,25 +10,27 @@
                 <input type="text" class="form-control" id="tableName">
             </div>
 
-            <div class="columns-section">
-                <h5>Columns</h5>
-                <div class="btn-group">
-                    <button id="selectAllMetrics" class="btn btn-sm btn-outline-secondary">Select All</button>
-                    <button id="deselectAllMetrics" class="btn btn-sm btn-outline-secondary">Deselect All</button>
+            <div class="columns-flex-container">
+                <div class="columns-section">
+                    <h5>Columns</h5>
+                    <div class="btn-group">
+                        <button id="selectAllMetrics" class="btn btn-sm btn-outline-secondary">Select All</button>
+                        <button id="deselectAllMetrics" class="btn btn-sm btn-outline-secondary">Deselect All</button>
+                    </div>
+                    <div class="columns-container">
+                        <div id="metricsColumns" class="metricsColumns"></div>
+                    </div>
                 </div>
-                <div class="columns-container">
-                    <div id="metricsColumns" class="metricsColumns"></div>
-                </div>
-            </div>
 
-            <div class="columns-section">
-                <h5>GroupBy</h5>
-                <div class="btn-group">
-                    <button id="selectAllDimensions" class="btn btn-sm btn-outline-secondary">Select All</button>
-                    <button id="deselectAllDimensions" class="btn btn-sm btn-outline-secondary">Deselect All</button>
-                </div>
-                <div class="columns-container">
-                    <div id="dimensionsColumns" class="dimensionsColumns"></div>
+                <div class="columns-section">
+                    <h5>GroupBy</h5>
+                    <div class="btn-group">
+                        <button id="selectAllDimensions" class="btn btn-sm btn-outline-secondary">Select All</button>
+                        <button id="deselectAllDimensions" class="btn btn-sm btn-outline-secondary">Deselect All</button>
+                    </div>
+                    <div class="columns-container">
+                        <div id="dimensionsColumns" class="dimensionsColumns"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -40,89 +42,4 @@
 </div>
 
 <script src="js/sortable-common.js"></script>
-<script>
-function initializeStatsTableEditor(availableColumns, selectedMetrics, selectedDimensions, tableName, saveUrl) {
-    // Initialize Sortable.js for both lists
-    initializeSortable('metricsColumns', 'metrics');
-    initializeSortable('dimensionsColumns', 'dimensions');
-
-    // Set table name if provided
-    const tableNameInput = document.getElementById('tableName');
-    if (tableName) {
-        console.log('Setting table name to:', tableName); // Debug log
-        tableNameInput.value = tableName;
-    }
-
-    // Convert arrays to objects if needed
-    availableColumns = convertArrayToObjects(availableColumns);
-    selectedMetrics = convertToColumnObjects(selectedMetrics);
-    selectedDimensions = convertToColumnObjects(selectedDimensions);
-
-    // Add columns to metrics list
-    const $metricsList = $('#metricsColumns');
-    $metricsList.empty();
-    availableColumns.forEach(column => {
-        const isSelected = selectedMetrics.some(sc => sc.field === column.field);
-        $metricsList.append(createSortableItem(column.field, column.title, isSelected));
-    });
-
-    // Add columns to dimensions list
-    const $dimensionsList = $('#dimensionsColumns');
-    $dimensionsList.empty();
-    availableColumns.forEach(column => {
-        const isSelected = selectedDimensions.some(sd => sd.field === column.field);
-        $dimensionsList.append(createSortableItem(column.field, column.title, isSelected));
-    });
-
-    // Setup select/deselect buttons
-    setupSelectButtons('selectAllMetrics', 'deselectAllMetrics', 'metricsColumns');
-    setupSelectButtons('selectAllDimensions', 'deselectAllDimensions', 'dimensionsColumns');
-
-    // Setup save and cancel buttons
-    setupModalButtons('saveTableBtn', 'cancelTableBtn', async () => {
-        const tableName = $('#tableName').val().trim();
-        console.log('Saving with table name:', tableName); // Debug log
-        
-        if (!tableName) {
-            alert('Please enter a table name');
-            return;
-        }
-
-        const selectedMetrics = getSelectedItems('metricsColumns');
-        const selectedDimensions = $('#dimensionsColumns .sortable-item')
-            .filter((_, item) => $(item).find('input').is(':checked'))
-            .map((_, item) => $(item).data('field'))
-            .get();
-
-        if (selectedMetrics.length === 0) {
-            alert('Please select at least one metric');
-            return;
-        }
-
-        const data = {
-            name: tableName,
-            columns: selectedMetrics,
-            groupby: selectedDimensions
-        };
-
-        try {
-            const response = await fetch(saveUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            $.modal.close();
-            location.reload();
-        } catch (error) {
-            alert('Error saving table: ' + error.message);
-        }
-    });
-}
-</script>
+<script src="js/statstableeditor.js"></script>

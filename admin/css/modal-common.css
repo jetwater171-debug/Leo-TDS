@@ -8,7 +8,6 @@
     background: #151b2d !important;
     padding: 0 !important;
     border-radius: 12px !important;
-    width: 400px !important;
     margin: 0 !important;
     max-height: 90vh !important;
     z-index: 999999 !important;
@@ -82,6 +81,18 @@
 
 .columns-container::-webkit-scrollbar-thumb:hover {
     background: #3a4759;
+}
+
+/* Add new styles for flex layout */
+.columns-flex-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.columns-flex-container .columns-section {
+    flex: 1;
+    min-width: 0; /* Prevent flex items from overflowing */
 }
 
 /* Buttons */
@@ -187,4 +198,13 @@
 /* Make sure modal is hidden by default and only shown when needed */
 .modal {
     display: none;
+}
+
+/* Specific modal sizes */
+#statsTableModal.ywbmodal {
+    width: 1000px !important;
+}
+
+#statsTableModal .modal-content {
+    width: 1000px;
 }

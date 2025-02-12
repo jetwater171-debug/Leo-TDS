@@ -125,8 +125,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                     });
                 };
                 $('#delete<?=$tName?>').click((e) => {
-                    const tableName = $(e.target).data('table-name');
-                    deleteStatsTable(tableName, 'clmnseditor.php?action=statstable');
+                    deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=statstable');
                 });
             </script>
             <br/>
