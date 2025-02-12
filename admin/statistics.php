@@ -40,7 +40,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
 
             <div class="buttons-block" style="float: right;">
                 <button id="columnsSelect<?=$tName?>" title="Edit table" class="btn btn-info"><i
-                        class="bi bi-pencil-fill"></i></button>
+                        class="bi bi-layout-three-columns"></i></button>
                 <button id="download<?=$tName?>" title="Download table as CSV" class="btn btn-success"><i
                         class="bi bi-download"></i></button>
                 <button id="delete<?=$tName?>" title="Delete table" class="btn btn-danger"><i

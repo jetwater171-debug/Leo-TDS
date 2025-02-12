@@ -247,14 +247,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const response = await fetch('../bases/update.php');
-            const result = await response.json();
-            if (result.success) {
+            const jsr = await response.json();
+            if (!jsr.error) {
+                alert('Update SUCCESSFULL: ' + jsr.result);
                 location.reload();
             } else {
-                alert('Error updating bases: ' + result.error);
+                alert('Error updating geobases: ' + jsr.result);
             }
         } catch (error) {
-            alert('Error updating bases: ' + error);
+            alert('Error updating geobases: ' + error);
         } finally {
             if (typingCleanup) typingCleanup();
             loadingAnimation.style.display = 'none';
@@ -263,7 +264,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Modified checkForUpdates function
+async function sendAutoupdateRequest(action) {
+    const response = await fetch('autoupdate.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `action=${action}`
+    });
+    return await response.json();
+}
+
 async function checkForUpdates() {
     const updateOverlay = document.getElementById('updateOverlay');
     const typingText = document.getElementById('typing-text');
@@ -274,16 +285,8 @@ async function checkForUpdates() {
     typingCleanup = typeText('SYSTEM UPDATING...', typingText);
 
     try {
-        const response = await fetch('autoupdate.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=check'
-        });
+        const result = await sendAutoupdateRequest('check');
         
-
-        const result = await response.json();
         if (!result.success) {
             alert('Error checking for updates: ' + result.message);
             return;
@@ -295,16 +298,7 @@ async function checkForUpdates() {
         }
         
         if (confirm(`An update to version ${result.version} is available. Would you like to update now?`)) {
-            
-            const updateResponse = await fetch('autoupdate.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'action=update'
-            });
-            
-            const updateResult = await updateResponse.json();
+            const updateResult = await sendAutoupdateRequest('update');
             
             if (updateResult.success) {
                 alert('Update successful! The page will now reload.');
