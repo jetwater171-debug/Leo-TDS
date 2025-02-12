@@ -6,7 +6,11 @@ function formatColumnName(field) {
 function initializeSortable(elementId, group) {
     return new Sortable(document.getElementById(elementId), {
         animation: 150,
-        group: group
+        group: group,
+        handle: '.drag-handle', // Add handle for dragging
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag'
     });
 }
 
@@ -22,10 +26,7 @@ function convertArrayToObjects(array) {
 
 function convertToColumnObjects(array) {
     if (Array.isArray(array) && array.length > 0 && typeof array[0] === 'string') {
-        return array.map(field => ({
-            field: field,
-            width: -1
-        }));
+        return array.map(field => (field));
     }
     return array;
 }
@@ -33,6 +34,7 @@ function convertToColumnObjects(array) {
 function createSortableItem(field, title, isChecked) {
     return `
         <div class="sortable-item" data-field="${field}">
+            <span class="drag-handle">☰</span>
             <input type="checkbox" ${isChecked ? 'checked' : ''}>
             <span>${title || formatColumnName(field)}</span>
         </div>
@@ -42,10 +44,7 @@ function createSortableItem(field, title, isChecked) {
 function getSelectedItems(containerId) {
     return $(`#${containerId} .sortable-item`)
         .filter((_, item) => $(item).find('input').is(':checked'))
-        .map((_, item) => ({
-            field: $(item).data('field'),
-            width: -1
-        }))
+        .map((_, item) => $(item).data('field'))
         .get();
 }
 

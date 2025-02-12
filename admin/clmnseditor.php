@@ -34,11 +34,11 @@ switch ($action) {
         break;
     case 'savecolumns':
         $data = json_decode($postData, true);
-        if (!isset($data['columns'])) {
+        if (empty($data)) {
             return send_clmnseditor_result("Error: missing columns data", true);
         }
         
-        $newColumns = get_new_columns($currentColumns, $data['columns']);
+        $newColumns = get_new_columns($currentColumns, $data);
         save_columns_for_type($newColumns, $table, $campId);
         break;
     default:

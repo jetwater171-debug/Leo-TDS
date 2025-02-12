@@ -30,10 +30,7 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, selectedD
 
     function convertToMetricObjects(array) {
         if (Array.isArray(array) && array.length > 0 && typeof array[0] === 'string') {
-            return array.map(field => ({
-                field: field,
-                width: -1
-            }));
+            return array.map(field => (field));
         }
         return array;
     }
@@ -88,10 +85,7 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, selectedD
 
         const selectedMetrics = $('#metricsColumns .column-item')
             .filter((_, item) => $(item).find('input').is(':checked'))
-            .map((_, item) => ({
-                field: $(item).data('field'),
-                width: -1
-            }))
+            .map((_, item) => $(item).data('field'))
             .get();
 
         const selectedDimensions = $('#dimensionsColumns .column-item')

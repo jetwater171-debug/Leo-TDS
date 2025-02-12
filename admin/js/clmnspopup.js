@@ -1,20 +1,41 @@
+let columnsSortable = null;
+
 function addColumnsToList(selectedClmns, availableClmns) {
-    let $list = $('#columnsList');
+    const $list = $('#columnsList');
     $list.empty();
     
     // First add selected columns in their saved order
     selectedClmns.forEach(column => {
-        $list.append(createSortableItem(column.field, formatColumnName(column.field), true));
+        $list.append(createSortableItem(
+            typeof column === 'string' ? column : column.field,
+            formatColumnName(typeof column === 'string' ? column : column.field),
+            true
+        ));
     });
 
     // Then add unselected columns
     availableClmns.forEach(column => {
-        if (!selectedClmns.some(sc => sc.field === column)) {
-            $list.append(createSortableItem(column, formatColumnName(column), false));
+        const columnField = typeof column === 'string' ? column : column.field;
+        const isSelected = selectedClmns.some(sc => 
+            (typeof sc === 'string' ? sc : sc.field) === columnField
+        );
+        
+        if (!isSelected) {
+            $list.append(createSortableItem(
+                columnField,
+                formatColumnName(columnField),
+                false
+            ));
         }
     });
     
-    initializeSortable('columnsList', 'columns');
+    // Destroy existing Sortable instance if it exists
+    if (columnsSortable) {
+        columnsSortable.destroy();
+    }
+    
+    // Initialize new Sortable instance
+    columnsSortable = initializeSortable('columnsList', 'columns');
 }
 
 function getSelectedColumns() {
@@ -43,8 +64,12 @@ function setSaveButtonHandler(handlerUrl) {
                 throw new Error('Network response was not ok');
             }
 
-            $.modal.close();
-            location.reload();
+            const data = await response.json();
+            if (!data.error) {
+                window.location.reload();
+            } else {
+                throw new Error(data.msg);
+            }
         } catch (error) {
             alert('Error saving columns: ' + error.message);
         }

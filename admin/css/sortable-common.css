@@ -14,7 +14,7 @@
     background: #1a2235;
     border: 1px solid #2a3245;
     border-radius: 6px;
-    cursor: move;
+    cursor: default;
     display: flex;
     align-items: center;
     user-select: none;
@@ -30,10 +30,9 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.sortable-item::before,
-.column-item::before {
-    content: "☰";
-    margin-right: 12px;
+.drag-handle {
+    cursor: move;
+    margin-right: 8px;
     color: #4a5568;
     font-size: 14px;
 }
@@ -76,14 +75,18 @@
     font-weight: 500;
 }
 
-.sortable-item.sortable-ghost,
-.column-item.sortable-ghost {
+.sortable-ghost {
     opacity: 0.4;
     background: #2d3748;
 }
 
-.sortable-item.sortable-chosen,
-.column-item.sortable-chosen {
+.sortable-chosen {
     background: #212b40;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sortable-drag {
+    opacity: 1;
+    background: #1e293b;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
