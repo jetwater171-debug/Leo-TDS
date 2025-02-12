@@ -199,12 +199,3 @@
 .modal {
     display: none;
 }
-
-/* Specific modal sizes */
-#statsTableModal.ywbmodal {
-    width: 1000px !important;
-}
-
-#statsTableModal .modal-content {
-    width: 1000px;
-}

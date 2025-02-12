@@ -1,5 +1,7 @@
 // Stats Table Editor functionality
 function initializeStatsTableEditor(availableColumns, selectedMetrics, availableDimensions, selectedDimensions, tableName, saveUrl) {
+    const MAX_GROUPBY_SELECTIONS = 3;
+    
     // Initialize Sortable.js for both lists
     initializeSortable('metricsColumns', 'metrics');
     initializeSortable('dimensionsColumns', 'dimensions');
@@ -18,10 +20,34 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
 
     // Setup select/deselect buttons
     setupSelectButtons('selectAllMetrics', 'deselectAllMetrics', 'metricsColumns');
-    setupSelectButtons('selectAllDimensions', 'deselectAllDimensions', 'dimensionsColumns');
+    setupSelectButtons('selectAllDimensions', 'deselectAllDimensions', 'dimensionsColumns', MAX_GROUPBY_SELECTIONS);
 
     // Attach checkbox change handlers
-    $('#metricsColumns input[type="checkbox"], #dimensionsColumns input[type="checkbox"]').on('change', function() {
+    $('#metricsColumns input[type="checkbox"]').on('change', function() {
+        updateSaveButtonState();
+    });
+
+    // Special handler for dimensions checkboxes
+    $('#dimensionsColumns input[type="checkbox"]').on('change', function() {
+        const $allDimensionCheckboxes = $('#dimensionsColumns input[type="checkbox"]');
+        const selectedCount = $allDimensionCheckboxes.filter(':checked').length;
+
+        // If we have 3 selected items, disable all unselected checkboxes
+        $allDimensionCheckboxes.not(':checked').prop('disabled', selectedCount >= MAX_GROUPBY_SELECTIONS);
+
+        // If we have less than 3 selected items, enable all checkboxes
+        if (selectedCount < MAX_GROUPBY_SELECTIONS) {
+            $allDimensionCheckboxes.prop('disabled', false);
+        }
+
+        // Update the "Select All" button state
+        $('#selectAllDimensions').prop('disabled', selectedCount >= MAX_GROUPBY_SELECTIONS);
+
+        updateSaveButtonState();
+    });
+
+    // Add table name input handler
+    $('#tableName').on('input', function() {
         updateSaveButtonState();
     });
 
@@ -45,6 +71,11 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
         const groupby = getSelectedItems('dimensionsColumns');
         if (groupby.length === 0) {
             alert('Please select at least one dimension for grouping');
+            return;
+        }
+
+        if (groupby.length > MAX_GROUPBY_SELECTIONS) {
+            alert(`You can select at most ${MAX_GROUPBY_SELECTIONS} dimensions for grouping`);
             return;
         }
 
@@ -145,13 +176,18 @@ function addColumnsToList(containerId, selectedItems, columns, isSelected) {
     });
 }
 
-function setupSelectButtons(selectAllId, deselectAllId, containerId) {
+function setupSelectButtons(selectAllId, deselectAllId, containerId, maxSelections = null) {
     $('#' + selectAllId).click(() => {
-        $('#' + containerId + ' input[type="checkbox"]').prop('checked', true);
+        const $checkboxes = $('#' + containerId + ' input[type="checkbox"]').not(':disabled');
+        if (maxSelections && $checkboxes.length > maxSelections) {
+            alert(`You can select at most ${maxSelections} items`);
+            return;
+        }
+        $checkboxes.prop('checked', true).trigger('change');
     });
 
     $('#' + deselectAllId).click(() => {
-        $('#' + containerId + ' input[type="checkbox"]').prop('checked', false);
+        $('#' + containerId + ' input[type="checkbox"]').prop('checked', false).trigger('change');
     });
 }
 
@@ -165,7 +201,11 @@ function getSelectedItems(containerId) {
 function updateSaveButtonState() {
     const metricsSelected = $('#metricsColumns input[type="checkbox"]:checked').length > 0;
     const dimensionsSelected = $('#dimensionsColumns input[type="checkbox"]:checked').length > 0;
-    const tableName = document.getElementById('tableName').value.trim();
+    const tableName = $('#tableName').val().trim();
 
     $('#saveTableBtn').prop('disabled', !metricsSelected || !dimensionsSelected || !tableName);
+}
+
+function formatColumnName(field) {
+    return field.split(/(?=[A-Z])/).join(' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
