@@ -36,8 +36,9 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                 'clmnseditor.php?action=statstable'
             );
             $('#statsTableModal').modal({
-                escapeClose: false,
-                clickClose: false,
+                modalClass: 'ywbmodal',
+                fadeDuration: 250,
+                fadeDelay: 0.80,
                 showClose: false
             });
         });
