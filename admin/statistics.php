@@ -5,7 +5,7 @@ require_once __DIR__ . '/tablecolumns.php';
 require_once __DIR__ . '/campinit.php';
 require_once __DIR__ . '/dates.php';
 
-global $c, $db;
+global $c, $campId, $db;
 $timeRange = Dates::get_time_range($c->statistics->timezone);
 ?>
 <!doctype html>
@@ -32,8 +32,8 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                 [], // no selected columns
                 availableDimensions,
                 [], // no selected group by
-                '', // no table name
-                'clmnseditor.php?action=statstable'
+                'New', // no table name
+                'clmnseditor.php?action=save&table=stats&campid=<?=$campId?>'
             );
             $('#statsTableModal').modal({
                 modalClass: 'ywbmodal',
@@ -93,7 +93,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
 
                 t<?=$tName?>Table.on("columnResized", async function (column) {
                     let updatedColumn = { field: column.getField(), width: column.getWidth() };
-                    await fetch("clmnseditor.php?action=width&table=<?=$tName?>&campid=<?=$campId?>", {
+                    await fetch("clmnseditor.php?action=width&table=stats&campid=<?=$campId?>", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -115,7 +115,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                         availableDimensions,
                         selectedDimensions,
                         "<?=$tName?>",
-                        `clmnseditor.php?action=statstable&table=<?=$tName?>&campid=<?=$campId?>`
+                        `clmnseditor.php?action=save&table=stats&campid=<?=$campId?>`
                     );
 
                     $('#statsTableModal').modal({
@@ -126,7 +126,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                     });
                 };
                 $('#delete<?=$tName?>').click((e) => {
-                    deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=statstable');
+                    deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=delete&table=stats&campid=<?=$campId?>');
                 });
             </script>
             <br/>

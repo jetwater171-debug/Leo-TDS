@@ -13,16 +13,15 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
     }
 
     // Add metrics columns
-    addColumnsToList('metricsColumns', selectedMetrics, availableColumns, true);
+    addColumnsToList('metricsColumns', selectedMetrics, availableColumns);
 
     // Add dimensions columns
-    addColumnsToList('dimensionsColumns', selectedDimensions, availableDimensions, true);
+    addColumnsToList('dimensionsColumns', selectedDimensions, availableDimensions);
 
-    // Setup select/deselect buttons
+    // Setup metrics select/deselect buttons
     setupSelectButtons('selectAllMetrics', 'deselectAllMetrics', 'metricsColumns');
-    setupSelectButtons('selectAllDimensions', 'deselectAllDimensions', 'dimensionsColumns', MAX_GROUPBY_SELECTIONS);
 
-    // Attach checkbox change handlers
+    // Attach metrics checkbox change handler
     $('#metricsColumns input[type="checkbox"]').on('change', function() {
         updateSaveButtonState();
     });
@@ -39,9 +38,6 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
         if (selectedCount < MAX_GROUPBY_SELECTIONS) {
             $allDimensionCheckboxes.prop('disabled', false);
         }
-
-        // Update the "Select All" button state
-        $('#selectAllDimensions').prop('disabled', selectedCount >= MAX_GROUPBY_SELECTIONS);
 
         updateSaveButtonState();
     });
@@ -86,7 +82,7 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    action: 'statstable',
+                    action: 'save',
                     table: {
                         name: name,
                         columns: columns,
@@ -127,7 +123,6 @@ function deleteStatsTable(tableName, deleteUrl) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            action: 'statstable',
             action: 'delete',
             tableName: tableName
         })
@@ -146,20 +141,17 @@ function deleteStatsTable(tableName, deleteUrl) {
 }
 
 // Helper functions
-function initializeSortable(containerId, group) {
-    new Sortable(document.getElementById(containerId), {
-        animation: 150,
-        group: group
-    });
-}
-
-function addColumnsToList(containerId, selectedItems, columns, isSelected) {
+function addColumnsToList(containerId, selectedItems, columns) {
     const $list = $('#' + containerId);
     $list.empty();
     
     columns.forEach(column => {
         const field = typeof column === 'string' ? column : column.field;
         const title = typeof column === 'string' ? formatColumnName(column) : (column.title || formatColumnName(column.field));
+        const isSelected = selectedItems.some(item => 
+            (typeof item === 'string' ? item : item.field) === field
+        );
+        
         const $item = $(`
             <div class="column-item" data-field="${field}">
                 <span class="drag-handle">☰</span>
@@ -176,14 +168,9 @@ function addColumnsToList(containerId, selectedItems, columns, isSelected) {
     });
 }
 
-function setupSelectButtons(selectAllId, deselectAllId, containerId, maxSelections = null) {
+function setupSelectButtons(selectAllId, deselectAllId, containerId) {
     $('#' + selectAllId).click(() => {
-        const $checkboxes = $('#' + containerId + ' input[type="checkbox"]').not(':disabled');
-        if (maxSelections && $checkboxes.length > maxSelections) {
-            alert(`You can select at most ${maxSelections} items`);
-            return;
-        }
-        $checkboxes.prop('checked', true).trigger('change');
+        $('#' + containerId + ' input[type="checkbox"]').not(':disabled').prop('checked', true).trigger('change');
     });
 
     $('#' + deselectAllId).click(() => {
@@ -208,4 +195,11 @@ function updateSaveButtonState() {
 
 function formatColumnName(field) {
     return field.split(/(?=[A-Z])/).join(' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function initializeSortable(containerId, group) {
+    new Sortable(document.getElementById(containerId), {
+        animation: 150,
+        group: group
+    });
 }

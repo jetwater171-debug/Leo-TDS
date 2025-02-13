@@ -9,7 +9,7 @@ if (!$passOk)
     return send_clmnseditor_result("Error: password check not passed!",true);
 
 $action = $_REQUEST['action'];
-$table = $_REQUEST['table']??'';
+$table = $_REQUEST['table']??''; //table type: various clicks or campaigns or stats
 $campId = $_REQUEST['campid']??null;
 $postData = file_get_contents('php://input');
 
@@ -31,56 +31,37 @@ switch ($action) {
         $uc = json_decode($postData, true);
         update_width($currentColumns, $uc);
         save_columns_for_type($currentColumns, $table, $campId);
-        break;
+        return send_clmnseditor_result("OK");
     case 'savecolumns':
         $data = json_decode($postData, true);
         if (empty($data)) {
             return send_clmnseditor_result("Error: missing columns data", true);
         }
-        
+
         $newColumns = get_new_columns($currentColumns, $data);
         save_columns_for_type($newColumns, $table, $campId);
-        break;
-    case 'statstable':
+        return send_clmnseditor_result("OK");
+    case 'save':
         $data = json_decode($postData, true);
-        if (empty($data)) {
-            return send_clmnseditor_result("Error: missing table data", true);
+
+        if (!isset($data['name']) || !isset($data['columns']) || !isset($data['groupby'])) {
+            return send_clmnseditor_result("Error: invalid table configuration", true);
         }
 
-        if (!isset($data['action'])) {
-            return send_clmnseditor_result("Error: missing action", true);
+ 
+        break;
+    case 'delete':
+        $data = json_decode($postData, true);
+
+        if (!isset($data['name'])) {
+            return send_clmnseditor_result("Error: missing table name", true);
         }
 
-        switch ($data['action']) {
-            case 'save':
-                if (!isset($data['table'])) {
-                    return send_clmnseditor_result("Error: missing table configuration", true);
-                }
-                
-                $tableConfig = $data['table'];
-                if (!isset($tableConfig['name']) || !isset($tableConfig['columns']) || !isset($tableConfig['groupby'])) {
-                    return send_clmnseditor_result("Error: invalid table configuration", true);
-                }
-
-                save_stats_table($campId, $tableConfig);
-                break;
-
-            case 'delete':
-                if (!isset($data['tableName'])) {
-                    return send_clmnseditor_result("Error: missing table name", true);
-                }
-
-                delete_stats_table($campId, $data['tableName']);
-                break;
-
-            default:
-                return send_clmnseditor_result("Error: unknown action", true);
-        }
+        delete_stats_table($campId, $data['name']);
         break;
     default:
-        return send_clmnseditor_result("Error: wrong action!",true);
+        return send_clmnseditor_result("Error: unknown action", true);
 }
-return send_clmnseditor_result("OK");
 
 function send_clmnseditor_result($msg,$error=false): void
 {
@@ -208,7 +189,7 @@ function save_columns_for_type(array $columns, string $table, ?int $campId = nul
     }
 }
 
-function save_stats_table($campId, $tableConfig) {
+function save_stats_table(int $campId, array $tableConfig) {
     global $db;
     $s = $db->get_campaign_settings($campId);
     if (empty($s)) {

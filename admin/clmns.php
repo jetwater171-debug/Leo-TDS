@@ -85,8 +85,6 @@ class AvailableColumns
 
     static $groupbyColumns = [
         "date",
-        "preland",
-        "land",
         "country",
         "isp",
         "lang",
@@ -96,7 +94,9 @@ class AvailableColumns
         "brand",
         "model",
         "client",
-        "clientver"
+        "clientver",
+        "preland",
+        "land"
     ];
 
     static $statsColumns = [
