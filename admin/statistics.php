@@ -57,7 +57,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
         );
         $dJson = json_encode($dataset);
         $tName = $tSettings->name;
-        $tColumns = get_stats_columns($tSettings->columns, $tName);
+        $tColumns = Tabulator::get_stats_columns($tSettings->columns, $tName);
     ?>
 
             <div class="buttons-block" style="float: right;">

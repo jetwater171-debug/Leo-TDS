@@ -68,7 +68,7 @@ $dataset = $db->get_campaigns(
     </style>
     <script>
         let tableData = <?= json_encode($dataset) ?>;
-        let tableColumns = <?= get_campaigns_columns($gs['statistics']['table']) ?>;
+        let tableColumns = <?= Tabulator::get_campaigns_columns($gs['statistics']['table']) ?>;
         let table = new Tabulator('#campaigns', {
             layout: "fitColumns",
             columns: tableColumns,

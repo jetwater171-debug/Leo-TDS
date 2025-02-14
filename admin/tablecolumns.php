@@ -2,91 +2,90 @@
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/clmns.php';
 
-function get_stats_columns(array $columns, ?string $groupByClmnTitle=null): string
+class Tabulator
 {
-    $columnSettings = TableColumns::$statsClmns;
-    $tabulatorColumns = [];
-    
-    for($i=0; $i<count($columns); $i++)
+    public static function get_stats_columns(array $columns, ?string $groupByClmnTitle = null): string
     {
-        $field = $columns[$i]['field'];
-        $width = $columns[$i]['width']??-1;
-        if (array_key_exists($field, $columnSettings)) {
-            $tabulatorColumns[] = $columnSettings[$field];
+        $columnSettings = TableColumns::$statsClmns;
+        $tabulatorColumns = [];
+
+        for ($i = 0; $i < count($columns); $i++) {
+            $field = $columns[$i]['field'];
+            $width = $columns[$i]['width'] ?? -1;
+            if (array_key_exists($field, $columnSettings)) {
+                $tabulatorColumns[] = $columnSettings[$field];
+            } else {
+                $tabulatorColumns[] = ["title" => $field, "field" => $field];
+            }
+            if ($width === -1)
+                continue;
+            $tabulatorColumns[count($tabulatorColumns) - 1]["width"] = $width;
         }
-        else{
-            $tabulatorColumns[] = ["title"=>$field,"field"=>$field];
-        }
-        if ($width===-1) continue;
-        $tabulatorColumns[count($tabulatorColumns)-1]["width"] = $width;
+
+        if (!is_null($groupByClmnTitle) && count($tabulatorColumns) > 0)
+            $tabulatorColumns[0]["title"] = $groupByClmnTitle;
+
+        return json_encode($tabulatorColumns);
     }
-    
-    if (!is_null($groupByClmnTitle) && count($tabulatorColumns)>0)
-        $tabulatorColumns[0]["title"] = $groupByClmnTitle;
-
-    return json_encode($tabulatorColumns);
-}
 
 
-function get_clicks_columns(?int $campId, string $timezone,  array $columns): string
-{
-    $columnSettings = TableColumns::$clickClmns;
+    public static function get_clicks_columns(?int $campId, string $timezone, array $columns): string
+    {
+        $columnSettings = TableColumns::$clickClmns;
 
-    $defaultColumns = 
-    [
-        "subid"=>[
-            "title" => "Subid",
-            "field" => "subid",
-            "formatter" => "link",
-            "formatterParams" => [
-                "urlPrefix" => "clicks.php?campId=$campId&filter=single&subid="
+        $defaultColumns =
+        [
+            "subid" => [
+                "title" => "Subid",
+                "field" => "subid",
+                "formatter" => "link",
+                "formatterParams" => [
+                        "urlPrefix" => "clicks.php?campId=$campId&filter=single&subid="
+                    ],
+                "headerTooltip" => "Unique click id",
+                "headerSort" => false,
             ],
-            "headerTooltip" => "Unique click id",
-            "headerSort" => false,
-        ],
-        "time"=>[
-            "title" => "Time",
-            "field" => "time",
-            "formatter" => "datetime",
-            "formatterParams" => [
-                "inputFormat" => "unix",
-                "outputFormat" => "yyyy-MM-dd HH:mm:ss",
-                "timezone" => "$timezone"
-            ],
-            "headerTooltip" => "Date and time according to selected timezone",
-            "sorter" => "datetime",
-            "sorterParams" => [
-                "format" => "unix"
+            "time" => [
+                "title" => "Time",
+                "field" => "time",
+                "formatter" => "datetime",
+                "formatterParams" => [
+                        "inputFormat" => "unix",
+                        "outputFormat" => "yyyy-MM-dd HH:mm:ss",
+                        "timezone" => "$timezone"
+                    ],
+                "headerTooltip" => "Date and time according to selected timezone",
+                "sorter" => "datetime",
+                "sorterParams" => [
+                        "format" => "unix"
+                    ]
             ]
-        ]
-    ];
+        ];
 
-    $tabulatorColumns = [];
-    for($i=0; $i<count($columns); $i++)
-    {
-        $clmn = $columns[$i]['field'];
-        $width = $columns[$i]['width']??-1;
-        if (array_key_exists($clmn, $columnSettings)) {
-            $tabulatorColumns[] = $columnSettings[$clmn];
+        $tabulatorColumns = [];
+        for ($i = 0; $i < count($columns); $i++) {
+            $clmn = $columns[$i]['field'];
+            $width = $columns[$i]['width'] ?? -1;
+            if (array_key_exists($clmn, $columnSettings)) {
+                $tabulatorColumns[] = $columnSettings[$clmn];
+            } else if (array_key_exists($clmn, $defaultColumns)) {
+                $tabulatorColumns[] = $defaultColumns[$clmn];
+            } else {
+                $tabulatorColumns[] = ["title" => $clmn, "field" => $clmn];
+            }
+            if ($width === -1)
+                continue;
+            $tabulatorColumns[count($tabulatorColumns) - 1]["width"] = $width;
         }
-        else if (array_key_exists($clmn, $defaultColumns)) {
-            $tabulatorColumns[] = $defaultColumns[$clmn];
-        }
-        else{
-            $tabulatorColumns[] = ["title"=>$clmn,"field"=>$clmn];
-        }
-        if ($width===-1) continue;
-        $tabulatorColumns[count($tabulatorColumns)-1]["width"] = $width;
+        $clmnsJson = json_encode($tabulatorColumns);
+        $clmnsJson = str_replace('"FSTART', '', $clmnsJson);
+        $clmnsJson = str_replace('FEND"', '', $clmnsJson);
+        return $clmnsJson;
     }
-    $clmnsJson = json_encode($tabulatorColumns);
-    $clmnsJson = str_replace('"FSTART', '', $clmnsJson);
-    $clmnsJson = str_replace('FEND"', '', $clmnsJson);
-    return $clmnsJson;
-}
 
-function get_campaigns_columns(array $columns): string
-{
-    $defaultClmns = <<<JSON
+    public static function get_campaigns_columns(array $columns): string
+    {
+        $defaultClmns = <<<JSON
     [
         {
             "title": "ID",
@@ -124,7 +123,8 @@ function get_campaigns_columns(array $columns): string
         },
 JSON;
 
-    $statColumns = get_stats_columns($columns);
-    $defaultClmns.=substr($statColumns,1);
-    return $defaultClmns;
+        $statColumns = Tabulator::get_stats_columns($columns);
+        $defaultClmns .= substr($statColumns, 1);
+        return $defaultClmns;
+    }
 }

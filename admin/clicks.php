@@ -48,7 +48,7 @@ switch ($filter) {
 
 $dJson = json_encode($dataset);
 $tName = empty($filter) ? 'allowed' : $filter;
-$tColumns = get_clicks_columns($campId, $tz,$tableColumns);
+$tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
 ?>
 
 <!doctype html>
