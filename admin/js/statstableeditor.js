@@ -82,12 +82,9 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    action: 'save',
-                    table: {
-                        name: name,
-                        columns: columns,
-                        groupby: groupby
-                    }
+                    name: name,
+                    columns: columns,
+                    groupby: groupby
                 })
             });
 
@@ -123,8 +120,7 @@ function deleteStatsTable(tableName, deleteUrl) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            action: 'delete',
-            tableName: tableName
+            name: tableName
         })
     })
     .then(response => response.json())

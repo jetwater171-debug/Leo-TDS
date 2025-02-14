@@ -33,7 +33,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                 availableDimensions,
                 [], // no selected group by
                 'New', // no table name
-                'clmnseditor.php?action=save&table=stats&campid=<?=$campId?>'
+                'clmnseditor.php?action=savestats&campid=<?=$campId?>'
             );
             $('#statsTableModal').modal({
                 modalClass: 'ywbmodal',
@@ -93,7 +93,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
 
                 t<?=$tName?>Table.on("columnResized", async function (column) {
                     let updatedColumn = { field: column.getField(), width: column.getWidth() };
-                    await fetch("clmnseditor.php?action=width&table=stats&campid=<?=$campId?>", {
+                    await fetch("clmnseditor.php?action=width&name=<?=$tName?>&table=stats&campid=<?=$campId?>", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -115,7 +115,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                         availableDimensions,
                         selectedDimensions,
                         "<?=$tName?>",
-                        `clmnseditor.php?action=save&table=stats&campid=<?=$campId?>`
+                        `clmnseditor.php?action=savestats&campid=<?=$campId?>`
                     );
 
                     $('#statsTableModal').modal({
@@ -126,7 +126,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                     });
                 };
                 $('#delete<?=$tName?>').click((e) => {
-                    deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=delete&table=stats&campid=<?=$campId?>');
+                    deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=delstats&name=<?=$tName?>&table=stats&campid=<?=$campId?>');
                 });
             </script>
             <br/>

@@ -25,12 +25,12 @@ if ($action === 'trafficback') {
 }
 
 add_log('trace', "ColumnsEditor action: $action, table: $table, name: $tName, campId: $campId");
-$currentColumns = $table==='stats' ? 
-    get_current_stats_columns($tName, $campId) : 
-    get_current_columns_for_type($table, $campId);
 
 switch ($action) {
     case 'width':
+        $currentColumns = $table==='stats' ? 
+            get_current_stats_columns($tName, $campId) : 
+            get_current_columns_for_type($table, $campId);
         $uc = json_decode($postData, true);
         update_width($currentColumns, $uc);
         $saved = $table==='stats' ? 
@@ -40,6 +40,7 @@ switch ($action) {
             send_clmnseditor_result("OK"):
             send_clmnseditor_result("Error saving settings!",true);
     case 'savecolumns':
+        $currentColumns = get_current_columns_for_type($table, $campId);
         $data = json_decode($postData, true);
         if (empty($data)) {
             return send_clmnseditor_result("Error: missing columns data", true);
