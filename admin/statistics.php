@@ -115,7 +115,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                         availableDimensions,
                         selectedDimensions,
                         "<?=$tName?>",
-                        `clmnseditor.php?action=savestats&campid=<?=$campId?>`
+                        `clmnseditor.php?action=savestats&name=<?=$tName?>&campid=<?=$campId?>`
                     );
 
                     $('#statsTableModal').modal({
@@ -126,7 +126,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                     });
                 };
                 $('#delete<?=$tName?>').click((e) => {
-                    deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=delstats&name=<?=$tName?>&table=stats&campid=<?=$campId?>');
+                    deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=delstats&name=<?=$tName?>&campid=<?=$campId?>');
                 });
             </script>
             <br/>

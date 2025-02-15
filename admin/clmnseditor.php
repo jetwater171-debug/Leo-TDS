@@ -60,7 +60,7 @@ switch ($action) {
             return send_clmnseditor_result("Error: invalid table configuration", true);
         }
 
-        $saved = save_stats_table($campId, $data);
+        $saved = save_stats_table($campId, $tName,$data);
 
         return $saved?
             send_clmnseditor_result("Stats table saved successfully"):
@@ -219,7 +219,7 @@ function save_stats_columns(array $columns, string $name, int $campId): bool
     exit;
 }
 
-function save_stats_table(int $campId, array $tableConfig): bool
+function save_stats_table(int $campId, string $tableName,array $tableConfig): bool
 {
     global $db;
     $s = $db->get_campaign_settings($campId);
@@ -231,14 +231,19 @@ function save_stats_table(int $campId, array $tableConfig): bool
     // Find if table with this name already exists
     $existingTableIndex = -1;
     foreach ($s['statistics']['tables'] as $index => &$t) {
-        if ($t['name'] === $tableConfig['name']) {
+        if ($t['name'] === $tableName) {
             $existingTableIndex = $index;
             break;
         }
     }
 
+    $allColumnNames = array_merge($tableConfig['groupby'], $tableConfig['columns']);
     // Create new table object
-    $table = ['name' => $tableConfig['name'], 'columns' => $tableConfig['columns'], 'groupby' => $tableConfig['groupby']];
+    $table = [
+        'name' => $tableConfig['name'], 
+        'columns' => get_new_columns([], $allColumnNames),
+        'groupby' => $tableConfig['groupby']
+    ];
 
     // Update or add the table
     if ($existingTableIndex >= 0) {
