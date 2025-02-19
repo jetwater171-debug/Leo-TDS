@@ -434,13 +434,13 @@ class Db
         $db->close();
 
         // Build the tree structure
-        return $this->build_tree($rows, $groupByFields, $selectedFields);
+        $tree = $this->build_tree($rows, $groupByFields, $selectedFields);
+        return $tree;
     }
 
     private function build_tree(array $rows, array $groupByFields, array $selectedFields, int $level = 0): array
     {
-        if ($level >= count($groupByFields)) {
-            // At leaf level, return the row data
+        if (empty($groupByFields) || $level >= count($groupByFields)) {
             return $rows;
         }
 
@@ -458,15 +458,21 @@ class Db
 
         $tree = [];
         foreach ($groupedData as $groupValue => $groupRows) {
-            $children = $this->build_tree($groupRows, $groupByFields, $selectedFields, $level + 1);
-
-            // Calculate totals for this group
-            $totals = $this->calculate_totals($children, $selectedFields);
-
-            $tree[] = array_merge(
-                ['group' => $groupValue, '_children' => $children],
-                array_diff_key($totals, ['group' => null])
-            );
+            // For leaf nodes or single level grouping
+            if ($level >= count($groupByFields) - 1) {
+                $totals = $this->calculate_totals($groupRows, $selectedFields);
+                $totals['group'] = $groupValue;
+                $tree[] = $totals;
+            } else {
+                $children = $this->build_tree($groupRows, $groupByFields, $selectedFields, $level + 1);
+                $totals = $this->calculate_totals($groupRows, $selectedFields);
+                $node = array_merge(
+                    array_diff_key($totals, array_flip($groupByFields)),
+                    ['_children' => $children],
+                    ['group' => $groupValue]  // Put this last to override any 'group' from totals
+                );
+                $tree[] = $node;
+            }
         }
 
         return $tree;
@@ -485,10 +491,6 @@ class Db
         }
 
         // Calculate derived fields
-        if (in_array('uniques_ratio', $selectedFields))
-            $totals['uniques_ratio'] = $totals['clicks'] === 0 ? 0 : $totals['uniques'] * 1.0 / $totals['clicks'] * 100;
-        if (in_array('lpctr', $selectedFields))
-            $totals['lpctr'] = $totals['clicks'] === 0 ? 0 : $totals['lpclicks'] * 1.0 / $totals['clicks'] * 100.0;
         if (in_array('uniques_ratio', $selectedFields))
             $totals['uniques_ratio'] = $totals['clicks'] === 0 ? 0 : $totals['uniques'] * 1.0 / $totals['clicks'] * 100;
         if (in_array('lpctr', $selectedFields))
@@ -657,6 +659,7 @@ class Db
         $db = null;
         try {
             $db = $this->open_db();
+            $db->exec('BEGIN IMMEDIATE');
             $stmt = $db->prepare($updateQuery);
 
             if ($stmt === false) {
@@ -715,6 +718,7 @@ class Db
         $db = null;
         try {
             $db = $this->open_db();
+            $db->exec('BEGIN IMMEDIATE');
             $stmt = $db->prepare($updateQuery);
 
             if ($stmt === false) {
@@ -746,7 +750,7 @@ class Db
             return true;
         } catch (Exception $e) {
             add_log("errors", "Failed to update status: " . $e->getMessage() . ", Data: subid=$subid, status=$status, payout=$payout");
-            return false; // Safer to return false than die() on error
+            return false;
         } finally {
             if (isset($db)) $db->close();
         }
@@ -833,7 +837,7 @@ class Db
             return $exists;
         } catch (Exception $e) {
             add_log("errors", "Failed to check subid existence: " . $e->getMessage() . ", subid: $subid");
-            return false; // Safer to return false than die() on error
+            return false;
         } finally {
             if (isset($db)) $db->close();
         }

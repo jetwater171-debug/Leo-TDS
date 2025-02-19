@@ -125,7 +125,10 @@ function get_new_columns($existingColumns, $newColumnNames): array
         }
         // If column not found, add it with default width
         if (!$found) {
-            $newColumns[] = ['field' => $cName, 'width' => -1];
+            if ($cName === 'group')
+                $newColumns[] = ['field' => $cName, 'width' => 100];
+            else
+                $newColumns[] = ['field' => $cName, 'width' => -1];
         }
     }
 
@@ -237,7 +240,7 @@ function save_stats_table(int $campId, string $tableName,array $tableConfig): bo
         }
     }
 
-    $allColumnNames = array_merge($tableConfig['groupby'], $tableConfig['columns']);
+    $allColumnNames = array_merge(['group'], $tableConfig['columns']);
     // Create new table object
     $table = [
         'name' => $tableConfig['name'], 
