@@ -42,10 +42,6 @@ function get_bases_version(): string
                                         Date:&nbsp;&nbsp;<?= Dates::get_calend_date() ?>
                                     </span>
                                 </a>
-                                <a class="nav-link" href="" onclick="location.reload()">
-                                    <i class="bi bi-arrow-clockwise"></i>
-                                    <span>Refresh</span>
-                                </a>
                                 <a class="nav-link" href="#" onclick="checkForUpdates(); return false;">
                                     <i class="bi bi-cloud-arrow-down"></i>
                                     <span>Update</span>
