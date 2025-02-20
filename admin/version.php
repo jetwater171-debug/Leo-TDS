@@ -1,7 +1,7 @@
 <?php
 function check_geo_bases() {
     $bases_dir = __DIR__ . '/../bases/';
-    $required_files = ['Geolite2-City.mmdb', 'Geolite2-Country.mmdb', 'Geolite2-ASN.mmdb'];
+    $required_files = ['GeoLite2-City.mmdb', 'GeoLite2-Country.mmdb', 'GeoLite2-ASN.mmdb'];
     $missing_files = [];
     
     // Check if directory exists
