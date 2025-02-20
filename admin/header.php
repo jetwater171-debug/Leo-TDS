@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__.'/dates.php';
 require_once __DIR__.'/../debug.php';
-
 function get_bases_version(): string
 {
     $updateFile = __DIR__ . "/../bases/update.txt";
@@ -10,6 +9,8 @@ function get_bases_version(): string
     }
     return file_get_contents($updateFile);
 }
+$calDs = Dates::get_calend_dates();
+$cdStr = $calDs[0] === $calDs[1] ? $calDs[0] : "{$calDs[0]} - {$calDs[1]}";
 ?>
 <div class="header-advance-area">
     <div class="header-top-area">
@@ -18,7 +19,7 @@ function get_bases_version(): string
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
                     <div class="logo-pro">
                         <div class="logo-container">
-                            <a href="index.php" class="logo-link">
+                            <a href="index.php?startdate=<?=$calDs[0]?>&enddate=<?=$calDs[1]?>" class="logo-link">
                                 <img class="main-logo" src="<?=get_cloaker_path()?>img/logo.png" alt="" />
                             </a>
                             <div class="geo-version">
@@ -39,7 +40,7 @@ function get_bases_version(): string
                                 <a class="nav-link" id='litepicker'>
                                     <i class="bi bi-calendar"></i>
                                     <span>
-                                        Date:&nbsp;&nbsp;<?= Dates::get_calend_date() ?>
+                                        Date:&nbsp;&nbsp;<?= $cdStr ?>
                                     </span>
                                 </a>
                                 <a class="nav-link" href="#" onclick="checkForUpdates(); return false;">

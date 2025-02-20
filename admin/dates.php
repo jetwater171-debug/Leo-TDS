@@ -13,13 +13,14 @@ class Dates{
         return [$startdate->getTimestamp(), $enddate->getTimestamp()];
     }
 
-    public static function get_calend_date(): string
+    public static function get_calend_dates(): array
     {
         $today = (new DateTime("now"))->format('d.m.y');
         $calendsd = $_GET['startdate'] ?? $today;
         $calended = $_GET['enddate'] ?? $today;
-        return $calendsd === $calended ? $calendsd : "{$calendsd} - {$calended}";
+        return [$calendsd, $calended];
     }
+    
     private static function get_start_date(DateTimeZone $dtz):DateTime
     {
         $startdate = isset($_GET['startdate']) ?
