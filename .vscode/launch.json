@@ -19,7 +19,7 @@
             "type": "firefox",
             "request": "launch",
             "url": "http://localhost:8080/admin/",
-            "webRoot": "${workspaceFolder}",
+            "webRoot": "${workspaceFolder}/admin/",
             "pathMappings": [
                 {
                     "url": "http://localhost:8080",

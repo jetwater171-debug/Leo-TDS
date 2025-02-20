@@ -11,4 +11,5 @@ $jsPath = get_cloaker_path().'js';
 <script src="<?=$jsPath?>/luxon.min.js"></script>
 <script src="<?=$jsPath?>/tabulator.js?v=<?= filemtime($jsFsPath.'/tabulator.js') ?>"></script>
 <script src="<?=$jsPath?>/campeditor.js?v=<?= filemtime($jsFsPath.'/campeditor.js') ?>"></script>
+<script src="<?=$jsPath?>/header.js?v=<?= filemtime($jsFsPath.'/header.js') ?>"></script>
 <!-- <script src="<?=$jsPath?>/bootstrap.bundle.min.js"></script> -->

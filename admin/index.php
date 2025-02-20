@@ -1,7 +1,7 @@
 <?php
 //fix for Apache Multiviews and/or PHP Development Server
 if ($_SERVER['SCRIPT_NAME'] !== $_SERVER['PHP_SELF']) {
-    header("HTTP/1.0 404 Not Found");
+    http_response_code(404);
     exit("Not Found");
 }
 //we always need a slash at the end of the url, otherwise links will not work properly
