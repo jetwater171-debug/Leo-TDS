@@ -450,6 +450,10 @@ class Db
         // Group rows by current level's field
         foreach ($rows as $row) {
             $groupValue = $row[$groupField];
+            // Convert all numeric values to strings to prevent implicit conversions
+            if (is_numeric($groupValue)) {
+                $groupValue = (string)$groupValue;
+            }
             if (!isset($groupedData[$groupValue])) {
                 $groupedData[$groupValue] = [];
             }
