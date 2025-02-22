@@ -25,7 +25,10 @@ class Tabulator
         if (!is_null($groupByClmnTitle) && count($tabulatorColumns) > 0)
             $tabulatorColumns[0]["title"] = $groupByClmnTitle;
 
-        return json_encode($tabulatorColumns);
+        $clmnsJson = json_encode($tabulatorColumns);
+        $clmnsJson = str_replace('"FSTART', '', $clmnsJson);
+        $clmnsJson = str_replace('FEND"', '', $clmnsJson);
+        return $clmnsJson;
     }
 
 
