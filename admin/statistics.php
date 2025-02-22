@@ -83,7 +83,7 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
                     dataTree: true,
                     dataTreeBranchElement:false,
                     dataTreeStartExpanded:false,
-                    dataTreeChildIndent: 35,
+                    dataTreeChildIndent: 15,
                     height: "100%",
                     data: t<?=$tName?>Data,
                     columnDefaults:{
