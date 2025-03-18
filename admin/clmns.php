@@ -245,7 +245,15 @@ class TableColumns
                 "field" => "lpclick",
                 "sorter" => "boolean",
                 "formatter" => "tickCross",
-                "hozAlign" => "center"
+                "formatterParams" => [
+                    "tristate" => true,
+                ],
+                "hozAlign" => "center",
+                "headerFilter" => true,
+                "editor" => "tickCross",
+                "editorParams" => [
+                    "tristate" => true,
+                ]
             ],
             "status"=>[
                 "title" => "Status",
@@ -261,6 +269,12 @@ class TableColumns
 
 
     public static array $statsClmns = [
+        'group' => [
+            "field" => "group",
+            "headerTooltip" => "Group By",
+            "headerFilter" => "input",
+            "bottomCalc"=>"FSTARTfunction(values, data, calcParams){return 'TOTAL';}FEND",
+        ],
         'preland' => [
             "title" => "Preland",
             "headerTooltip" => "Chosen prelanding",
@@ -277,14 +291,12 @@ class TableColumns
             "title" => "Country",
             "field" => "country",
             "headerFilter" => "input",
-            "width" => "50",
         ],
         'lang' => [
             "title" => "Lang",
             "headerTooltip" => "Browser language",
             "field" => "lang",
             "headerFilter" => "input",
-            "width" => "50",
         ],
         'isp' => [
             "title" => "ISP",
@@ -306,27 +318,23 @@ class TableColumns
             "headerTooltip" => "Operating System",
             "field" => "os",
             "headerFilter" => "input",
-            "width" => "100",
         ],
         'clicks' => [
             "title" => "Clicks",
             "headerTooltip" => "Number of visitors",
             "field" => "clicks",
-            "width" => "90",
             "bottomCalc" => "sum"
         ],
         'uniques' => [
             "title" => "Uniques",
             "headerTooltip" => "Number of unique visitors",
             "field" => "uniques",
-            "width" => "90",
             "bottomCalc" => "sum"
         ],
         'uniques_ratio' => [
             "title" => "U/C",
             "headerTooltip" => "Unique visitors / visitors",
             "field" => "uniques_ratio",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -335,55 +343,55 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "symbol" => "%",
+                "symbolAfter" => true,
+                "precision" => 2,
+            ],
         ],
         'conversion' => [
             "title" => "CV",
             "headerTooltip" => "Conversions",
             "field" => "conversion",
-            "width" => "60",
             "bottomCalc" => "sum"
         ],
         'purchase' => [
             "title" => "P",
             "headerTooltip" => "Purchases",
             "field" => "purchase",
-            "width" => "50",
             "bottomCalc" => "sum"
         ],
         'hold' => [
             "title" => "H",
             "headerTooltip" => "Holds",
             "field" => "hold",
-            "width" => "50",
             "bottomCalc" => "sum"
         ],
         'reject' => [
             "title" => "R",
             "headerTooltip" => "Rejects",
             "field" => "reject",
-            "width" => "50",
             "bottomCalc" => "sum"
         ],
         'trash' => [
             "title" => "T",
             "headerTooltip" => "Trashes",
             "field" => "trash",
-            "width" => "50",
             "bottomCalc" => "sum"
         ],
         'lpclicks' => [
             "title" => "LPClicks",
             "headerTooltip" => "Landing page visitors",
             "field" => "lpclicks",
-            "width" => "70",
             "bottomCalc" => "sum"
         ],
         'lpctr' => [
             "title" => "LPCTR",
             "headerTooltip" => "Landing page visitors percentage",
             "field" => "lpctr",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -392,13 +400,19 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "symbol" => "%",
+                "symbolAfter" => true,
+                "precision" => 2,
+            ],
         ],
         'cra' => [
             "title" => "CRa",
             "headerTooltip" => "Total conversion rate",
             "field" => "cra",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -407,13 +421,19 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "symbol" => "%",
+                "symbolAfter" => true,
+                "precision" => 2,
+            ],
         ],
         'crs' => [
             "title" => "CRs",
             "headerTooltip" => "Conversion into Sales rate",
             "field" => "crs",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -422,13 +442,19 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "symbol" => "%",
+                "symbolAfter" => true,
+                "precision" => 2,
+            ],
         ],
         'appt' => [
             "title" => "App(t)",
             "headerTooltip" => "Approve rate without Trash conversions",
             "field" => "appt",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -437,13 +463,19 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "symbol" => "%",
+                "symbolAfter" => true,
+                "precision" => 2,
+            ],
         ],
         'app' => [
             "title" => "App",
             "headerTooltip" => "Approve rate",
             "field" => "app",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -452,65 +484,87 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "symbol" => "%",
+                "symbolAfter" => true,
+                "precision" => 2,
+            ],
         ],
         'cpc' => [
             "title" => "CPC",
             "headerTooltip" => "Cost per click",
             "field" => "cpc",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
         ],
         'ucpc' => [
             "title" => "CPuC",
             "headerTooltip" => "Cost per unique click",
             "field" => "ucpc",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
         ],
         'cpa' => [
             "title" => "CPA",
             "headerTooltip" => "Cost per action (conversion)",
             "field" => "cpa",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
         ],
         'ec' => [
             "title" => "EC",
             "headerTooltip" => "Earnings per conversion",
             "field" => "ec",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
         ],
         'costs' => [
             "title" => "Costs",
             "headerTooltip" => "Traffic costs",
             "field" => "costs",
-            "width" => "100",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -526,33 +580,40 @@ class TableColumns
             "title" => "EPC",
             "headerTooltip" => "Earnings Per Click",
             "field" => "epc",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
         ],
         'uepc' => [
             "title" => "EPuC",
             "headerTooltip" => "Earnings Per Unique Click",
             "field" => "uepc",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 5,
+            ],
         ],
         'revenue' => [
             "title" => "Rev.",
             "headerTooltip" => "Revenue",
             "field" => "revenue",
-            "width" => "100",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -568,7 +629,6 @@ class TableColumns
             "title" => "Profit",
             "headerTooltip" => "Profit",
             "field" => "profit",
-            "width" => "100",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -584,14 +644,18 @@ class TableColumns
             "title" => "ROI",
             "headerTooltip" => "Return On Investment",
             "field" => "roi",
-            "width" => "90",
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 2,
             ],
-            "bottomCalc" => "avg"
+            "bottomCalcFormatter" => "money",
+            "bottomCalcFormatterParams" => [
+                "decimal" => ".",
+                "thousand" => ",",
+                "precision" => 2,
+            ],
         ],
     ];
 }
