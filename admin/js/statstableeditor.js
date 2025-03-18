@@ -126,7 +126,13 @@ function deleteStatsTable(tableName, deleteUrl) {
     .then(response => response.json())
     .then(data => {
         if (!data.error) {
-            window.location.reload();
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('table')) {
+                url.searchParams.delete('table');
+                window.location.href = url.toString();
+            } else {
+                window.location.reload();
+            }
         } else {
             throw new Error(data.msg);
         }
