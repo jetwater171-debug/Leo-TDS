@@ -79,8 +79,8 @@ class MacrosProcessor
             if (!empty($this->clickParams))
                 return $this->clickParams[$macro];
             if (!empty($this->subid)) {
-                $clicks = $db->get_clicks_by_subid($this->subid, true);
-                return $clicks[0][$macro];
+                $click = $db->get_clicks_by_subid($this->subid, true);
+                return $click[$macro];
             }
             add_log("macros", "Couldn't get macros $macro value. Clickparams and subid not set!");
             return false;
@@ -92,15 +92,15 @@ class MacrosProcessor
                 add_log("macros", "Couldn't get macros $macro value from DB. Subid not set!");
                 return false;
             } else {
-                $clicks = $db->get_clicks_by_subid($this->subid, true);
-                if (count($clicks[0]['params']) == 0) {
+                $click = $db->get_clicks_by_subid($this->subid, true);
+                if (count($click['params']) == 0) {
                     add_log(
                     "macros",
                     "Couldn't find click macro $macro value. Subid:{$this->subid}, Params are EMPTY!"
                     );
                     return false;
                 }
-                $p = $clicks[0]['params'];
+                $p = $click['params'];
                 $cmacro = substr($macro, 2);
                 if (array_key_exists($cmacro, $p)) {
                     return $p[$cmacro];
