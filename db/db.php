@@ -204,7 +204,7 @@ class Db
 
             $limit_msg = $firstOnly ? " (limited to 1)" : "";
             add_log("trace", "Retrieved " . count($clicks) . " clicks for subid $subid" . $limit_msg);
-            return $clicks;
+            return $firstOnly ? $clicks[0]??[] : $clicks;
         } catch (Exception $e) {
             add_log("errors", "Failed to get clicks for subid $subid: " . $e->getMessage());
             return [];
