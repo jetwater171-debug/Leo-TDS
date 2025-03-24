@@ -2965,7 +2965,6 @@ ul.tab-review-design li.active a {
         color: #303030;
         border: 1px solid #ddd;
         outline: none;
-        border-radius: 0px;
         box-shadow: none;
     }
 
@@ -2975,7 +2974,6 @@ ul.tab-review-design li.active a {
         .form-select-list .custom-select-value:focus {
             border: 1px solid #03a9f4;
             outline: none;
-            border-radius: 0px;
             box-shadow: none;
         }
 
@@ -3293,17 +3291,6 @@ ul.tab-review-design li.active a {
 
 .input-group-addon:first-child {
     border-right: 0;
-}
-
-.input-group .form-control:first-child,
-.input-group-addon:first-child,
-.input-group-btn:first-child > .btn,
-.input-group-btn:first-child > .btn-group > .btn,
-.input-group-btn:first-child > .dropdown-toggle,
-.input-group-btn:last-child > .btn-group:not(:last-child) > .btn,
-.input-group-btn:last-child > .btn:not(:last-child):not(.dropdown-toggle) {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
 }
 
 .input-group-addon {
@@ -4465,7 +4452,6 @@ ul.h-list li:hover a {
         color: #303030;
         border: 1px solid #ddd;
         outline: none;
-        border-radius: 0px;
         box-shadow: none;
     }
 
@@ -4475,7 +4461,6 @@ ul.h-list li:hover a {
         .form-select-list .custom-select-value:focus {
             border: 1px solid #e12503;
             outline: none;
-            border-radius: 0px;
             box-shadow: none;
         }
 
