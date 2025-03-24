@@ -103,7 +103,6 @@ global $c;
                 </div>
             </div>
             <div id="b_2" style="display:<?= $c->white->action === 'folder' ? 'block' : 'none' ?>;">
-
                 <div id="white_folder_container">
                     <?php for ($i = 0; $i < count($c->white->folderNames); $i++) {
                             $fn = $c->white->folderNames[$i];
@@ -129,19 +128,29 @@ global $c;
                 <a id="add-white-folder-item" class="btn btn-primary" href="javascript:;">Add Safe Page Folder</a>
             </div>
             <div id="b_3" style="display:<?= ($c->white->action === 'redirect' ? 'block' : 'none') ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Redirect
-                                address:</label>
-                        </div>
-                        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="https://ya.ru" name="white.redirect.urls" value="<?= implode(',', $c->white->redirectUrls) ?>" />
+
+                <div id="redirect_container">
+                    <?php for ($i = 0; $i < count($c->white->redirectUrls); $i++) {
+                            $ru = $c->white->redirectUrls[$i];
+                    ?>
+                    <div class="form-group-inner redirect-item">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                <label class="login2 pull-left pull-left-pro">Redirect address:</label>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="https://ya.ru" value="<?=$ru?>" name="white.redirect.urls[<?= $i ?>]" />
+                                </div>
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                <a href="javascript:void(0)" class="remove-redirect-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
+                <a id="add-redirect-item" class="btn btn-primary" href="javascript:;">Add Redirect</a>
 
                 <div class="form-group-inner">
                     <div class="row">
@@ -198,33 +207,52 @@ global $c;
                 </div>
             </div>
             <div id="b_4" style="display:<?= $c->white->action === 'curl' ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Url for
-                                loading:</label>
-                        </div>
-                        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="https://ya.ru" name="white.curl.urls" value="<?= implode(',', $c->white->curlUrls) ?>" />
+                <div id="curl_container">
+                    <?php for ($i = 0; $i < count($c->white->curlUrls); $i++) {
+                            $cu = $c->white->curlUrls[$i];
+                    ?>
+                    <div class="form-group-inner curl-item">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                <label class="login2 pull-left pull-left-pro">Curl address:</label>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="https://ya.ru" value="<?=$cu?>" name="white.curls[<?= $i ?>]" />
+                                </div>
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                <a href="javascript:void(0)" class="remove-curl-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
+                <a id="add-curl-item" class="btn btn-primary" href="javascript:;">Add Curl</a>
             </div>
             <div id="b_5" style="display:<?= $c->white->action === 'error' ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">HTTP-code:</label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="404" name="white.error.codes" value="<?= implode(',', $c->white->errorCodes) ?>" />
+                <div id="errorcodes_container">
+                    <?php for ($i = 0; $i < count($c->white->errorCodes); $i++) {
+                            $ec = $c->white->errorCodes[$i];
+                    ?>
+                    <div class="form-group-inner errorcode-item">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                <label class="login2 pull-left pull-left-pro">HTTP code:</label>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="404" value="<?=$ec?>" name="white.errorcodes[<?= $i ?>]" />
+                                </div>
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                <a href="javascript:void(0)" class="remove-errorcode-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
+                <a id="add-errorcode-item" class="btn btn-primary" href="javascript:;">Add HTTP Code</a>
             </div>
 
             <div class="form-group-inner">
@@ -232,7 +260,7 @@ global $c;
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
 
-                            <img src="img/info.ico" title="Allowed methods are: folder, redirect, curl,error" />
+                            <img src="img/info.ico" title="Allowed methods are: folder, redirect, curl, error" />
                             Show
                             individual
                             domain-specific safe page?
@@ -267,13 +295,12 @@ global $c;
             </div>
 
             <div id="b_6" style="display:<?= $c->white->domainFilterEnabled === true ? 'block' : 'none' ?>;">
-                <div id="white_domainspecific">
+                <div id="domainspecific_container">
                     <?php for ($j = 0; $j < count($c->white->domainSpecific); $j++) { ?>
-                    <div class="form-group-inner white">
+                    <div class="form-group-inner domain-specific-item">
                         <div class="row">
                             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="login2 pull-left pull-left-pro">Domain
-                                        => Method:Action</label>
+                                <label class="login2 pull-left pull-left-pro">Domain => Method:Action</label>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                 <div class="input-group">
@@ -285,17 +312,17 @@ global $c;
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="site:white" value="<?= $c->white->domainSpecific[$j]->action ?>" name="white.domainfilter.domains[<?= $j ?>][action]" />
+                                    <input type="text" class="form-control" placeholder="folder:white" value="<?= $c->white->domainSpecific[$j]->action ?>" name="white.domainfilter.domains[<?= $j ?>][action]" />
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-white-item btn btn-primary">Delete</a>
+                                <a href="javascript:void(0)" class="remove-domain-specific-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-domain-item" class="btn btn-primary" href="javascript:;">Add</a>
+                <a id="add-domain-specific-item" class="btn btn-primary" href="javascript:;">Add Domain-Specific Safe Page</a>
             </div>
 
             <div class="form-group-inner">
@@ -485,7 +512,7 @@ global $c;
                                     <div class="i-checks pull-left">
                                         <label>
                                             <input type="radio" <?= $c->black->preland->action === 'folder' ? 'checked' : '' ?> value="folder" name="black.prelanding.action" onclick="(document.getElementById('b_8').style.display = 'block')" />
-                                            Local prelanding from folder
+                                            Local prelanding(s) from folder
                                         </label>
                                     </div>
                                 </div>
@@ -497,22 +524,29 @@ global $c;
 
 
             <div id="b_8" style="display:<?= $c->black->preland->action === 'folder' ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">
-                                <img src="img/info.ico" title="If you want to perform an A/B Test then enter several folders comma-separated, WITHOUT SPACES" />
-                                Prelanding folder(s)
-                            </label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="p1,p2" name="black.prelanding.folders" value="<?= implode(',', $c->black->preland->folderNames) ?>" />
+
+                <div id="prelandings_container">
+                    <?php for ($j = 0; $j < count($c->black->preland->folderNames); $j++) { ?>
+                    <div class="form-group-inner prelanding-item">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                <label class="login2 pull-left pull-left-pro">
+                                    Prelanding folder:
+                                </label>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                                <div class="input-group custom-go-button">
+                                    <input type="text" class="form-control" placeholder="preland1" name="black.prelanding.folders[<?= $j ?>]" value="<?= $c->black->preland->folderNames[$j] ?>" />
+                                </div>
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                <a href="javascript:void(0)" class="remove-prelanding-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
-
+                <a id="add-prelanding-item" class="btn btn-primary" href="javascript:;">Add Prelanding</a>
             </div>
             <div class="form-group-inner">
                 <div class="row">
@@ -548,7 +582,7 @@ global $c;
                 </div>
             </div>
             <div id="b_landings_folder" style="display:<?= $c->black->land->action === 'folder' ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
+                <div id="landings_container" class="form-group-inner">
                     <div class="row">
                         <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
                             <label class="login2 pull-left pull-left-pro">
@@ -1142,6 +1176,52 @@ global $c;
             minLimit: 1,
             removeConfirm: false
         });
+        
+        $('#add-redirect-item').cloneData({
+            mainContainerId: 'redirect_container',
+            cloneContainer: 'redirect-item',
+            removeButtonClass: 'remove-redirect-item',
+            maxLimit: 5,
+            minLimit: 1,
+            removeConfirm: false
+        });
+       
+        $('#add-curl-item').cloneData({
+            mainContainerId: 'curl_container',
+            cloneContainer: 'curl-item',
+            removeButtonClass: 'remove-curl-item',
+            maxLimit: 5,
+            minLimit: 1,
+            removeConfirm: false
+        });
+
+        $('#add-errorcode-item').cloneData({
+            mainContainerId: 'errorcodes_container',
+            cloneContainer: 'errorcode-item',
+            removeButtonClass: 'remove-errorcode-item',
+            maxLimit: 5,
+            minLimit: 1,
+            removeConfirm: false
+        });
+
+        $('#add-domain-specific-item').cloneData({
+            mainContainerId: 'domainspecific_container',
+            cloneContainer: 'domain-specific-item',
+            removeButtonClass: 'remove-domain-specific-item',
+            maxLimit: 5,
+            minLimit: 1,
+            removeConfirm: false
+        });
+
+        $('#add-prelanding-item').cloneData({
+            mainContainerId: 'prelandings_container',
+            cloneContainer: 'prelanding-item',
+            removeButtonClass: 'remove-prelanding-item',
+            maxLimit: 5,
+            minLimit: 1,
+            removeConfirm: false
+        });
+
         $('#add-sub-item').cloneData({
             mainContainerId: 'subs_container',
             cloneContainer: 'subs',
