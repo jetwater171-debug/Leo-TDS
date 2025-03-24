@@ -67,7 +67,7 @@
             select2InitIds: [],
             ckeditorIds: [],
             regexID: /^(.+?)([-\d-]{1,})(.+)$/i,
-            regexName: /(^.+?)([\[\d{1,}\]]{1,})(\[.+\]$)/i,
+            regexName: /(^.+?)([\[\d{1,}\]]{1,})(\[.+\])*$/i,
             init: function () { },
             complete: function () { },
             beforeRender: function () { },
@@ -166,7 +166,7 @@
             if (name !== undefined) {
                 var matches = name.match(settings.regexName);
 
-                if (matches && matches.length === 4) {
+                if (matches && matches.length >= 3 && matches.length <= 4) {
                     matches[2] = matches[2].replace(/\]\[/g, "-").replace(/\]|\[/g, '');
                     var identifiers = matches[2].split('-');
                     identifiers[0] = index;
@@ -183,7 +183,8 @@
                         }
                     }
 
-                    name = matches[1] + '[' + identifiers.join('][') + ']' + matches[3];
+                    lastParam = matches[3] || '';
+                    name = matches[1] + '[' + identifiers.join('][') + ']' + lastParam;
                     $elem.attr('name', name);
                 }
             }
