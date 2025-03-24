@@ -13,21 +13,39 @@ global $c;
 
         <form id="campsettings" style="padding:35px;background-color:#1D2A48;">
             <h4>#0 Domains</h4>
+
             <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="Enter all of your domains WITHOUT HTTP, comma-separated, WITHOUT SPACES! You can use *.xxx.com to match ALL subdomains." />
-                            Domains list for this campaign:
-                        </label>
-                    </div>
-                    <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
-                        <div class="input-group custom-go-button">
-                            <input type="text" class="form-control" placeholder="domain.com" name="domains" value="<?= implode(',', $c->domains) ?>" />
+            <div class="row">
+                <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                <label class="login2 pull-left pull-left-pro">
+                    <img src="img/info.ico" title="Add all of the campaign's domains WITHOUT HTTP(S)! You can use *.xxx.com to match ALL subdomains."/> Domains list
+                </label>
+                </div>
+            </div>
+            </div>
+ 
+            <div id="domains_container">
+                <?php for ($i = 0; $i < count($c->domains); $i++) {
+                        $dn = $c->domains[$i];
+                ?>
+                <div class="form-group-inner domains">
+                    <div class="row">
+                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                            <label class="login2 pull-left pull-left-pro">Domain:</label>
+                        </div>
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="domain.com" value="<?=$dn?>" name="domains[<?= $i ?>]" />
+                            </div>
+                        </div>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                            <a href="javascript:void(0)" class="remove-domain-item btn btn-primary">Delete</a>
                         </div>
                     </div>
                 </div>
+                <?php } ?>
             </div>
+            <a id="add-domain-item" class="btn btn-primary" href="javascript:;">Add Domain</a>
             <hr />
             <h4>#1 Safe page settings</h4>
             <div class="form-group-inner">
@@ -85,19 +103,30 @@ global $c;
                 </div>
             </div>
             <div id="b_2" style="display:<?= $c->white->action === 'folder' ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Safe page
-                                folder:</label>
-                        </div>
-                        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="white" name="white.folder.names" value="<?= implode(',', $c->white->folderNames) ?>" />
+
+                <div id="white_folder_container">
+                    <?php for ($i = 0; $i < count($c->white->folderNames); $i++) {
+                            $fn = $c->white->folderNames[$i];
+                    ?>
+                    <div class="form-group-inner white-folder-item">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                <label class="login2 pull-left pull-left-pro">Safe page
+                                    folder:</label>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="white1" value="<?=$fn?>" name="white.folders[<?= $i ?>]" />
+                                </div>
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                <a href="javascript:void(0)" class="remove-white-folder-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
+                <a id="add-white-folder-item" class="btn btn-primary" href="javascript:;">Add Safe Page Folder</a>
             </div>
             <div id="b_3" style="display:<?= ($c->white->action === 'redirect' ? 'block' : 'none') ?>;">
                 <div class="form-group-inner">
@@ -260,13 +289,13 @@ global $c;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-domain-item btn btn-sm btn-primary">Delete</a>
+                                <a href="javascript:void(0)" class="remove-white-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-domain-item" class="btn btn-sm btn-primary" href="javascript:;">Add</a>
+                <a id="add-domain-item" class="btn btn-primary" href="javascript:;">Add</a>
             </div>
 
             <div class="form-group-inner">
@@ -485,7 +514,6 @@ global $c;
                 </div>
 
             </div>
-
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -915,13 +943,13 @@ global $c;
                             </div>
                         </div>
                         <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                            <a href="javascript:void(0)" class="remove-sub-item btn btn-sm btn-primary">Delete</a>
+                            <a href="javascript:void(0)" class="remove-sub-item btn btn-primary">Delete</a>
                         </div>
                     </div>
                 </div>
                 <?php } ?>
             </div>
-            <a id="add-sub-item" class="btn btn-sm btn-primary" href="javascript:;">Add</a>
+            <a id="add-sub-item" class="btn btn-primary" href="javascript:;">Add</a>
 
             <br />
             <hr />
@@ -1033,7 +1061,7 @@ global $c;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a class="remove-s2s-item btn btn-sm btn-primary">Delete</a>
+                                <a class="remove-s2s-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                         <div class="row">
@@ -1074,7 +1102,7 @@ global $c;
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-s2s-item" class="btn btn-sm btn-primary">Add</a>
+                <a id="add-s2s-item" class="btn btn-primary">Add</a>
                 <hr />
                 <div class="form-group-inner">
                     <div class="login-btn-inner">
@@ -1082,7 +1110,7 @@ global $c;
                             <div class="col-lg-3"></div>
                             <div class="col-lg-9">
                                 <div class="login-horizental cancel-wp pull-left">
-                                    <button class="btn btn-sm btn-primary" type="submit">
+                                    <button class="btn btn-lg btn-primary" type="submit">
                                         <strong>Save
                                             settings</strong>
                                     </button>
@@ -1098,14 +1126,22 @@ global $c;
     <script src="js/cloneData.js"></script>
     <script>
         $('#add-domain-item').cloneData({
-            mainContainerId: 'white_domainspecific',
-            cloneContainer: 'white',
+            mainContainerId: 'domains_container',
+            cloneContainer: 'domains',
             removeButtonClass: 'remove-domain-item',
             maxLimit: 5,
             minLimit: 1,
             removeConfirm: false
         });
-
+        
+        $('#add-white-folder-item').cloneData({
+            mainContainerId: 'white_folder_container',
+            cloneContainer: 'white-folder-item',
+            removeButtonClass: 'remove-white-folder-item',
+            maxLimit: 5,
+            minLimit: 1,
+            removeConfirm: false
+        });
         $('#add-sub-item').cloneData({
             mainContainerId: 'subs_container',
             cloneContainer: 'subs',
@@ -1132,6 +1168,7 @@ global $c;
             minLimit: 1,
             removeConfirm: false
         });
+        
     </script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
