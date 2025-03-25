@@ -9,7 +9,7 @@ global $c;
 
 <body>
     <?php include __DIR__.'/header.php' ?>
-    <div class="all-content-wrapper">
+    < class="all-content-wrapper">
 
         <form id="campsettings" style="padding:35px;background-color:#1D2A48;">
             <h4>#0 Domains</h4>
@@ -110,8 +110,7 @@ global $c;
                     <div class="form-group-inner white-folder-item">
                         <div class="row">
                             <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                                <label class="login2 pull-left pull-left-pro">Safe page
-                                    folder:</label>
+                                <label class="login2 pull-left pull-left-pro">Safe page folder:</label>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                 <div class="input-group">
@@ -493,7 +492,7 @@ global $c;
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">Choose
-                            prelanding loading method: </label>
+                            prelanding(s) loading method: </label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
                         <div class="bt-df-checkbox pull-left">
@@ -524,7 +523,6 @@ global $c;
 
 
             <div id="b_8" style="display:<?= $c->black->preland->action === 'folder' ? 'block' : 'none' ?>;">
-
                 <div id="prelandings_container">
                     <?php for ($j = 0; $j < count($c->black->preland->folderNames); $j++) { ?>
                     <div class="form-group-inner prelanding-item">
@@ -551,7 +549,7 @@ global $c;
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">Choose landing
+                        <label class="login2 pull-left pull-left-pro">Choose landing(s)
                             loading method:</label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
@@ -562,7 +560,7 @@ global $c;
                                     <div class="i-checks pull-left">
                                         <label>
                                             <input type="radio" <?= $c->black->land->action === 'folder' ? 'checked' : '' ?> value="folder" name="black.landing.action" onclick="(document.getElementById('b_landings_redirect').style.display = 'none'); (document.getElementById('b_landings_folder').style.display = 'block')" />
-                                            Local landing from folder
+                                            Local landing(s) from folder
                                         </label>
                                     </div>
                                 </div>
@@ -572,7 +570,7 @@ global $c;
                                     <div class="i-checks pull-left">
                                         <label>
                                             <input type="radio" <?= $c->black->land->action === 'redirect' ? 'checked' : '' ?> value="redirect" name="black.landing.action" onclick="(document.getElementById('b_landings_redirect').style.display = 'block'); (document.getElementById('b_landings_folder').style.display = 'none')" />
-                                            Redirect
+                                            Redirect(s)
                                         </label>
                                     </div>
                                 </div>
@@ -582,38 +580,56 @@ global $c;
                 </div>
             </div>
             <div id="b_landings_folder" style="display:<?= $c->black->land->action === 'folder' ? 'block' : 'none' ?>;">
-                <div id="landings_container" class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">
-                                <img src="img/info.ico" title="If you want to perform an A/B Test then enter several folders comma-separated, WITHOUT SPACES" />
-                                Landing folder(s)
-                            </label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="l1,l2" name="black.landing.folders" value="<?= implode(',', $c->black->land->folderNames) ?>" />
+                <div id="landing_folders_container">
+                        <?php for ($j = 0; $j < count($c->black->land->folderNames); $j++) { 
+                                $lfn = $c->black->land->folderNames[$j];
+                        ?>
+                        <div class="form-group-inner landing-folder-item">
+                            <div class="row">
+                                <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                    <label class="login2 pull-left pull-left-pro">
+                                        Landing folder:
+                                    </label>
+                                </div>
+                                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                                    <div class="input-group custom-go-button">
+                                        <input type="text" class="form-control" placeholder="land1" name="black.landing.folders[<?= $j ?>]" value="<?= $lfn ?>" />
+                                    </div>
+                                </div>
+                                <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                    <a href="javascript:void(0)" class="remove-landing-folder-item btn btn-primary">Delete</a>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        <?php } ?>
                 </div>
+                <a id="add-landing-folder-item" class="btn btn-primary" href="javascript:;">Add Landing</a>
             </div>
             <div id="b_landings_redirect" style="display:<?= $c->black->land->action === 'redirect' ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">
-                                <img src="img/info.ico" title="If you need several redirects (split test) - separate them with commas without spaces" />
-                                Redirect url(s):
-                            </label>
-                        </div>
-                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="https://ya.ru,https://google.com" name="black.landing.redirect.urls" value="<?= implode(',', $c->black->land->redirectUrls) ?>" />
+                <div id="landing_redirects_container">
+                    <?php for ($j = 0; $j < count($c->black->land->redirectUrls); $j++) { 
+                            $lfn = $c->black->land->redirectUrls[$j];
+                    ?>
+                    <div class="form-group-inner landing-redirect-item">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                <label class="login2 pull-left pull-left-pro">
+                                    Landing folder:
+                                </label>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                                <div class="input-group custom-go-button">
+                                    <input type="text" class="form-control" placeholder="land1" name="black.landing.redirects[<?= $j ?>]" value="<?= $lfn ?>" />
+                                </div>
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                <a href="javascript:void(0)" class="remove-landing-redirect-item btn btn-primary">Delete</a>
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
+                <a id="add-landing-redirect-item" class="btn btn-primary" href="javascript:;">Add Redirect</a>
 
                 <div class="form-group-inner">
                     <div class="row">
@@ -671,14 +687,15 @@ global $c;
                 </div>
             </div>
             <?php
-            $use_js_redirect = ($s['black']['prelanding']['action'] === 'none' && $s['black']['landing']['action'] === 'redirect');
-            $black_jsconnect_display = $use_js_redirect?'none':'block';
+            $use_js_redirect = ($c->black->preland->action === 'none' && $c->black->land->action === 'redirect');
             ?>
-            <div class="form-group-inner" id="black_jsconnect" style="display:<?=$black_jsconnect_display;?>">
+            <div class="form-group-inner" id="black_jsconnect" style="display:<?=$use_js_redirect?'none':'block'?>">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">When adding
-                            cloaker using js show Money page using: </label>
+                        <label class="login2 pull-left pull-left-pro">
+                            <img src="img/info.ico" title="You can connect any website to the cloaker using <script src='https://yourwebsite.com/js/index.php'></script>" />
+                            Javascript Connect Action: 
+                        </label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
                         <div class="bt-df-checkbox pull-left">
@@ -699,8 +716,9 @@ global $c;
                                 <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
                                     <div class="i-checks pull-left">
                                         <label>
-                                            <input type="radio" <?= $s['black']['jsconnect'] === 'replace' ? 'checked' : '' ?> value="replace" name="black.jsconnect" />
+                                            <input type="radio" <?= $c->black->jsconnectAction === 'replace' ? 'checked' : '' ?> value="replace" name="black.jsconnect" />
                                             Content replace
+                                            <img src="img/info.ico" title="The original website's content will be totally replaced by the money page html" />
                                         </label>
                                     </div>
                                 </div>
@@ -709,8 +727,9 @@ global $c;
                                 <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
                                     <div class="i-checks pull-left">
                                         <label>
-                                            <input type="radio" <?= $s['black']['jsconnect'] === 'iframe' ? 'checked' : '' ?> value="iframe" name="black.jsconnect" />
+                                            <input type="radio" <?= $c->black->jsconnectAction === 'iframe' ? 'checked' : '' ?> value="iframe" name="black.jsconnect" />
                                             IFrame
+                                            <img src="img/info.ico" title="Money page will be displayed using an iframe element, shown over the original page" />
                                         </label>
                                     </div>
                                 </div>
@@ -770,13 +789,15 @@ global $c;
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro"> Should we use backfix?</label>
+                        <label class="login2 pull-left pull-left-pro"> 
+                            <img src="img/info.ico" title="Backfix is a script that will prevent the user from going back from out site. Instead the user fill be shown another money page that you'll choose."/>
+                            Should we use backfix?</label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
                         <div class="bt-df-checkbox pull-left">
 
                             <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10">
                                     <div class="i-checks pull-left">
                                         <label>
                                             <input type="radio" <?= $c->scripts->backfix === false ? 'checked' : '' ?> value="false" name="scripts.backfix.use" onclick="(document.getElementById('b_backfix').style.display = 'none')" />
@@ -786,10 +807,10 @@ global $c;
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
                                     <div class="i-checks pull-left">
                                         <label>
-                                            <input type="radio" <?= $c->scripts->backfix === true ? 'checked' : '' ?> value="true" name="scripts.backfix.use" onclick="(document.getElementById('b_backfix').style.display = 'block')" />
+                                            <input type="radio" <?= $c->scripts->backfix ? 'checked' : '' ?> value="true" name="scripts.backfix.use" onclick="(document.getElementById('b_backfix').style.display = 'block')" />
                                             Yes
                                         </label>
                                     </div>
@@ -799,15 +820,29 @@ global $c;
                     </div>
                 </div>
             </div>
-            <div id="b_backfix" style="display:<?= $c->scripts->backfix === true ? 'block' : 'none' ?>;">
+            <div id="b_backfix" style="display:<?= $c->scripts->backfix? 'block' : 'none' ?>;">
                 <div class="form-group-inner">
                     <div class="row">
                         <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro"> Backfix URL:</label>
+                            <label class="login2 pull-left pull-left-pro"> 
+                                <img src="img/info.ico" title="When the user clicks Back the first time he'll be shown this url." />
+                                Backfix First URL:</label>
                         </div>
-                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
+                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
                             <div class="input-group custom-go-button">
-                                <input type="text" name="scripts.backfix.url" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->backfixAddress?>" />
+                                <input type="text" name="scripts.backfix.address" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->backfixAddress?>" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                            <label class="login2 pull-left pull-left-pro"> 
+                                <img src="img/info.ico" title="When the user clicks Back the second time he'll be shown this url." />
+                                Backfix Second URL:</label>
+                        </div>
+                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                            <div class="input-group custom-go-button">
+                                <input type="text" name="scripts.backfix.second" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->backfixSecondAddress?>" />
                             </div>
                         </div>
                     </div>
@@ -852,7 +887,7 @@ global $c;
                         <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
                             <label class="login2 pull-left pull-left-pro"> Prelanding redirect URL:</label>
                         </div>
-                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
+                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
                             <div class="input-group custom-go-button">
                                 <input type="text" name="scripts.prelandingreplace.url" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->replacePrelandingAddress?>" />
                             </div>
@@ -902,7 +937,7 @@ global $c;
                         <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
                             <label class="login2 pull-left pull-left-pro"> Landing redirect URL:</label>
                         </div>
-                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
+                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
                             <div class="input-group custom-go-button">
                                 <input type="text" name="scripts.landingreplace.url" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->replaceLandingAddress ?>" />
                             </div>
@@ -950,7 +985,7 @@ global $c;
                 <div class="row">
                     <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
             <label class="login2 pull-left pull-left-pro">
-                <img src="img/info.ico" title="The cloaker takes subs from the url and rewrites them so that their name change to the one you provide. The value remains the same. Example:  you had in your request https://xxx.com?cn=MyCampaign you configured it like: cn => utm_campaign       now on your local landing you'll have a field <input type='hidden' name='utm_campaign' value='MyCampaign'/> and if the landing was a redirect, then it will be now: https://redirect.com?utm_campaign=MyCampaign"/> Parameters rewrite
+                <img src="img/info.ico" title="The cloaker takes subs from the url and rewrites them so that their name changes to the one you provided. The value remains the same. Example:  you had in your request https://xxx.com?cn=MyCampaign you configured it like: cn => utm_campaign       now on your local landing you'll have a field <input type='hidden' name='utm_campaign' value='MyCampaign'/> and if the landing was a redirect, then it will be now: https://redirect.com?utm_campaign=MyCampaign"/> Parameters rewrite
             </label>
                     </div>
                 </div>
@@ -1004,9 +1039,22 @@ global $c;
             <h4>#8 Postbacks settings</h4>
             <div class="form-group-inner">
                 <div class="row">
+                    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">
+                        <img src="img/info.ico" title="Put it into your Affiliate Network's postback URL. Change macros names if needed. Subid, payout and status parameters are required. Currency is optional, will be USD if omitted." />
+                        Your postback URL example:
+                    </label>
+                    </div>
+                    <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
+                        <div class="input-group custom-go-button">
+                            <?php $firstDomain = empty($c->domains[0])? 'yourdomain.com' : $c->domains[0]; ?>
+                            <input type="text" readonly class="form-control" value="http://<?= $firstDomain ?>/postback.php?subid={sub1}&payout={payout}&currency=USD&status={status}"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
                     <div class="col-lg-5 col-md-12 col-sm-12 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="Your postback will look like this: https://yourdomain.com/postback.php?subid={subid}&payout={payout}&status={status}" />
                             Here you need to write lead statuses in the format that
                             you get them from Affiliate Network's postback:
                         </label>
@@ -1163,7 +1211,7 @@ global $c;
             mainContainerId: 'domains_container',
             cloneContainer: 'domains',
             removeButtonClass: 'remove-domain-item',
-            maxLimit: 5,
+            maxLimit: 10,
             minLimit: 1,
             removeConfirm: false
         });
@@ -1208,7 +1256,7 @@ global $c;
             mainContainerId: 'domainspecific_container',
             cloneContainer: 'domain-specific-item',
             removeButtonClass: 'remove-domain-specific-item',
-            maxLimit: 5,
+            maxLimit: 10,
             minLimit: 1,
             removeConfirm: false
         });
@@ -1217,11 +1265,29 @@ global $c;
             mainContainerId: 'prelandings_container',
             cloneContainer: 'prelanding-item',
             removeButtonClass: 'remove-prelanding-item',
-            maxLimit: 5,
+            maxLimit: 10,
             minLimit: 1,
             removeConfirm: false
         });
 
+        $('#add-landing-folder-item').cloneData({
+            mainContainerId: 'landing_folders_container',
+            cloneContainer: 'landing-folder-item',
+            removeButtonClass: 'remove-landing-folder-item',
+            maxLimit: 10,
+            minLimit: 1,
+            removeConfirm: false
+        });
+
+        $('#add-landing-redirect-item').cloneData({
+            mainContainerId: 'landing_redirects_container',
+            cloneContainer: 'landing-redirect-item',
+            removeButtonClass: 'remove-landing-redirect-item',
+            maxLimit: 10,
+            minLimit: 1,
+            removeConfirm: false
+        });
+        
         $('#add-sub-item').cloneData({
             mainContainerId: 'subs_container',
             cloneContainer: 'subs',
