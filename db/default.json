@@ -87,7 +87,8 @@
   "scripts": {
     "backfix": {
       "use": false,
-      "url": ""
+      "url": "",
+      "second": ""
     },
     "prelandingreplace": {
       "use": false,
