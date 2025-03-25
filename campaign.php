@@ -252,6 +252,7 @@ class ScriptsSettings implements JsonSerializable
 {
     public bool $backfix;
     public string $backfixAddress;
+    public string $backfixSecondAddress;
     public bool $replacePrelanding;
     public string $replacePrelandingAddress;
     public bool $replaceLanding;
@@ -261,13 +262,14 @@ class ScriptsSettings implements JsonSerializable
     public static function fromArray($arr): ScriptsSettings
     {
         $ss = new ScriptsSettings();
-        $ss->backfix = $arr['backfix']['use'];
-        $ss->backfixAddress = $arr['backfix']['url'];
-        $ss->replacePrelanding = $arr['prelandingreplace']['use'];
-        $ss->replacePrelandingAddress = $arr['prelandingreplace']['url'];
-        $ss->replaceLanding = $arr['landingreplace']['use'];
-        $ss->replaceLandingAddress = $arr['landingreplace']['url'];
-        $ss->imagesLazyLoad = $arr['imageslazyload'];
+        $ss->backfix = $arr['backfix']['use'] ?? false;
+        $ss->backfixAddress = $arr['backfix']['url'] ?? '';
+        $ss->backfixSecondAddress = $arr['backfix']['second'] ?? '';
+        $ss->replacePrelanding = $arr['prelandingreplace']['use'] ?? false;
+        $ss->replacePrelandingAddress = $arr['prelandingreplace']['url'] ?? '';
+        $ss->replaceLanding = $arr['landingreplace']['use'] ?? false;
+        $ss->replaceLandingAddress = $arr['landingreplace']['url'] ?? '';
+        $ss->imagesLazyLoad = $arr['imageslazyload'] ?? false;
         return $ss;
     }
 
@@ -277,15 +279,16 @@ class ScriptsSettings implements JsonSerializable
         "scripts" => [
         "backfix" => [
         "use" => $this->backfix,
-        "address" => $this->backfixAddress
+        "url" => $this->backfixAddress,
+        "second" => $this->backfixSecondAddress
         ],
         "replacePrelanding" => [
         "use" => $this->replacePrelanding,
-        "address" => $this->replacePrelandingAddress
+        "url" => $this->replacePrelandingAddress
         ],
         "replaceLanding" => [
         "use" => $this->replaceLanding,
-        "address" => $this->replaceLandingAddress
+        "url" => $this->replaceLandingAddress
         ],
         "imagesLazyLoad" => $this->imagesLazyLoad
         ]
