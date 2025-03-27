@@ -17,12 +17,15 @@ $cloSettings =
 //then go to maxmind.com, register, get API key and put it here
 "maxMindKey" => "",
 
-//if you want to use universal thankyou page (UTP) instead of the thankyou pages from your landings, then put the relative path to UTP folder here
-"thankyouFolder" => "thankyou",
+//set to true if you want to use universal thankyou page (UTP) instead of the thankyou pages from your landings, 
+//UTP autotranslates itself to the user's language and lets you effortlessy 
+//manage pixels for Facebook/TikTok/Google and other sources.
+"useUTP" => true,
 
 //if true the cloaker will:
 //- show PHP errors if any,
 //- won't obfuscate any javascript code
+//- add tracing to some javascripts (they will print info to browser console)
 //- will add YWB headers to the response, where you'll be able to see, how long does it take to process requests
 "debug" => true
 ];
