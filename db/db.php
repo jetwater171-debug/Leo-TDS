@@ -651,14 +651,14 @@ class Db
         }
     }
 
-    public function add_lead($subid, $name, $phone, $status = 'Lead'): bool
+    public function add_lead(string $subid, array $leaddata, string $status = 'Lead'): bool
     {
         if (empty($subid)) {
             add_log("warning", "Skipping lead addition - empty subid provided");
             return false;
         }
 
-        $updateQuery = "UPDATE clicks SET status = :status, name = :name, phone = :phone WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
+        $updateQuery = "UPDATE clicks SET status = :status, leaddata = :leaddata WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
 
         $db = null;
         try {
@@ -670,18 +670,11 @@ class Db
                 throw new Exception($db->lastErrorMsg());
             }
 
-            // Sanitize and validate input
-            $name = trim($name);
-            $phone = trim($phone);
-            if (empty($name) || empty($phone)) {
-                throw new Exception("Name or phone number cannot be empty");
-            }
 
             // Bind parameters with proper type checking
             $stmt->bindValue(':subid', $subid, SQLITE3_TEXT);
             $stmt->bindValue(':status', $status, SQLITE3_TEXT);
-            $stmt->bindValue(':name', $name, SQLITE3_TEXT);
-            $stmt->bindValue(':phone', $phone, SQLITE3_TEXT);
+            $stmt->bindValue(':leaddata', json_encode($leaddata), SQLITE3_TEXT);
 
             $result = $stmt->execute();
 
@@ -698,7 +691,7 @@ class Db
             add_log("trace", "Successfully added lead for subid: $subid, status: $status");
             return true;
         } catch (Exception $e) {
-            add_log("errors", "Failed to add lead: " . $e->getMessage() . ", Data: subid=$subid, name=$name, phone=$phone, status=$status");
+            add_log("errors", "Failed to add lead: " . $e->getMessage() . ", Data: subid=$subid, leaddata=" . json_encode($leaddata) . ", status=$status");
             return false;
         } finally {
             if (isset($db)) $db->close();

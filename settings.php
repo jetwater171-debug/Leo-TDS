@@ -20,7 +20,7 @@ $cloSettings =
 //set to true if you want to use universal thankyou page (UTP) instead of the thankyou pages from your landings, 
 //UTP autotranslates itself to the user's language and lets you effortlessy 
 //manage pixels for Facebook/TikTok/Google and other sources.
-"useUTP" => true,
+"useUTP" => false,
 
 //if true the cloaker will:
 //- show PHP errors if any,

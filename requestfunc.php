@@ -59,7 +59,7 @@ function send_access_control_headers()
     header('Access-Control-Allow-Credentials: true');
 }
 
-function get_abs_from_rel($url)
+function get_abs_from_rel(string $url): string
 {
     $fullpath = get_cloaker_path();
     $fullpath .= $url;
@@ -68,7 +68,7 @@ function get_abs_from_rel($url)
     return $fullpath;
 }
 
-function get_request_headers($ispost = false): array
+function get_request_headers(bool $ispost = false): array
 {
     $ip = getip();
     $headers = array(
@@ -88,7 +88,7 @@ function get_request_headers($ispost = false): array
     return $headers;
 }
 
-function get($url): array
+function get(string $url): array
 {
     $curl = curl_init();
     $optArray = array(
@@ -110,7 +110,7 @@ function get($url): array
     return ["content" => $content, "info" => $info, "error" => $error];
 }
 
-function post($url, $postfields): array
+function post(string $url, array $postfields): array
 {
     $curl = curl_init();
     curl_setopt_array(

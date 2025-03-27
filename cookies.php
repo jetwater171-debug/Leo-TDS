@@ -1,7 +1,7 @@
 <?php
 function set_cookie($name, $value, $path = '/'): void
 {
-    $expires = time() + 60 * 60 * 24 * 5; //время, на которое ставятся куки, по умолчанию - 5 дней
+    $expires = time() + 60 * 60 * 24 * 5; //time to live for cookies - 5 days
     header("Set-Cookie: {$name}={$value}; Expires={$expires}; Path={$path}; SameSite=None; Secure", false);
     get_session();
     $_SESSION[$name] = $value;
@@ -32,31 +32,39 @@ function set_px(): void
     set_cookie('px', $curpx, '/');
 }
 
-//проверяем, если у пользователя установлена куки, что он уже конвертился, а также имя и телефон, то сверяем время
-//если прошло менее суток, то хуй ему, а не лид, обнуляем время
-function has_conversion_cookies($name, $phone): bool
+//if the user has already converted before with the same data return true
+function has_conversion_cookies($data): bool
 {
-    $cname = get_cookie('name');
-    $cphone = get_cookie('phone');
+    $cdata = get_cookie('postmd5');
     $ctime = get_cookie('ctime');
 
-    if (empty($ctime) || empty($name) || empty($phone)) {
+    if (empty($ctime) || empty($cdata)) {
+        set_conversion_cookies($data);
         return false;
     }
 
-    if ($cname !== $name || $cphone !== $phone) {
+    $curmd5 = md5($data);
+    if ($cdata !== $curmd5) {
+        set_conversion_cookies($data);
         return false;
     }
 
     $currentTimestamp = (new DateTime())->getTimestamp();
     $secondsDiff = $currentTimestamp - $ctime;
-
     if ($secondsDiff < 24 * 60 * 60) {
         set_cookie('ctime', $currentTimestamp);
         return true;
     }
 
+    set_conversion_cookies($data);
     return false;
+}
+
+function set_conversion_cookies($data): void
+{
+    $curmd5 = md5($data);
+    set_cookie('postmd5', $curmd5);
+    set_cookie('ctime', (new DateTime())->getTimestamp());
 }
 
 function get_session($readOnly = false)
