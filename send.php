@@ -58,24 +58,36 @@ else {
     $fullpath = get_abs_from_rel($url);
 }
 
-$post_data = http_build_query($_POST);
-$res = post($fullpath, $post_data);
 
-$customThankyou = $cloSettings['thankyouFolder'];
-//в ответе должен быть редирект, если его нет - грузим обычную страницу Спасибо кло
+$post_data = http_build_query($_POST);
+
+if (DebugMethods::On()){
+    $res = [];
+    $res['info']=[];
+    $res['info']['http_code'] = rand(0, 1) ? 200 : 302;
+    $res['info']['redirect_url'] = "http://example.com";
+    $res['content'] = "<html>This is debug send!</html>";
+    $res['error'] = null;
+}
+else{
+    $res = post($fullpath, $post_data);
+}
+
+$useUTP = $cloSettings['useUTP'];
+
 switch ($res["info"]["http_code"]) {
     case 302:
         $db->add_lead($subid, $name, $phone);
-        if (!empty($customThankyou)) {
-            redirect($customThankyou."/index.php?" . http_build_query($_GET));
+        if ($useUTP) {
+            redirect("/thankyou/index.php?" . $post_data);
         } else {
             redirect($res["info"]["redirect_url"]);
         }
         break;
     case 200:
         $db->add_lead($subid, $name, $phone);
-        if (!empty($customThankyou)) {
-            jsredirect($customThankyou."/index.php?" . http_build_query($_GET));
+        if ($useUTP) {
+            jsredirect("/thankyou/index.php?" . $post_data);
         } else {
             echo $res["content"];
         }
@@ -90,5 +102,4 @@ switch ($res["info"]["http_code"]) {
         echo '<br/>';
         var_dump($post_data);
         exit();
-        break;
 }
