@@ -79,6 +79,9 @@ $tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
                 data: t<?=$tName?>Data,
                 columnDefaults:{
                     tooltip:true,
+                },
+                dependencies:{
+                    XLSX:XLSX,
                 }
             });
 
@@ -97,7 +100,7 @@ $tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
         <script>
         document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("downloadCsv").onclick = () => {
-                t<?=$tName?>Table.download("csv", "<?=$tName?>_data.csv");
+                t<?=$tName?>Table.download("xlsx", "<?=$tName?>_data.xlsx");
             };
 
             document.getElementById("columnsSelect").onclick = async () => {

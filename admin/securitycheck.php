@@ -11,16 +11,19 @@ if (isset($admDomain) && !empty($admDomain)) {
     if ($currentDomain !== $admDomain) {
         add_log('warning',"Tried to access admin page from $currentDomain, but admin  Domain $admDomain is set. User not allowed to access this page!");
         if ($cloSettings['debug'] === true) {
-            echo "Admin Domain $admDomain is set, but your domain is $currentDomain. You are not allowed to access this page!";
+            echo "Admin Domain $admDomain is set, but your domain is $currentDomain. You are not allowed to access this page! ";
         } else {
             http_response_code(404);
         }
-        die("Not found");
+        die();
     }
 }
 if (!check_password(false)) {
     $currentDir = basename(dirname($_SERVER['PHP_SELF']));
     $redirectUrl = '/' . $currentDir . '/login.php';
-    redirect($redirectUrl);
-    exit;
+    //TODO: check work in folder
+    if ($redirectUrl !== $_SERVER['PHP_SELF']){
+        redirect($redirectUrl);
+        exit;
+    }
 }

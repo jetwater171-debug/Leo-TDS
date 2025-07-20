@@ -78,7 +78,10 @@ $dataset = $db->get_campaigns(
             columnDefaults: {
                 tooltip: true,
             },
-            columnCalcs: "both"
+            columnCalcs: "both",
+            dependencies:{
+                XLSX:XLSX,
+            }
         });
 
         table.on("columnResized", async function (column) {
@@ -121,7 +124,7 @@ $dataset = $db->get_campaigns(
             };
 
             document.getElementById("downloadCsv").onclick = () => {
-                table.download("csv", "campaigns_data.csv");
+                table.download("xlsx", "campaigns_data.xlsx");
             };
             document.getElementById("columnsSelect").onclick = async () => {
                 let availableClmns = <?= json_encode(AvailableColumns::get_columns_for_type('stats')) ?>;

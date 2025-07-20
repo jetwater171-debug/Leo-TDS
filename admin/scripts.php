@@ -9,6 +9,7 @@ $jsPath = get_cloaker_path().'js';
 <script src="<?=$jsPath?>/sortable.min.js"></script>
 <script src="<?=$jsPath?>/flatpickr.js"></script>
 <script src="<?=$jsPath?>/luxon.min.js"></script>
+<script src="<?=$jsPath?>/xlsx.full.min.js"></script>
 <script src="<?=$jsPath?>/tabulator.js?v=<?= filemtime($jsFsPath.'/tabulator.js') ?>"></script>
 <script src="<?=$jsPath?>/campeditor.js?v=<?= filemtime($jsFsPath.'/campeditor.js') ?>"></script>
 <script src="<?=$jsPath?>/header.js?v=<?= filemtime($jsFsPath.'/header.js') ?>"></script>

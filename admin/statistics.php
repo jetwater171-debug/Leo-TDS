@@ -107,6 +107,9 @@ $curTableIndex = $_GET['table']?? 0;
                 data: t<?=$tName?>Data,
                 columnDefaults:{
                     tooltip:true,
+                },
+                dependencies:{
+                    XLSX:XLSX,
                 }
             });
 
@@ -122,7 +125,7 @@ $curTableIndex = $_GET['table']?? 0;
             });
 
             document.getElementById("download<?=$tName?>").onclick = () => {
-                t<?=$tName?>Table.download("csv", "<?=$tName?>_data.csv");
+                t<?=$tName?>Table.download("xlsx", "<?=$tName?>_data.xlsx");
             };
             document.getElementById("columnsSelect<?=$tName?>").onclick = async () => {
                 let selectedClmns = <?= json_encode($tSettings->columns) ?>;
