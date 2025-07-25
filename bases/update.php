@@ -92,6 +92,6 @@ if (empty($cloSettings["maxMindKey"])) {
     exit;
 }
 
-$editionIds = ['GeoLite2-ASN', 'GeoLite2-City', 'GeoLite2-Country'];
+$editionIds = ['GeoLite2-ASN', 'GeoLite2-Country'];
 $result = downloadAndExtractMaxMindDB($cloSettings["maxMindKey"], __DIR__, $editionIds);
 send_update_result($result, false);

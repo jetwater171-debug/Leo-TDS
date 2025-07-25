@@ -16,11 +16,6 @@ class MacrosProcessor
 
     public function replace_html_macros($html): string
     {
-        $ip = getip();
-        $html = preg_replace_callback('/\{city,([^\}]+)\}/', function ($m) use ($ip) {
-            return getcity($ip, $m[1]);
-        }, $html);
-
         $html = preg_replace('/\{subid\}/', $this->subid, $html);
 
         $px = get_cookie('px');

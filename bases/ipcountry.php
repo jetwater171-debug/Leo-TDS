@@ -59,22 +59,6 @@ function getcountry($ip = null)
     }
 }
 
-function getcity($ip, $locale)
-{
-    $reader = new Reader(__DIR__ . '/GeoLite2-City.mmdb');
-    if ($ip === '::1' || $ip === '127.0.0.1')
-        $ip = '31.177.76.70'; //for debugging
-    try {
-        $record = $reader->city($ip);
-        if (array_key_exists($locale, $record->city->names))
-            return $record->city->names[$locale];
-        else
-            return $record->city->name;
-    } catch (GeoIp2\Exception\AddressNotFoundException $exception) {
-        return 'Unknown';
-    }
-}
-
 function getisp($ip)
 {
     $reader = new Reader(__DIR__ . '/GeoLite2-ASN.mmdb');

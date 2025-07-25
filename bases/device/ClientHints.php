@@ -232,9 +232,12 @@ class ClientHints
             'Sec-CH-UA-Mobile', 'Sec-CH-UA-Platform', 'Sec-CH-UA-Platform-Version',
             'Sec-CH-UA-WoW64', 'Sec-CH-UA-Model'
         ];
-        header(sprintf('Accept-CH: %s', implode(', ', $headers)), true);
-        header(sprintf('Critical-CH: %s', implode(', ', $headers)), true);
+        $headers_str = implode(', ', $headers);
+        header('Accept-CH: ' . $headers_str, true);
+        header('Critical-CH: ' . $headers_str, true);
+        header('Vary: ' . $headers_str, true);
     }
+
     /**
      * Factory method to easily instantiate this class using an array containing all available (client hint) headers
      *
