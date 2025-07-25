@@ -41,7 +41,7 @@ $dataset = $db->get_campaigns(
                         class="bi bi-exclude"></i></button>
                 <button id="trafficBackStats" title="Show trafficback statistics" class="btn btn-info"><i
                         class="bi bi-graph-up"></i></button>
-                <button id="downloadCsv" title="Download table as CSV" class="btn btn-success"><i
+                <button id="downloadCsv" title="Download table as XLSX" class="btn btn-success"><i
                         class="bi bi-download"></i></button>
             </div>
         </div>

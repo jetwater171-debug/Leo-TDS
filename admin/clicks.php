@@ -57,14 +57,32 @@ $tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
 <body>
     <?php include "header.php" ?>
     <div class="all-content-wrapper">
-        <div class="buttons-block" style="text-align: right;">
-            <button id="columnsSelect" title="Select and order columns" class="btn btn-info" style="margin-left: 8px;"><i
-                    class="bi bi-layout-three-columns"></i></button>
-            <button id="downloadCsv" title="Download table as CSV" class="btn btn-success" style="margin-left: 8px;"><i
-                    class="bi bi-download"></i></button>
+        <div class="buttons-block" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="display: inline-block;">
+                    <label for="filterSelector" style="color: white; font-weight: bold;">Filter:</label>
+                    <select id="filterSelector" class="form-control" style="width: 120px; display: inline-block; margin-left: 10px; background-color: #fff; color: #000;">
+                        <option value="allowed"<?= $filter == 'allowed' ? ' selected' : '' ?>>Allowed</option>
+                        <option value="blocked"<?= $filter == 'blocked' ? ' selected' : '' ?>>Blocked</option>
+                        <option value="leads"<?= $filter == 'leads' ? ' selected' : '' ?>>Leads</option>
+                    </select>
+                </span>
+            </div>
+            <div>
+                <button id="columnsSelect" title="Select and order columns" class="btn btn-info" style="margin-left: 8px;"><i
+                        class="bi bi-layout-three-columns"></i></button>
+                <button id="downloadCsv" title="Download table as XLSX" class="btn btn-success" style="margin-left: 8px;"><i
+                        class="bi bi-download"></i></button>
+            </div>
         </div>
         <div id="t<?=$tName?>" style="clear: both;"></div>
         <script>
+            $('#filterSelector').change(function() {
+                let newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('filter', $(this).val());
+                window.location.href = newUrl.href;
+            });
+            
             let t<?=$tName?>Columns = <?=$tColumns?>;
             let t<?=$tName?>Data = <?=$dJson?>;
             let t<?=$tName?>Table = new Tabulator('#t<?=$tName?>', {

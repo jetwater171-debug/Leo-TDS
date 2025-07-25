@@ -82,7 +82,7 @@ $curTableIndex = $_GET['table']?? 0;
         <div class="buttons-block" style="float: right;">
             <button id="columnsSelect<?=$tName?>" title="Edit table" class="btn btn-info"><i
                     class="bi bi-layout-three-columns"></i></button>
-            <button id="download<?=$tName?>" title="Download table as CSV" class="btn btn-success"><i
+            <button id="download<?=$tName?>" title="Download table as XLSX" class="btn btn-success"><iCSV
                     class="bi bi-download"></i></button>
             <button id="delete<?=$tName?>" title="Delete table" class="btn btn-danger"><i
                     class="bi bi-trash-fill"></i></button>
