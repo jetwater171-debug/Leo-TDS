@@ -69,6 +69,8 @@ $tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
                 </span>
             </div>
             <div>
+                <button id="toggleFilters" title="Show/Hide header filters" class="btn btn-secondary" style="margin-left: 8px;"><i
+                        class="bi bi-funnel"></i></button>
                 <button id="columnsSelect" title="Select and order columns" class="btn btn-info" style="margin-left: 8px;"><i
                         class="bi bi-layout-three-columns"></i></button>
                 <button id="downloadCsv" title="Download table as XLSX" class="btn btn-success" style="margin-left: 8px;"><i
@@ -81,6 +83,28 @@ $tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
                 let newUrl = new URL(window.location.href);
                 newUrl.searchParams.set('filter', $(this).val());
                 window.location.href = newUrl.href;
+            });
+            
+            let filtersVisible = false;
+            $('#toggleFilters').click(function() {
+                filtersVisible = !filtersVisible;
+                let columns = t<?=$tName?>Table.getColumns();
+                
+                let newColumns = columns.map(function(column) {
+                    let definition = column.getDefinition();
+                    if (definition.editor!==false)
+                        definition.headerFilter = filtersVisible;
+                    return definition;
+                });
+                
+                t<?=$tName?>Table.setColumns(newColumns);
+                
+                if (filtersVisible) {
+                    $(this).removeClass('btn-secondary').addClass('btn-primary');
+                } else {
+                    t<?=$tName?>Table.clearHeaderFilter();
+                    $(this).removeClass('btn-primary').addClass('btn-secondary');
+                }
             });
             
             let t<?=$tName?>Columns = <?=$tColumns?>;

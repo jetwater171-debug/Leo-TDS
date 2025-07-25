@@ -47,6 +47,7 @@ class Tabulator
                     ],
                 "headerTooltip" => "Unique click id",
                 "headerSort" => false,
+                "editor" => false,
             ],
             "time" => [
                 "title" => "Time",
@@ -61,7 +62,8 @@ class Tabulator
                 "sorter" => "datetime",
                 "sorterParams" => [
                         "format" => "unix"
-                    ]
+                ],
+                "editor" => false
             ]
         ];
 
