@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__."/password.php";
+require_once __DIR__."/securitycheck.php";
 require_once __DIR__."/../requestfunc.php";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
