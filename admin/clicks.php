@@ -59,6 +59,7 @@ $tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
     <div class="all-content-wrapper">
         <div class="buttons-block" style="display: flex; justify-content: space-between; align-items: center;">
             <div>
+            <?php if ($filter !== 'trafficback'):?>
                 <span style="display: inline-block;">
                     <label for="filterSelector" style="color: white; font-weight: bold;">Filter:</label>
                     <select id="filterSelector" class="form-control" style="width: 120px; display: inline-block; margin-left: 10px; background-color: #fff; color: #000;">
@@ -67,6 +68,7 @@ $tColumns = Tabulator::get_clicks_columns($campId, $tz,$tableColumns);
                         <option value="leads"<?= $filter == 'leads' ? ' selected' : '' ?>>Leads</option>
                     </select>
                 </span>
+            <?php endif; ?>
             </div>
             <div>
                 <button id="toggleFilters" title="Show/Hide header filters" class="btn btn-secondary" style="margin-left: 8px;"><i
