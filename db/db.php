@@ -13,7 +13,8 @@ class Db
         global $cloSettings;
         $this->dbPath = __DIR__ . '/' . $cloSettings['dbConnection'];
         if (!file_exists($this->dbPath)) {
-            $this->create_new_db();
+            $created=$this->create_new_db();
+            if (!$created) die("Couldn't create the SQLite database! Read logs for additional info.");
         }
     }
 
@@ -1274,7 +1275,6 @@ class Db
             $db = new SQLite3($this->dbPath, SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE);
             $db->busyTimeout(5000);
             
-            $db->exec('BEGIN IMMEDIATE');
 
             // Create tables
             $result = $db->exec($createTableSQL);
@@ -1297,7 +1297,6 @@ class Db
                 throw new Exception($db->lastErrorMsg());
             }
 
-            $db->exec('COMMIT');
             add_log("trace", "Successfully initialized database with schema and common settings");
             return true;
         } catch (Exception $e) {

@@ -44,7 +44,7 @@ function load_prelanding($url, $land_number): string
     $html = load_content_with_include($url);
     $html = remove_scrapbook($html);
 
-    //чистим тег <head> от всякой ненужной мути
+    //cleaning <head>
     $html = fix_head_add_base($html, $fullpath);
     $html = fix_src($html);
 

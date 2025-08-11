@@ -1,3 +1,5 @@
+PRAGMA foreign_keys = off;
+BEGIN IMMEDIATE;
 CREATE TABLE campaigns
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +32,10 @@ CREATE TABLE IF NOT EXISTS clicks (
 	status TEXT,
 	cost NUMERIC DEFAULT 0,
 	payout NUMERIC DEFAULT 0,
-	FOREIGN KEY (campaign_id)  REFERENCES campaigns (id) ON DELETE CASCADE
+	FOREIGN KEY (
+        campaign_id
+    )
+    REFERENCES campaigns (id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_subid ON clicks (subid);
 CREATE INDEX IF NOT EXISTS idx_time ON clicks (time);
@@ -48,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_isp ON clicks (isp);
 
 
 CREATE TABLE IF NOT EXISTS blocked (
-	id INTEGER PRIMARY KEY,
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	campaign_id INTEGER,
 	time INTEGER NOT NULL,
 	ip TEXT NOT NULL,
@@ -65,12 +70,17 @@ CREATE TABLE IF NOT EXISTS blocked (
 	ua TEXT,
 	params TEXT,
 	reason TEXT,
-	FOREIGN KEY (campaign_id)  REFERENCES campaigns (id) ON DELETE CASCADE
+	FOREIGN KEY (
+        campaign_id
+    )
+    REFERENCES campaigns (id) ON DELETE CASCADE
 );
+CREATE INDEX IF NOT EXISTS idx_bcampid ON blocked (campaign_id);
 CREATE INDEX IF NOT EXISTS idx_btime ON blocked (time);
+CREATE INDEX IF NOT EXISTS idx_bdate ON blocked (date(time, 'unixepoch'));
 
 CREATE TABLE IF NOT EXISTS trafficback (
-	id INTEGER PRIMARY KEY,
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	time INTEGER NOT NULL,
 	ip TEXT NOT NULL,
 	country TEXT,
@@ -84,11 +94,14 @@ CREATE TABLE IF NOT EXISTS trafficback (
 	client TEXT,
 	clientver REAL,
 	ua TEXT,
-	params TEXT,
+	params TEXT
 );
-CREATE INDEX IF NOT EXISTS idx_btime ON trafficback (time);
+CREATE INDEX IF NOT EXISTS idx_tbtime ON trafficback (time);
+CREATE INDEX IF NOT EXISTS idx_tbdate ON trafficback (date(time, 'unixepoch'));
 
 CREATE TABLE IF NOT EXISTS common (
     settings TEXT
 );
+COMMIT TRANSACTION;
+PRAGMA foreign_keys = on;
 PRAGMA journal_mode = wal;
