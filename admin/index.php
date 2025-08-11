@@ -6,7 +6,7 @@ if ($_SERVER['SCRIPT_NAME'] !== $_SERVER['PHP_SELF']) {
 }
 //we always need a slash at the end of the url, otherwise links will not work properly
 $url = $_SERVER['REQUEST_URI'];
-if ($url==='/admin'){
+if (str_ends_with($url,'/admin')){
     header("Location: " . $url . "/");
     exit();
 }
