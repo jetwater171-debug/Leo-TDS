@@ -8,6 +8,21 @@ require_once __DIR__ . '/redirect.php';
 require_once __DIR__ . '/abtest.php';
 require_once __DIR__ . '/requestfunc.php';
 
+function traficback(array $clickParams):CloakerAction
+{
+    global $db;
+    DebugMethods::start("YWBTrafficBack");
+    $db->add_trafficback_click($clickParams);
+    $cs = $db->get_common_settings();
+    $mp = new MacrosProcessor(null,$clickParams);
+    $tbUrl = $mp->replace_url_macros($cs['trafficBackUrl']);
+    DebugMethods::stop("YWBTrafficBack");
+    
+    return empty($tbUrl)? 
+        new CloakerAction("die","NO CAMPAIGN FOR THIS DOMAIN AND TRAFFICBACK NOT SET!"):
+        new CloakerAction("redirect",$tbUrl);
+}
+
 function white(bool $use_js_checks):CloakerAction
 {
     global $c; //Campaign
@@ -76,19 +91,15 @@ function white(bool $use_js_checks):CloakerAction
             case 'error':
                 $curcode = select_item($error_codes, $c->saveUserFlow, 'white', true);
                 return new CloakerAction('error',$curcode[0]);
-                break;
             case 'folder':
                 $curfolder = select_item($folder_names, $c->saveUserFlow, 'white', true);
                 return new CloakerAction('html', load_white_content($curfolder[0]));
-                break;
             case 'curl':
                 $cururl = select_item($curl_urls, $c->saveUserFlow, 'white', false);
                 return new CloakerAction('html', load_white_curl($cururl[0]));
-                break;
             case 'redirect':
                 $cururl = select_item($redirect_urls, $c->saveUserFlow, 'white', false);
                 return new CloakerAction('redirect',$cururl[0], $ws->redirectType);
-                break;
         }
     }
 }
@@ -124,8 +135,9 @@ function black(array $clickparams):CloakerAction
                 case 'redirect':
                     $redirectUrl = insert_subs_into_url($_GET, $landing);
                     return new CloakerAction('redirect',$redirectUrl,$bl->redirectType);
+                default:
+                    die("No such action found: ".$bl->action);
             }
-            break;
         case 'folder': //local prelandings
             $prelandings = $bp->folderNames;
             if (empty($prelandings))
@@ -138,7 +150,8 @@ function black(array $clickparams):CloakerAction
 
             $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $c->campaignId);
             return new CloakerAction('html', load_prelanding($prelanding, $t));
-            break;
+        default:
+            die("No such action found: ".$bp->action);
     }
 }
 
@@ -153,6 +166,8 @@ function takeAction(CloakerAction $ca){
         case 'error':
             http_response_code($ca->type);
             break;
+        default:
+            die($ca->value);
     }
 }
 
