@@ -37,20 +37,23 @@ CREATE TABLE IF NOT EXISTS clicks (
     )
     REFERENCES campaigns (id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_subid ON clicks (subid);
+CREATE INDEX IF NOT EXISTS idx_campid ON clicks (campaign_id);
 CREATE INDEX IF NOT EXISTS idx_time ON clicks (time);
-CREATE INDEX IF NOT EXISTS idx_date ON clicks (date(time, 'unixepoch'));
+CREATE INDEX IF NOT EXISTS idx_camp_time ON clicks (campaign_id,time);
+
 CREATE INDEX IF NOT EXISTS idx_country ON clicks (country);
 CREATE INDEX IF NOT EXISTS idx_lang ON clicks (lang);
-CREATE INDEX IF NOT EXISTS idx_lang ON clicks (client);
-CREATE INDEX IF NOT EXISTS idx_lang ON clicks (clientver);
-CREATE INDEX IF NOT EXISTS idx_lang ON clicks (device);
-CREATE INDEX IF NOT EXISTS idx_lang ON clicks (brand);
-CREATE INDEX IF NOT EXISTS idx_lang ON clicks (model);
 CREATE INDEX IF NOT EXISTS idx_os ON clicks (os);
-CREATE INDEX IF NOT EXISTS idx_os ON clicks (osver);
+CREATE INDEX IF NOT EXISTS idx_osver ON clicks (osver);
+CREATE INDEX IF NOT EXISTS idx_brand ON clicks (brand);
+CREATE INDEX IF NOT EXISTS idx_model ON clicks (model);
+CREATE INDEX IF NOT EXISTS idx_device ON clicks (device);
 CREATE INDEX IF NOT EXISTS idx_isp ON clicks (isp);
-
+CREATE INDEX IF NOT EXISTS idx_client ON clicks (client);
+CREATE INDEX IF NOT EXISTS idx_clientver ON clicks (clientver);
+CREATE INDEX IF NOT EXISTS idx_preland ON clicks (preland);
+CREATE INDEX IF NOT EXISTS idx_land ON clicks (land);
+CREATE INDEX IF NOT EXISTS idx_status ON clicks (status);
 
 CREATE TABLE IF NOT EXISTS blocked (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,9 +78,7 @@ CREATE TABLE IF NOT EXISTS blocked (
     )
     REFERENCES campaigns (id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_bcampid ON blocked (campaign_id);
-CREATE INDEX IF NOT EXISTS idx_btime ON blocked (time);
-CREATE INDEX IF NOT EXISTS idx_bdate ON blocked (date(time, 'unixepoch'));
+CREATE INDEX IF NOT EXISTS idx_bcamp_time ON blocked (campaign_id,time);
 
 CREATE TABLE IF NOT EXISTS trafficback (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,7 +98,6 @@ CREATE TABLE IF NOT EXISTS trafficback (
 	params TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tbtime ON trafficback (time);
-CREATE INDEX IF NOT EXISTS idx_tbdate ON trafficback (date(time, 'unixepoch'));
 
 CREATE TABLE IF NOT EXISTS common (
     settings TEXT
@@ -105,3 +105,4 @@ CREATE TABLE IF NOT EXISTS common (
 COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;
 PRAGMA journal_mode = wal;
+PRAGMA synchronous = normal;
