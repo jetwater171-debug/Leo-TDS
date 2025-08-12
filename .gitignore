@@ -1,7 +1,7 @@
-/backups/*
-/temp_update/*
-/logs/*
-/tmp/*
+/backups
+/temp_update
+/logs
+/tmp
 /land
 /preland
 /black
