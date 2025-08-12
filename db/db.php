@@ -523,8 +523,8 @@ class Db
         // Prepare click data
         $click = $this->prepare_click_data($data);
 
-        // Prepare SQL insert statement
-        $query = "INSERT INTO trafficback (time, ip, country, lang, os, osver, brand, model, isp, client, clientver, ua, params) VALUES (:time, :ip, :country, :lang, :os, :osver, :brand, :model, :isp, :client, :clientver, :ua, :params)";
+        // Setting PRAGMA synchronous to OFF so it works MUCH FASTER!
+        $query = "PRAGMA synchronous=OFF; INSERT INTO trafficback (time, ip, country, lang, os, osver, brand, model, isp, client, clientver, ua, params) VALUES (:time, :ip, :country, :lang, :os, :osver, :brand, :model, :isp, :client, :clientver, :ua, :params)";
 
         $db = null;
         try {
@@ -566,8 +566,8 @@ class Db
         $click = $this->prepare_click_data($data, $campId);
         $click['reason'] = $reason;
 
-        // Prepare SQL insert statement
-        $query = "INSERT INTO blocked (campaign_id, time, ip, country, lang, os, osver, brand, model, isp, client, clientver, ua, reason, params) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :brand, :model, :isp, :client, :clientver, :ua, :reason, :params)";
+        // Setting PRAGMA synchronous to OFF so it works MUCH FASTER!
+        $query = "PRAGMA synchronous=OFF; INSERT INTO blocked (campaign_id, time, ip, country, lang, os, osver, brand, model, isp, client, clientver, ua, reason, params) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :brand, :model, :isp, :client, :clientver, :ua, :reason, :params)";
 
         $db = null;
         try {
@@ -611,8 +611,8 @@ class Db
         $click['preland'] = empty($preland) ? 'unknown' : $preland;
         $click['land'] = empty($land) ? 'unknown' : $land;
 
-        // Prepare the SQL INSERT statement for the 'clicks' table
-        $query = "INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, subid, preland, land, params, cost, lpclick, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :subid, :preland, :land, :params, :cpc, 0, NULL)";
+        // Setting PRAGMA synchronous to OFF so it works MUCH FASTER!
+        $query = "PRAGMA synchronous=OFF; INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, subid, preland, land, params, cost, lpclick, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :subid, :preland, :land, :params, :cpc, 0, NULL)";
 
         $db = null;
         try {
@@ -1275,7 +1275,6 @@ class Db
             $db = new SQLite3($this->dbPath, SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE);
             $db->busyTimeout(5000);
             
-
             // Create tables
             $result = $db->exec($createTableSQL);
             if ($result === false) {
