@@ -8,10 +8,9 @@
 /student
 /white
 /fromfolder
-/db/clicks.db
-/db/clicks.db-shm
-/db/clicks.db-wal
+/db/*.db
+/db/*.db-shm
+/db/*.db-wal
 bases/update.txt
-bases/GeoLite2-ASN.mmdb
-bases/GeoLite2-Country.mmdb
+bases/*.mmdb
 tur.xml
