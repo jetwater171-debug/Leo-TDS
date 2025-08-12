@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/debug.php';
+DebugMethods::start("YWBMainCycle");
+
 //fix for Apache Multiviews and/or PHP Development Server
 if ($_SERVER['SCRIPT_NAME'] !== $_SERVER['PHP_SELF']) {
     http_response_code(404);
@@ -10,6 +13,7 @@ if ($url==='/admin'){
     header("Location: " . $url . "/");
     exit();
 }
+
 //handle robots.txt requests
 if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] == '/robots.txt') {
     header('Content-Type: text/plain');
@@ -17,7 +21,6 @@ if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] == '/robots.txt') 
     exit();
 }
 
-require_once __DIR__ . '/debug.php';
 require_once __DIR__ . '/campaign.php';
 require_once __DIR__ . '/core.php';
 require_once __DIR__ . '/db/db.php';
@@ -28,17 +31,25 @@ require_once __DIR__ . '/redirect.php';
 global $db;
 $dbCamp = $db->get_campaign_by_currentpath();
 if ($dbCamp===false){
-    takeAction(traficback(Cloaker::get_click_params()));
-    exit();
+    $action = traficback(Cloaker::get_click_params());
+} else {
+    $c = new Campaign($dbCamp['id'],$dbCamp['settings']);
+    $cloaker = new Cloaker($c->filters);
+
+    if ($c->white->jsChecks->enabled) {
+        $action = white(true);
+    } else if ($cloaker->is_bad_click()) { 
+        $db->add_white_click($cloaker->click_params, $cloaker->block_reason, $c->campaignId);
+        $action = white(false);
+    } else
+        $action = black($cloaker->click_params);
 }
 
-$c = new Campaign($dbCamp['id'],$dbCamp['settings']);
-$cloaker = new Cloaker($c->filters);
-
-if ($c->white->jsChecks->enabled) {
-    takeAction(white(true));
-} else if ($cloaker->is_bad_click()) { 
-    $db->add_white_click($cloaker->click_params, $cloaker->block_reason, $c->campaignId);
-    takeAction(white(false));
-} else
-    takeAction(black($cloaker->click_params));
+if ($action->type!=='redirect'){
+    DebugMethods::stop("YWBMainCycle");
+    takeAction($action);
+}
+else{
+    takeAction($action);
+    DebugMethods::stop("YWBMainCycle");
+}
