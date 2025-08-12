@@ -58,12 +58,14 @@ class Cloaker
         $clientHints = ClientHints::factory($_SERVER); 
         $dd = new DeviceDetector($a['ua'], $clientHints);
 
+        DebugMethods::start("YWBCoreDeviceDetector");
         $phpFileCache = new Doctrine\Common\Cache\PhpFileCache('./tmp/');
         $dd->setCache(new DoctrineBridge($phpFileCache));
         $dd->parse();
         $clientInfo = $dd->getClient();
         $a['client'] = $clientInfo['name'];
         $a['clientver'] = $clientInfo['version'];
+        DebugMethods::stop("YWBCoreDeviceDetector");
         
         $osInfo = $dd->getOs();
         $a['os'] = $osInfo['name'];
@@ -72,9 +74,11 @@ class Cloaker
         $a['brand'] = $dd->getBrandName();
         $a['model'] = $dd->getModel();
         
+        DebugMethods::start("YWBCoreMaxMind");
         $a['ip'] = getip();
         $a['country'] = getcountry($a['ip']);
         $a['isp'] = getisp($a['ip']);
+        DebugMethods::stop("YWBCoreMaxMind");
         $a['url'] = $_SERVER['REQUEST_URI'];
         return $a;
     }
