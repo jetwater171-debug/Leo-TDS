@@ -958,7 +958,13 @@ class Db
 
     public function get_campaign_by_currentpath(): array|bool
     {
-        $domain = get_cloaker_path(false, false);
+        $cPath = get_cloaker_path(false, false);
+        $parsedUrl = parse_url($cPath);
+        
+        //TODO:check work with default port 80!
+        $domain = isset($parsedUrl['port']) ? 
+            $parsedUrl['host'].":".$parsedUrl['port'] : 
+            $parsedUrl['host'];
         $query = "SELECT * FROM campaigns";
 
         $db = null;
