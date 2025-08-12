@@ -11,12 +11,10 @@ require_once __DIR__ . '/requestfunc.php';
 function traficback(array $clickParams):CloakerAction
 {
     global $db;
-    DebugMethods::start("YWBTrafficBack");
     $db->add_trafficback_click($clickParams);
     $cs = $db->get_common_settings();
     $mp = new MacrosProcessor(null,$clickParams);
     $tbUrl = $mp->replace_url_macros($cs['trafficBackUrl']);
-    DebugMethods::stop("YWBTrafficBack");
     
     return empty($tbUrl)? 
         new CloakerAction("die","NO CAMPAIGN FOR THIS DOMAIN AND TRAFFICBACK NOT SET!"):

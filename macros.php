@@ -25,6 +25,7 @@ class MacrosProcessor
 
     public function replace_url_macros($url): string
     {
+        if (empty($url)) return "";
         $url_components = parse_url($url);
         parse_str($url_components['query'] ?? '', $query_array);
 
