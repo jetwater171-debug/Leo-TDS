@@ -619,7 +619,7 @@ global $c;
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
                                 <div class="input-group custom-go-button">
-                                    <input type="text" class="form-control" placeholder="land1" name="black.landing.redirects[<?= $j ?>]" value="<?= $lfn ?>" />
+                                    <input type="text" class="form-control" placeholder="land1" name="black.landing.redirect.urls[<?= $j ?>]" value="<?= $lfn ?>" />
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
