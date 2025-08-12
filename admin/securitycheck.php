@@ -4,6 +4,8 @@ require_once __DIR__ . '/../settings.php';
 require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/password.php';
 require_once __DIR__ . '/../redirect.php';
+require_once __DIR__ . '/../requestfunc.php';
+
 global $cloSettings;
 $admDomain = $cloSettings['adminDomain'];
 if (isset($admDomain) && !empty($admDomain)) {
@@ -19,11 +21,9 @@ if (isset($admDomain) && !empty($admDomain)) {
     }
 }
 if (!check_password(false)) {
-    $currentDir = basename(dirname($_SERVER['PHP_SELF']));
-    $redirectUrl = '/' . $currentDir . '/login.php';
-    //TODO: check work in folder
-    if ($redirectUrl !== $_SERVER['PHP_SELF']){
-        redirect($redirectUrl);
-        exit;
+    $loginPath = get_cloaker_path()."login.php";
+    if (!str_contains($loginPath,$_SERVER['PHP_SELF'])) {
+        redirect($loginPath);
+        exit();
     }
 }
