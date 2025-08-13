@@ -23,7 +23,7 @@ class Tabulator
         }
 
         if (!is_null($groupByClmnTitle) && count($tabulatorColumns) > 0)
-            $tabulatorColumns[0]["title"] = $groupByClmnTitle;
+            $tabulatorColumns[0]["title"] = "g$groupByClmnTitle";
 
         $clmnsJson = json_encode($tabulatorColumns);
         $clmnsJson = str_replace('"FSTART', '', $clmnsJson);

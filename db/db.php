@@ -50,11 +50,11 @@ class Db
 
     public function get_white_clicks(int $startdate, int $enddate, int $campId): array
     {
-        return $this->get_campaign_clicks($startdate, $enddate, $campId, false);
+        return $this->get_campaign_clicks($startdate, $enddate, $campId, true);
     }
     public function get_black_clicks(int $startdate, int $enddate, int $campId): array
     {
-        return $this->get_campaign_clicks($startdate, $enddate, $campId, true);
+        return $this->get_campaign_clicks($startdate, $enddate, $campId, false);
     }
     
     public function get_clicks_by_subid($subid, bool $firstOnly = false): array

@@ -290,7 +290,8 @@ class TableColumns
         'group' => [
             "field" => "group",
             "headerTooltip" => "Group By",
-            "headerFilter" => "input",
+            "headerFilter" => false,
+            "editor" => "input",
             "bottomCalc"=>"FSTARTfunction(values, data, calcParams){return 'TOTAL';}FEND",
         ],
         'preland' => [
