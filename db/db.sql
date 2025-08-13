@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS clicks (
 CREATE INDEX IF NOT EXISTS idx_campid ON clicks (campaign_id);
 CREATE INDEX IF NOT EXISTS idx_time ON clicks (time);
 CREATE INDEX IF NOT EXISTS idx_camp_time ON clicks (campaign_id,time);
+CREATE INDEX IF NOT EXISTS idx_camp_time_status ON clicks (campaign_id,time,status);
 
 CREATE INDEX IF NOT EXISTS idx_country ON clicks (country);
 CREATE INDEX IF NOT EXISTS idx_lang ON clicks (lang);

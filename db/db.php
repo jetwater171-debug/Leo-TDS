@@ -21,147 +21,42 @@ class Db
     public function get_trafficback_clicks($startdate, $enddate): array
     {
         $query = "SELECT * FROM trafficback WHERE time BETWEEN :startDate AND :endDate ORDER BY time DESC";
-
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
+        $clicks = $this->exec_read_query($query, [$startdate=>SQLITE3_INTEGER,$enddate=>SQLITE3_INTEGER]);
+        foreach ($clicks as &$click) {
+            if (empty($click['params'])) continue; 
+            $click['params'] = json_decode($click['params'], true);
+            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
+                add_log("errors", "Failed to parse trafficback params JSON for row " . $click['id'] . ": " . json_last_error_msg());
+                $click['params'] = [];
             }
-
-            $stmt->bindValue(':startDate', $startdate, SQLITE3_INTEGER);
-            $stmt->bindValue(':endDate', $enddate, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $trafficbackClicks = [];
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                if (!empty($row['params'])) {
-                    $row['params'] = json_decode($row['params'], true);
-                    if ($row['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                        add_log("errors", "Failed to parse trafficback params JSON for row " . $row['id'] . ": " . json_last_error_msg());
-                        $row['params'] = [];
-                    }
-                }
-                $trafficbackClicks[] = $row;
-            }
-
-            add_log("trace", "Retrieved " . count($trafficbackClicks) . " trafficback clicks from $startdate to $enddate");
-            return $trafficbackClicks;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to get trafficback clicks: " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
         }
+        return $clicks;
     }
 
-
-    public function get_white_clicks($startdate, $enddate, $campId): array
+    private function get_campaign_clicks(int $startdate, int $enddate, int $campId, bool $blocked=false): array
     {
-        // Prepare SQL query to select blocked clicks within the date range
-        $query = "SELECT * FROM blocked WHERE time BETWEEN :startDate AND :endDate AND campaign_id = :campid ORDER BY time DESC";
-
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
+        $query = "SELECT * FROM " . ($blocked ? "blocked" : "clicks") . " WHERE time BETWEEN :startDate AND :endDate AND campaign_id = :campid ORDER BY time DESC";
+        $clicks = $this->exec_read_query($query, [$startdate=>SQLITE3_INTEGER,$enddate=>SQLITE3_INTEGER,$campId=>SQLITE3_INTEGER]);
+        foreach ($clicks as &$click) {
+            if (empty($click['params'])) continue; 
+            $click['params'] = json_decode($click['params'], true);
+            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
+                add_log("errors", "Failed to parse trafficback params JSON for row " . $click['id'] . ": " . json_last_error_msg());
+                $click['params'] = [];
             }
-
-            // Bind parameters to the prepared statement
-            $stmt->bindValue(':startDate', $startdate, SQLITE3_INTEGER);
-            $stmt->bindValue(':endDate', $enddate, SQLITE3_INTEGER);
-            $stmt->bindValue(':campid', $campId, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Initialize an array to hold the results
-            $blockedClicks = [];
-            // Fetch each row and add it to the array
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                if (!empty($row['params'])) {
-                    $row['params'] = json_decode($row['params'], true);
-                    if ($row['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                        add_log("errors", "Failed to parse blocked click params JSON for row " . $row['id'] . ": " . json_last_error_msg());
-                        $row['params'] = [];
-                    }
-                }
-                $blockedClicks[] = $row;
-            }
-
-            add_log("trace", "Retrieved " . count($blockedClicks) . " blocked clicks for campaign $campId from $startdate to $enddate");
-            // Return the array of blocked clicks
-            return $blockedClicks;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to get blocked clicks for campaign $campId: " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
         }
+        return $clicks;
     }
 
-    public function get_black_clicks($startdate, $enddate, $campId): array
+    public function get_white_clicks(int $startdate, int $enddate, int $campId): array
     {
-        // Prepare SQL query to select blocked clicks within the date range
-        $query = "SELECT * FROM clicks WHERE time BETWEEN :startDate AND :endDate AND campaign_id = :campid ORDER BY time DESC";
-
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Bind parameters to the prepared statement
-            $stmt->bindValue(':startDate', $startdate, SQLITE3_INTEGER);
-            $stmt->bindValue(':endDate', $enddate, SQLITE3_INTEGER);
-            $stmt->bindValue(':campid', $campId, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Initialize an array to hold the results
-            $clicks = [];
-            // Fetch each row and add it to the array
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                if (!empty($row['params'])) {
-                    $row['params'] = json_decode($row['params'], true);
-                    if ($row['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                        add_log("errors", "Failed to parse click params JSON for row " . $row['id'] . ": " . json_last_error_msg());
-                        $row['params'] = [];
-                    }
-                }
-                $clicks[] = $row;
-            }
-
-            add_log("trace", "Retrieved " . count($clicks) . " clicks for campaign $campId from $startdate to $enddate");
-            return $clicks;
-        } catch (Exception $e) {
-            add_log("errors", "Get Black Clicks: $startdate $enddate $campId " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->get_campaign_clicks($startdate, $enddate, $campId, false);
     }
-
+    public function get_black_clicks(int $startdate, int $enddate, int $campId): array
+    {
+        return $this->get_campaign_clicks($startdate, $enddate, $campId, true);
+    }
+    
     public function get_clicks_by_subid($subid, bool $firstOnly = false): array
     {
         if (empty($subid)) {
@@ -170,48 +65,17 @@ class Db
         }
 
         $query = "SELECT * FROM clicks WHERE subid = :subid ORDER BY time DESC";
-        if ($firstOnly) {
-            $query .= " LIMIT 1";
+        if ($firstOnly) $query .= " LIMIT 1";
+        $clicks = $this->exec_read_query($query, [$subid=>SQLITE3_TEXT]);
+        foreach ($clicks as &$click) {
+            if (empty($click['params'])) continue; 
+            $click['params'] = json_decode($click['params'], true);
+            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
+                add_log("errors", "Failed to parse trafficback params JSON for row " . $click['id'] . ": " . json_last_error_msg());
+                $click['params'] = [];
+            }
         }
-
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':subid', $subid, SQLITE3_TEXT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $clicks = [];
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                if (!empty($row['params'])) {
-                    $row['params'] = json_decode($row['params'], true);
-                    if ($row['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                        add_log("errors", "Failed to parse click params JSON for row " . $row['id'] . ": " . json_last_error_msg());
-                        $row['params'] = [];
-                    }
-                }
-                $clicks[] = $row;
-            }
-
-            $limit_msg = $firstOnly ? " (limited to 1)" : "";
-            add_log("trace", "Retrieved " . count($clicks) . " clicks for subid $subid" . $limit_msg);
-            return $firstOnly ? $clicks[0]??[] : $clicks;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to get clicks for subid $subid: " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $firstOnly ? $clicks[0]??[] : $clicks;
     }
 
     public function get_leads($startdate, $enddate, $campId): array
@@ -219,47 +83,16 @@ class Db
         // Prepare SQL query to select leads within the date range and configuration
         $query = "SELECT * FROM clicks WHERE time BETWEEN :startDate AND :endDate AND campaign_id = :campid AND status IS NOT NULL ORDER BY time DESC";
 
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
+        $clicks = $this->exec_read_query($query, [$startdate=>SQLITE3_INTEGER,$enddate=>SQLITE3_INTEGER,$campId=>SQLITE3_INTEGER]);
+        foreach ($clicks as &$click) {
+            if (empty($click['params'])) continue; 
+            $click['params'] = json_decode($click['params'], true);
+            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
+                add_log("errors", "Failed to parse trafficback params JSON for row " . $click['id'] . ": " . json_last_error_msg());
+                $click['params'] = [];
             }
-
-            // Bind parameters to the prepared statement
-            $stmt->bindValue(':startDate', $startdate, SQLITE3_INTEGER);
-            $stmt->bindValue(':endDate', $enddate, SQLITE3_INTEGER);
-            $stmt->bindValue(':campid', $campId, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Initialize an array to hold the results
-            $leads = [];
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                if (!empty($row['params'])) {
-                    $row['params'] = json_decode($row['params'], true);
-                    if ($row['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                        add_log("errors", "Failed to parse lead params JSON for row " . $row['id'] . ": " . json_last_error_msg());
-                        $row['params'] = [];
-                    }
-                }
-                $leads[] = $row;
-            }
-
-            add_log("trace", "Retrieved " . count($leads) . " leads for campaign $campId from $startdate to $enddate");
-            return $leads;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to get leads for campaign $campId: " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
         }
+        return $clicks;
     }
 
     private function get_stats_select_parts(array $selectedFields): array
@@ -518,14 +351,8 @@ class Db
         return $totals;
     }
 
-    public function add_trafficback_click($data): bool
+    private function add_click(string $query, array $click):bool
     {
-        // Prepare click data
-        $click = $this->prepare_click_data($data);
-
-        // Prepare SQL insert statement
-        $query = "INSERT INTO trafficback (time, ip, country, lang, os, osver, brand, model, isp, client, clientver, ua, params) VALUES (:time, :ip, :country, :lang, :os, :osver, :brand, :model, :isp, :client, :clientver, :ua, :params)";
-
         $db = null;
         try {
             $db = $this->open_db();
@@ -535,121 +362,56 @@ class Db
                 throw new Exception($db->lastErrorMsg());
             }
 
-            // Bind parameters
             foreach ($click as $key => $value) {
                 if (!isset($value)) {
-                    add_log("warning", "Null value found for field '$key' in trafficback click data");
+                    add_log("warning", "Null value found for field '$key' in click data");
                     $value = '';
                 }
                 $stmt->bindValue(':' . $key, $value);
             }
 
             $result = $stmt->execute();
-
             if ($result === false) {
                 throw new Exception($db->lastErrorMsg());
             }
 
-            add_log("trace", "Successfully added trafficback click for IP: " . ($click['ip'] ?? 'unknown'));
+            add_log("trace", "Successfully added click for IP: " . ($click['ip'] ?? 'unknown'));
             return true;
         } catch (Exception $e) {
-            add_log("errors", "Failed to add trafficback click: " . $e->getMessage() . ", Data: " . json_encode($click));
+            add_log("errors", "Failed to add click: " . $e->getMessage() . ", Data: " . json_encode($click));
             return false;
         } finally {
             if (isset($db)) $db->close();
         }
+    }
+
+    public function add_trafficback_click($data): bool
+    {
+        $click = $this->prepare_click_data($data);
+        $query = "INSERT INTO trafficback (time, ip, country, lang, os, osver, brand, model, isp, client, clientver, ua, params) VALUES (:time, :ip, :country, :lang, :os, :osver, :brand, :model, :isp, :client, :clientver, :ua, :params)";
+        return $this->add_click($query, $click);
     }
 
     public function add_white_click($data, $reason, $campId): bool
     {
-        // Prepare click data
         $click = $this->prepare_click_data($data, $campId);
         $click['reason'] = $reason;
-
-        // Prepare SQL insert statement
         $query = "INSERT INTO blocked (campaign_id, time, ip, country, lang, os, osver, brand, model, isp, client, clientver, ua, reason, params) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :brand, :model, :isp, :client, :clientver, :ua, :reason, :params)";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Bind parameters
-            foreach ($click as $key => $value) {
-                if (!isset($value)) {
-                    add_log("warning", "Null value found for field '$key' in white click data");
-                    $value = '';
-                }
-                $stmt->bindValue(':' . $key, $value);
-            }
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            add_log("trace", "Successfully added white click for IP: " . ($click['ip'] ?? 'unknown') . ", Campaign: $campId, Reason: $reason");
-            return true;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to add white click: " . $e->getMessage() . ", Data: " . json_encode($click));
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->add_click($query, $click);
     }
 
     public function add_black_click($subid, $data, $preland, $land, $campId): bool
     {
-        // Prepare click data with the provided data and configuration
         $click = $this->prepare_click_data($data, $campId);
         $click['subid'] = $subid;
         $click['preland'] = empty($preland) ? 'unknown' : $preland;
         $click['land'] = empty($land) ? 'unknown' : $land;
+        $click['lpclick'] = 0;
+        $click['status'] = null;
 
-        // Prepare the SQL INSERT statement for the 'clicks' table
         $query = "INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, subid, preland, land, params, cost, lpclick, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :subid, :preland, :land, :params, :cpc, 0, NULL)";
 
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Bind parameters from the click array
-            foreach ($click as $key => $value) {
-                if (!isset($value)) {
-                    add_log("warning", "Null value found for field '$key' in black click data");
-                    $value = '';
-                }
-                $stmt->bindValue(':' . $key, $value);
-            }
-
-            // Manually bind the lpclick and status parameters
-            $stmt->bindValue(':lpclick', 0, SQLITE3_INTEGER);
-            $stmt->bindValue(':status', null, SQLITE3_NULL);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            add_log("trace", "Successfully added black click for IP: " . ($click['ip'] ?? 'unknown') . ", Campaign: $campId, SubID: $subid");
-            return true;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to add black click: " . $e->getMessage() . ", Data: " . json_encode($click));
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->add_click($query, $click);
     }
 
     public function add_lead(string $subid, array $leaddata, string $status = 'Lead'): bool
@@ -660,43 +422,7 @@ class Db
         }
 
         $updateQuery = "UPDATE clicks SET status = :status, leaddata = :leaddata WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($updateQuery);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-
-            // Bind parameters with proper type checking
-            $stmt->bindValue(':subid', $subid, SQLITE3_TEXT);
-            $stmt->bindValue(':status', $status, SQLITE3_TEXT);
-            $stmt->bindValue(':leaddata', json_encode($leaddata), SQLITE3_TEXT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Check if any rows were affected
-            if ($db->changes() === 0) {
-                add_log("warning", "No click found for subid: $subid when adding lead");
-                return false;
-            }
-
-            add_log("trace", "Successfully added lead for subid: $subid, status: $status");
-            return true;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to add lead: " . $e->getMessage() . ", Data: subid=$subid, leaddata=" . json_encode($leaddata) . ", status=$status");
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->exec_update_query($updateQuery,[$status=>SQLITE3_TEXT,$leaddata=>SQLITE3_TEXT,$subid=>SQLITE3_TEXT]);
     }
 
     public function update_status($subid, $status, $payout): bool
@@ -711,47 +437,12 @@ class Db
             return false;
         }
 
-        $updateQuery = "UPDATE clicks SET status = :status, payout = :payout WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($updateQuery);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Validate and bind parameters
-            if (!is_numeric($payout)) {
-                throw new Exception("Invalid payout value: $payout");
-            }
-
-            $stmt->bindValue(':subid', $subid, SQLITE3_TEXT);
-            $stmt->bindValue(':status', $status, SQLITE3_TEXT);
-            $stmt->bindValue(':payout', floatval($payout), SQLITE3_FLOAT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Check if any rows were affected
-            if ($db->changes() === 0) {
-                add_log("warning", "No click found for subid: $subid when updating status");
-                return false;
-            }
-
-            add_log("trace", "Successfully updated status for subid: $subid, new status: $status, payout: $payout");
-            return true;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to update status: " . $e->getMessage() . ", Data: subid=$subid, status=$status, payout=$payout");
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
+        if (!is_numeric($payout)) {
+            throw new Exception("Invalid payout value: $payout");
         }
+
+        $updateQuery = "UPDATE clicks SET status = :status, payout = :payout WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
+        return $this->exec_update_query($updateQuery,[$subid=>SQLITE3_TEXT,$status=>SQLITE3_TEXT,$payout=>SQLITE3_FLOAT]);
     }
 
     public function add_lpctr($subid): bool
@@ -767,38 +458,7 @@ class Db
         }
 
         $updateQuery = "UPDATE clicks SET lpclick = 1 WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $stmt = $db->prepare($updateQuery);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':subid', $subid, SQLITE3_TEXT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Check if any rows were affected
-            if ($db->changes() === 0) {
-                add_log("warning", "No click found for subid: $subid when updating lpctr");
-                return false;
-            }
-
-            add_log("trace", "Successfully updated lpctr for subid: $subid");
-            return true;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to update lpctr: " . $e->getMessage() . ", subid: $subid");
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->exec_update_query($updateQuery,[$subid=>SQLITE3_TEXT]);
     }
 
     private function subid_exists($subid): bool
@@ -807,38 +467,9 @@ class Db
             add_log("warning", "Empty subid provided for existence check");
             return false;
         }
-
-        $db = null;
-        try {
-            $db = $this->open_db(true); // Read-only connection since we're just checking
-            $stmt = $db->prepare('SELECT COUNT(*) AS count FROM clicks WHERE subid = :subid');
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':subid', $subid, SQLITE3_TEXT);
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $row = $result->fetchArray(SQLITE3_ASSOC);
-            
-            if ($row === false) {
-                throw new Exception("Failed to fetch result row");
-            }
-
-            $exists = ($row['count'] > 0);
-            add_log("trace", "Subid existence check - subid: $subid, exists: " . ($exists ? "yes" : "no"));
-            return $exists;
-        } catch (Exception $e) {
-            add_log("errors", "Failed to check subid existence: " . $e->getMessage() . ", subid: $subid");
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        $query = "SELECT COUNT(*) AS count FROM clicks WHERE subid = :subid";
+        $res = $this->exec_read_query($query, [$subid=>SQLITE3_TEXT]);
+        return $res['count'] > 0;
     }
 
     private function prepare_click_data($data, $campId=null): array
@@ -863,97 +494,27 @@ class Db
     public function add_campaign($name): bool|int
     {
         $query = "INSERT INTO campaigns (name, settings) VALUES (:name, :settings)";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($query);
-
-            $settingsJson = file_get_contents(__DIR__ . '/default.json');
-
-            $stmt->bindValue(':name', $name, SQLITE3_TEXT);
-            $stmt->bindValue(':settings', $settingsJson, SQLITE3_TEXT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) 
-                throw new Exception($db->lastErrorMsg());
-            
-            $db->exec('COMMIT');
-            $newCampaignId = $db->lastInsertRowID();
-            add_log("trace", "Added new campaign $name: " . $newCampaignId);
-            return $newCampaignId;
-        } catch (Exception $e) {
-            if (isset($db)) $db->exec('ROLLBACK');
-            add_log("errors", "Couldn't add campaign $name: " . $e->getMessage());
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        
+        $settingsJson = file_get_contents(__DIR__ . '/default.json');
+        $settings = json_decode($settingsJson, true);
+        $settings['apikey'] = com_create_guid(); //each campaign has its own apikey
+        $settingsJson = json_encode($settings);
+        return $this->exec_write_query($query,[$name=>SQLITE3_TEXT,$settingsJson=>SQLITE3_TEXT],true);
     }
 
     public function clone_campaign($id): bool|int
     {
-        // SQL query to clone campaign using a single command
         $query = "INSERT INTO campaigns (name, settings)
                   SELECT name || ' (Clone)', settings FROM campaigns WHERE id = :id";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($query);
-
-            // Bind the original campaign ID to the query
-            $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $db->exec('COMMIT');
-            $newCampaignId = $db->lastInsertRowID();
-            add_log("trace", "Cloned campaign $id: new id = $newCampaignId");
-            return $newCampaignId;
-        } catch (Exception $e) {
-            if (isset($db)) $db->exec('ROLLBACK');
-            add_log("errors", "Couldn't clone campaign $id: " . $e->getMessage());
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->exec_write_query($query, [$id=>SQLITE3_INTEGER], true);
     }
 
-    public function get_campaign_settings($id):array
+    public function get_campaign_settings(int $id):array
     {
         $query = "SELECT settings FROM campaigns WHERE id = :id";
-
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $arr = $result->fetchArray(SQLITE3_ASSOC);
-            $settings = json_decode($arr['settings'], true);
-
-            return $settings;
-        } catch (Exception $e) {
-            add_log("errors", "Couldn't fetch campaign $id: " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        $arr = $this->exec_read_query($query, [$id=>SQLITE3_INTEGER], true);
+        $settings = json_decode($arr['settings'], true);
+        return $settings;
     }
 
     public function get_campaign_by_currentpath(): array|bool
@@ -966,44 +527,18 @@ class Db
             $parsedUrl['host'].":".$parsedUrl['port'] : 
             $parsedUrl['host'];
         $query = "SELECT * FROM campaigns";
-
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-            
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
+        $campaigns = $this->exec_read_query($query,[]);
+        foreach ($campaigns as $campaign) {
+            if (empty($campaign['settings'])) continue;
+            $settings = json_decode($campaign['settings'], true);
+            if (!isset($settings['domains'])) continue;
+            if ($this->match_domain($settings['domains'], $domain)) {
+                add_log("trace", "Found matching campaign for domain $domain: " . $campaign['id']);
+                $campaign['settings'] = $settings;
+                return $campaign;
             }
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                if (empty($row['settings']))
-                    continue;
-                $settings = json_decode($row['settings'], true);
-                if (!isset($settings['domains']))
-                    continue;
-                if (!$this->match_domain($settings['domains'], $domain))
-                    continue;
-
-                $row['settings'] = json_decode($row['settings'], true);
-                add_log("trace", "Found matching campaign for domain $domain: " . $row['id']);
-                return $row;
-            }
-
-            add_log("trace", "No matching campaign found for domain $domain");
-            return false;
-        } catch (Exception $e) {
-            add_log("errors", "Couldn't fetch campaigns for domain $domain: " . $e->getMessage());
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
         }
+        return false;
     }
 
     private function match_domain($domains, $domainToMatch): bool
@@ -1023,111 +558,24 @@ class Db
         return false;
     }
 
-    public function rename_campaign($id, $name): bool
+    public function rename_campaign(int $id, string $name): bool
     {
         $query = "UPDATE campaigns SET name = :name WHERE id = :id";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
-            $stmt->bindValue(':name', $name, SQLITE3_TEXT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $db->exec('COMMIT');
-            add_log("trace", "Renamed campaign $id to: $name");
-            return true;
-        } catch (Exception $e) {
-            if (isset($db)) $db->exec('ROLLBACK');
-            add_log("errors", "Couldn't rename campaign $id to $name: " . $e->getMessage());
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->exec_write_query($query, [$name=>SQLITE3_TEXT, $id=>SQLITE3_INTEGER]);
     }
 
     public function save_campaign_settings(int $id, array $settings): bool
     {
         $query = "UPDATE campaigns SET settings = :settings WHERE id = :id";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $settingsJson = json_encode($settings);
-
-            $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
-            $stmt->bindValue(':settings', $settingsJson, SQLITE3_TEXT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $db->exec('COMMIT');
-            add_log("trace", "Saved settings for campaign $id");
-            return true;
-        } catch (Exception $e) {
-            if (isset($db)) $db->exec('ROLLBACK');
-            add_log("errors", "Couldn't save campaign's $id settings: " . $e->getMessage() . ", $settingsJson");
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        $settingsJson = json_encode($settings);
+        return $this->exec_write_query($query, [$settingsJson=>SQLITE3_TEXT, $id=>SQLITE3_INTEGER]);
     }
 
 
-    public function delete_campaign($id): bool
+    public function delete_campaign(int $id): bool
     {
         $query = "DELETE FROM campaigns WHERE id = :id";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $db->exec('COMMIT');
-            add_log("trace", "Deleted campaign $id");
-            return true;
-        } catch (Exception $e) {
-            if (isset($db)) $db->exec('ROLLBACK');
-            add_log("errors", "Couldn't delete campaign $id: " . $e->getMessage());
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
-        }
+        return $this->exec_write_query($query, [$id=>SQLITE3_INTEGER]);
     }
 
     public function get_campaigns($startDate, $endDate, array $selectFields): array
@@ -1141,118 +589,34 @@ class Db
         $selectClause = implode(',', $this->get_stats_select_parts($selectFields));
         $query = sprintf($query, $selectClause);
 
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':startDate', $startDate, SQLITE3_INTEGER);
-            $stmt->bindValue(':endDate', $endDate, SQLITE3_INTEGER);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $campaigns = [];
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                if (!empty($row['settings'])) {
-                    $row['settings'] = json_decode($row['settings'], true);
-                }
-                $campaigns[] = $row;
-            }
-
-            add_log("trace", "Fetched " . count($campaigns) . " campaigns from $startDate to $endDate");
-            return $campaigns;
-        } catch (Exception $e) {
-            add_log("errors", "Couldn't fetch campaigns: " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
+        $campaigns=$this->exec_read_query($query, [$startDate=>SQLITE3_INTEGER, $endDate=>SQLITE3_INTEGER]);
+        foreach ($campaigns as &$campaign) {
+            if (empty($campaign['settings'])) continue;
+            $campaign['settings'] = json_decode($campaign['settings'], true);
         }
+        return $campaigns;
     }
 
     public function get_common_settings(): array
     {
         $query = "SELECT settings FROM common";
 
-        $db = null;
-        try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $row = $result->fetchArray(SQLITE3_ASSOC);
-            if ($row === false) {
-                throw new Exception("No common settings found");
-            }
-
-            $settings = json_decode($row['settings'], true);
-            if ($settings === null && json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception("Failed to parse common settings JSON: " . json_last_error_msg());
-            }
-
-            add_log("trace", "Successfully retrieved common settings");
-            return $settings;
-        } catch (Exception $e) {
-            add_log("errors", "Couldn't get common settings: " . $e->getMessage());
-            return [];
-        } finally {
-            if (isset($db)) $db->close();
+        $arr = $this->exec_read_query($query, [], true);
+        $settings = json_decode($arr['settings'], true);
+        if ($settings === null && json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception("Failed to parse common settings JSON: " . json_last_error_msg());
         }
+        return $settings;
     }
 
     public function set_common_settings(array $s): bool
     {
         $query = "UPDATE common SET settings=:settings";
-
-        $db = null;
-        try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $settingsJson = json_encode($s);
-            if ($settingsJson === false) {
-                throw new Exception("Failed to encode settings to JSON: " . json_last_error_msg());
-            }
-
-            $stmt->bindValue(':settings', $settingsJson, SQLITE3_TEXT);
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $db->exec('COMMIT');
-            add_log("trace", "Successfully updated common settings");
-            return true;
-        } catch (Exception $e) {
-            if (isset($db)) $db->exec('ROLLBACK');
-            add_log("errors", "Couldn't update common settings: " . $e->getMessage());
-            return false;
-        } finally {
-            if (isset($db)) $db->close();
+        $settingsJson = json_encode($s);
+        if ($settingsJson === false) {
+            throw new Exception("Failed to encode settings to JSON: " . json_last_error_msg());
         }
+        return $this->exec_write_query($query, [$settingsJson=>SQLITE3_TEXT]);
     }
 
     private function open_db(bool $readOnly = false): SQLite3
@@ -1270,6 +634,116 @@ class Db
         }
         
         return $db;
+    }
+
+    private function exec_write_query(string $query, array $p, bool $returnId=false): bool|int
+    {
+        $db = null;
+        try {
+            $db = $this->open_db();
+            $db->exec('BEGIN IMMEDIATE');
+            $stmt = $db->prepare($query);
+
+            if ($stmt === false) {
+                throw new Exception("Error preparing $query: " . $db->lastErrorMsg());
+            }
+
+            $keys = array_keys($p);
+            foreach ($keys as $index=>$key){
+                $bound = $stmt->bindValue($index+1, $key,$p[$key]);
+                if ($bound === false) {
+                    throw new Exception("Error binding $key to $query: " . $db->lastErrorMsg());
+                }
+            }
+
+            $result = $stmt->execute();
+
+            if ($result === false) {
+                throw new Exception("Error executing $query: " . $db->lastErrorMsg());
+            }
+
+            $db->exec('COMMIT');
+            add_log("trace", "Successfully executed $query");
+            return $returnId ? $db->lastInsertRowID() : true;
+        } catch (Exception $e) {
+            if (isset($db)) $db->exec('ROLLBACK');
+            add_log("errors", $e->getMessage());
+            return false;
+        } finally {
+            if (isset($db)) $db->close();
+        }
+    }
+
+    private function exec_update_query(string $query, array $p):bool
+    {
+        $db = null;
+        try {
+            $db = $this->open_db();
+            $stmt = $db->prepare($query);
+            if ($stmt === false) {
+                throw new Exception("Failed to prepare $query: " . $db->lastErrorMsg());
+            }
+            
+            $keys = array_keys($p);
+            foreach ($keys as $index=>$key){
+                $bound = $stmt->bindValue($index+1, $key,$p[$key]);
+                if ($bound === false) {
+                    throw new Exception("Failed to bind $key to $query: " . $db->lastErrorMsg());
+                }
+            }
+
+            $result = $stmt->execute();
+            if ($result === false) {
+                throw new Exception("Failed to execute $query: " . $db->lastErrorMsg());
+            }
+
+            if ($db->changes() === 0) {
+                add_log("errors", "No rows affected when $query");
+                return false;
+            }
+            return true;
+        } catch (Exception $e) {
+            add_log("errors", $e->getMessage());
+            return false;
+        } finally {
+            if (isset($db)) $db->close();
+        }
+    }
+
+    private function exec_read_query(string $query, array $p, bool $firstOnly=false):array
+    {
+        $db = null;
+        try {
+            $db = $this->open_db(true);
+            $stmt = $db->prepare($query);
+            if ($stmt === false) {
+                throw new Exception("Error preparing $query: " . $db->lastErrorMsg());
+            }
+            
+            $keys = array_keys($p);
+            foreach ($keys as $index=>$key){
+                $bound = $stmt->bindValue($index+1, $key,$p[$key]);
+                if ($bound === false) {
+                    throw new Exception("Error binding $key to $query: " . $db->lastErrorMsg());
+                }
+            }
+
+            $result = $stmt->execute();
+            if ($result === false) {
+                throw new Exception("Error executing $query: " . $db->lastErrorMsg());
+            }
+
+            $arr = [];
+            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+                $arr[] = $row;
+            }
+            return $firstOnly?$arr[0]??[]:$arr;
+        } catch (Exception $e) {
+            add_log("errors",  $e->getMessage());
+            return [];
+        } finally {
+            if (isset($db)) $db->close();
+        }
     }
 
     private function create_new_db(): bool
