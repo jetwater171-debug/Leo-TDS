@@ -37,4 +37,3 @@ class Dates{
         return $enddate;
     }
 }
-?>

@@ -64,23 +64,34 @@ async function campActionsHandler(e, cell) {
         return;
     }
 
+    let startDateEndDateParams = getStartDateEndDateParams();
     if (target.classList.contains('btn-stats')) {
-        window.location.href = `statistics.php?campId=${campaignId}`;
+        window.location.href = `statistics.php?campId=${campaignId}${startDateEndDateParams}`;
         return;
     }
 
     if (target.classList.contains('btn-allowed')) {
-        window.location.href = `clicks.php?campId=${campaignId}&filter=allowed`;
+        window.location.href = `clicks.php?campId=${campaignId}&filter=allowed${startDateEndDateParams}`;
         return;
     }
 
     if (target.classList.contains('btn-blocked')) {
-        window.location.href = `clicks.php?campId=${campaignId}&filter=blocked`;
+        window.location.href = `clicks.php?campId=${campaignId}&filter=blocked${startDateEndDateParams}`;
         return;
     }
 
     if (target.classList.contains('btn-leads')) {
-        window.location.href = `clicks.php?campId=${campaignId}&filter=leads`;
+        window.location.href = `clicks.php?campId=${campaignId}&filter=leads${startDateEndDateParams}`;
         return;
     }
+}
+
+function getStartDateEndDateParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const startDate = urlParams.get('startdate');
+    const endDate = urlParams.get('enddate');
+    if (startDate && endDate) {
+        return `&startdate=${startDate}&enddate=${endDate}`;
+    }
+    return '';
 }
