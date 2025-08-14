@@ -519,7 +519,7 @@ class Db
 
     public function get_campaign_by_currentpath(): array|bool
     {
-        $cPath = get_cloaker_path(false, false);
+        $cPath = get_cloaker_path(true, false);
         $parsedUrl = parse_url($cPath);
         
         //TODO:check work with default port 80!
