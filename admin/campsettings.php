@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/securitycheck.php';
 require_once __DIR__ . '/campinit.php';
+require_once __DIR__ . '/../requestfunc.php';
 global $c;
 ?>
 <!doctype html>
@@ -1047,8 +1048,8 @@ global $c;
                     </div>
                     <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
                         <div class="input-group custom-go-button">
-                            <?php $firstDomain = empty($c->domains[0])? 'yourdomain.com' : $c->domains[0]; ?>
-                            <input type="text" readonly class="form-control" value="http://<?= $firstDomain ?>/postback.php?subid={sub1}&payout={payout}&currency=USD&status={status}"/>
+                            <?php $cloakerRoot = dirname(get_cloaker_path()); ?>
+                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/postback.php?subid={sub1}&payout={payout}&currency=USD&status={status}"/>
                         </div>
                     </div>
                 </div>
@@ -1186,17 +1187,34 @@ global $c;
                 </div>
                 <a id="add-s2s-item" class="btn btn-primary">Add</a>
                 <hr />
-                <div class="form-group-inner">
-                    <div class="login-btn-inner">
-                        <div class="row">
-                            <div class="col-lg-3"></div>
-                            <div class="col-lg-9">
-                                <div class="login-horizental cancel-wp pull-left">
-                                    <button class="btn btn-lg btn-primary" type="submit">
-                                        <strong>Save
-                                            settings</strong>
-                                    </button>
-                                </div>
+            </div>
+            <h4>#9 Campaign's API</h4>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">
+                        <img src="img/info.ico" title="API methods are described in docs" />
+                        This campaign's API URL:
+                    </label>
+                    </div>
+                    <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
+                        <div class="input-group custom-go-button">
+                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/api.php?apikey=<?= $c->apiKey ?>"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group-inner">
+                <div class="login-btn-inner">
+                    <div class="row">
+                        <div class="col-lg-3"></div>
+                        <div class="col-lg-9">
+                            <div class="login-horizental cancel-wp pull-left">
+                                <button class="btn btn-lg btn-primary" type="submit">
+                                    <strong>Save
+                                        settings</strong>
+                                </button>
                             </div>
                         </div>
                     </div>
