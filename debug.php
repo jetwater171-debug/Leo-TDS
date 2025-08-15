@@ -9,18 +9,24 @@ class DebugMethods
         global $cloSettings;
         return $cloSettings['debug'];
     }
-    public static function start($header_name): void
+    public static function start(string $header_name): void
     {
         if (!self::on()) return;
         self::$start_times[$header_name] = microtime(true);
     }
 
-    public static function stop($header_name): void
+    public static function stop(string $header_name): void
     {
         if (!self::on()) return;
         $time_elapsed_secs = microtime(true) - self::$start_times[$header_name];
         unset(self::$start_times[$header_name]);
         header($header_name.": " . $time_elapsed_secs . " sec.");
+    }
+
+    public static function set_header(string $header_name, string $value): void
+    {
+        if (!self::on()) return;
+        header($header_name.": " . $value);
     }
 
     public static function display_errors(): void

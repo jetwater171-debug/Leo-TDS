@@ -105,8 +105,9 @@ class Tabulator
                 "urlPrefix":"campsettings.php?campId="
             },
             "field": "name",
-            "headerFilter": "input",
+            "headerFilter": false,
             "width": 90,
+            "editor":"input",
             "bottomCalc":() => "TOTAL"
         },
         {

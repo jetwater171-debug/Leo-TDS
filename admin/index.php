@@ -120,7 +120,8 @@ $dataset = $db->get_campaigns(
             };
 
             document.getElementById("trafficBackStats").onclick = () => {
-                window.location.href = "clicks.php?filter=trafficback";
+                let startDateEndDateParams = getStartDateEndDateParams();
+                window.location.href = `clicks.php?filter=trafficback${startDateEndDateParams}`;
             };
 
             document.getElementById("downloadCsv").onclick = () => {

@@ -110,13 +110,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('../bases/update.php');
             const jsr = await response.json();
             if (!jsr.error) {
-                alert('Update SUCCESSFULL: ' + jsr.result);
+                alert('Update SUCCESSFULL:\n' + jsr.result);
                 location.reload();
             } else {
-                alert('Error updating geobases: ' + jsr.result);
+                alert('Error updating geobases:\n' + jsr.result);
             }
         } catch (error) {
-            alert('Error updating geobases: ' + error);
+            alert('Error updating geobases:\n' + error);
         } finally {
             if (typingCleanup) typingCleanup();
             loadingAnimation.style.display = 'none';
