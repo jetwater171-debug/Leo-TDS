@@ -497,7 +497,15 @@ class Db
         
         $settingsJson = file_get_contents(__DIR__ . '/default.json');
         $settings = json_decode($settingsJson, true);
-        $settings['apikey'] = com_create_guid(); //each campaign has its own apikey
+        $settings['apikey'] =  sprintf('%04X%04X-%04X-%04X-%04X-%04X%04X%04X', 
+            mt_rand(0, 65535),
+                    mt_rand(0, 65535), 
+                    mt_rand(0, 65535), 
+                    mt_rand(16384, 20479), 
+                    mt_rand(32768,49151), 
+                    mt_rand(0, 65535), 
+                    mt_rand(0, 65535), 
+                    mt_rand(0, 65535));
         $settingsJson = json_encode($settings);
         return $this->exec_write_query($query,[$name=>SQLITE3_TEXT,$settingsJson=>SQLITE3_TEXT],true);
     }
@@ -521,12 +529,11 @@ class Db
     {
         $cPath = get_cloaker_path(true, false);
         $parsedUrl = parse_url($cPath);
-        
-        //TODO:check work with default port 80!
         $domain = isset($parsedUrl['port']) ? 
             $parsedUrl['host'].":".$parsedUrl['port'] : 
             $parsedUrl['host'];
-        $query = "SELECT * FROM campaigns";
+        
+            $query = "SELECT * FROM campaigns";
         $campaigns = $this->exec_read_query($query,[]);
         foreach ($campaigns as $campaign) {
             if (empty($campaign['settings'])) continue;
