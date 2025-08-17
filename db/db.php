@@ -2,7 +2,7 @@
 require_once __DIR__ . "/../cookies.php";
 require_once __DIR__ . "/../logging.php";
 require_once __DIR__ . "/../settings.php";
-require_once __DIR__ . "/../requestfunc.php";
+require_once __DIR__ . "/../paths.php";
 
 class Db
 {
@@ -525,7 +525,7 @@ class Db
         return $settings;
     }
 
-    public function get_campaign_by_currentpath(): array|bool
+    public function get_campaign_by_domain(): array|bool
     {
         $cPath = get_cloaker_path(true, false);
         $parsedUrl = parse_url($cPath);
