@@ -4,7 +4,7 @@ require_once __DIR__ . '/../settings.php';
 require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/password.php';
 require_once __DIR__ . '/../redirect.php';
-require_once __DIR__ . '/../requestfunc.php';
+require_once __DIR__ . '/../paths.php';
 
 global $cloSettings;
 $admDomain = $cloSettings['adminDomain'];

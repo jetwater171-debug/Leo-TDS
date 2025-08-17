@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__.'/../requestfunc.php';
+require_once __DIR__.'/../paths.php';
 ?>
 <head>
     <meta charset="utf-8" />

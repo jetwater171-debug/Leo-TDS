@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/dates.php';
 require_once __DIR__.'/../debug.php';
+require_once __DIR__.'/../paths.php';
 function get_bases_version(): string
 {
     $updateFile = __DIR__ . "/../bases/update.txt";

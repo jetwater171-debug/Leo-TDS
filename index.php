@@ -29,7 +29,7 @@ require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/redirect.php';
 
 global $db;
-$dbCamp = $db->get_campaign_by_currentpath();
+$dbCamp = $db->get_campaign_by_domain();
 if ($dbCamp===false){
     $action = traficback(Cloaker::get_click_params());
 } else {

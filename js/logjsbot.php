@@ -6,7 +6,7 @@ require_once __DIR__ . '/../db/db.php';
 
 global $db;
 
-$dbCamp = $db->get_campaign_by_currentpath();
+$dbCamp = $db->get_campaign_by_domain();
 if ($dbCamp === false)
     die("NO CAMPAIGN FOR THIS DOMAIN!");
 $reason = isset($_GET['reason']) ? $_GET['reason'] : 'js_checks';

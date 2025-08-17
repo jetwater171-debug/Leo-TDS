@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__.'/../requestfunc.php';
+require_once __DIR__.'/../paths.php';
 $jsFsPath = __DIR__.'/js';
 $jsPath = get_cloaker_path().'js';
 ?>

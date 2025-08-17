@@ -59,7 +59,7 @@ class Cloaker
         $dd = new DeviceDetector($a['ua'], $clientHints);
 
         DebugMethods::start("YWBCoreDeviceDetector");
-        $phpFileCache = new Doctrine\Common\Cache\PhpFileCache('./tmp/');
+        $phpFileCache = new Doctrine\Common\Cache\PhpFileCache(__DIR__ . '/tmp/');
         $dd->setCache(new DoctrineBridge($phpFileCache));
         $dd->parse();
         $clientInfo = $dd->getClient();

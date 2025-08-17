@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/securitycheck.php';
 require_once __DIR__ . '/campinit.php';
-require_once __DIR__ . '/../requestfunc.php';
+require_once __DIR__ . '/../paths.php';
 global $c;
 ?>
 <!doctype html>

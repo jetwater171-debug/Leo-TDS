@@ -10,7 +10,7 @@ require_once __DIR__ . '/../main.php';
 require_once __DIR__ . '/../requestfunc.php';
 
 global $db;
-$dbCamp = $db->get_campaign_by_currentpath();
+$dbCamp = $db->get_campaign_by_domain();
 if ($dbCamp===false){
     $cs = $db->get_common_settings();
     $cp = Cloaker::get_click_params();

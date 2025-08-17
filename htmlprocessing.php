@@ -2,6 +2,7 @@
 require_once __DIR__ . '/js/obfuscator.php';
 require_once __DIR__ . '/bases/ipcountry.php';
 require_once __DIR__ . '/requestfunc.php';
+require_once __DIR__ . '/paths.php';
 require_once __DIR__ . '/htmlinject.php';
 require_once __DIR__ . '/macros.php';
 require_once __DIR__ . '/cookies.php';

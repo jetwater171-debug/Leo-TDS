@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__."/password.php";
 require_once __DIR__."/securitycheck.php";
-require_once __DIR__."/../requestfunc.php";
+require_once __DIR__."/../paths.php";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $result = array('success' => check_password(false));
@@ -168,12 +168,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         });
     </script>
 </head>
+<?php $cloPath = get_cloaker_path(); ?>
 <body>
     <canvas id="matrix-rain"></canvas>
     <div class="grid-overlay"></div>
     <div id="main">
         <div id="title">
-            <img src="<?=get_cloaker_path()?>img/logobig.png" alt="Yellow Cloaker Logo" />
+            <img src="<?=$cloPath?>img/logobig.png" alt="Yellow Cloaker Logo" />
         </div>
         <div class="login-container">
             <form id="login-form">
@@ -188,7 +189,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                 </div>
                 <button type="submit" class="login-button">
-                    <img src="<?=get_cloaker_path()?>img/loading.apng" class="loading-img" alt="Loading..." />
+                    <img src="<?=$cloPath?>img/loading.apng" class="loading-img" alt="Loading..." />
                     <span>Login to Dashboard</span>
                 </button>
             </form>
