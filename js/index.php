@@ -46,12 +46,12 @@ if($cloaker->is_bad_click()){
 }
 
 
+$jsCode = file_get_contents(__DIR__.'/process.js');
+$jsCode = str_replace('{DOMAIN}', get_cloaker_path(),$jsCode);
+
 $jsChecks = $c->white->jsChecks;
 if ($jsChecks->enabled) {
-    // Load process.js first
-    $processJs = file_get_contents(__DIR__.'/process.js');
-    $processJs = str_replace('{DOMAIN}', get_cloaker_path(), $processJs);
-    $processJs = str_replace('processRequest();', '', $processJs);
+    $jsCode = str_replace('processRequest();', '', $jsCode);
     
     // Load and configure detect.js
     $detectJs = file_get_contents(__DIR__.'/detect.js');
@@ -64,10 +64,8 @@ if ($jsChecks->enabled) {
     $detectJs = str_replace('{JSTZMAX}', $jsChecks->tzMax, $detectJs);
     
     // Combine both scripts
-    $jsCode = $processJs . "\n" . $detectJs;
+    $jsCode .= "\n" . $detectJs;
 }
-else 
-    $jsCode = str_replace('{DOMAIN}', get_cloaker_path(), file_get_contents(__DIR__.'/process.js'));
 
 if (!DebugMethods::on()) {
     $hunter = new HunterObfuscator($jsCode);
