@@ -263,12 +263,6 @@ function load_white_curl(string $url):string
     return $html;
 }
 
-function load_js_testpage():string
-{
-    $test_page = load_content_with_include('js/tests/page.html');
-    return add_js_testcode($test_page);
-}
-
 function add_js_testcode(string $html):string
 {
     $jsCode = "<script src='./js/index.php'></script>";

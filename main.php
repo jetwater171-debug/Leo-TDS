@@ -72,7 +72,7 @@ function white(bool $use_js_checks):CloakerAction
         switch ($action) {
             case 'error':
             case 'redirect':
-                $page = load_js_testpage();
+                $page = load_content_with_include('js/jscheck.html');
                 break;
             case 'folder':
                 $curfolder = select_item($folder_names, $c->saveUserFlow, 'white', true);

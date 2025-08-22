@@ -48,7 +48,8 @@ function insert_subs_into_url(array $currentParams, string $redirectUrl)
 
     $newQuery = http_build_query($redirectParams);
 
-    $finalRedirectUrl = $redirectParsed['scheme'] . '://' . $redirectParsed['host'] . $redirectParsed['path']??'';
+    $path = $redirectParsed['path']??'';
+    $finalRedirectUrl = $redirectParsed['scheme'] . '://' . $redirectParsed['host'] . $path;
     if (!empty($newQuery)) {
         $finalRedirectUrl .= '?' . $newQuery;
     }
