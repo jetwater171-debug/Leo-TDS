@@ -388,8 +388,8 @@ global $c;
                                     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
                                         <div class="i-checks pull-left">
                                             <label>
-                                                <input type="checkbox" name="white.jschecks.events[]" value="mousemove" <?= in_array('mousemove', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Mouse moves
+                                                <input type="checkbox" name="white.jschecks.events[]" value="pointerdown" <?= in_array('pointerdown', $c->white->jsChecks->events) ? 'checked' : '' ?> />
+                                                Mouse click / Touch start  
                                             </label>
                                         </div>
                                     </div>
@@ -399,17 +399,7 @@ global $c;
                                         <div class="i-checks pull-left">
                                             <label>
                                                 <input type="checkbox" name="white.jschecks.events[]" value="keydown" <?= in_array('keydown', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Key presses
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="checkbox" name="white.jschecks.events[]" value="scroll" <?= in_array('scroll', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Scrolling
+                                                Text typing
                                             </label>
                                         </div>
                                     </div>
@@ -452,7 +442,7 @@ global $c;
                                         <div class="i-checks pull-left">
                                             <label>
                                                 <input id="tzcheck" type="checkbox" name="white.jschecks.events[]" value="timezone" <?= in_array('timezone', $c->white->jsChecks->events) ? 'checked' : '' ?> onchange="(document.getElementById('jscheckstz').style.display = this.checked ? 'block' : 'none')" />
-                                                Time Zone
+                                                Time zone
                                             </label>
                                         </div>
                                     </div>
