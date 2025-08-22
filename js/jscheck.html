@@ -55,16 +55,19 @@
         }
 
         .countdown {
-            position: absolute;
-            top: 15px;
-            right: 15px;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             background: #ff6b6b;
             color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
             font-weight: 600;
             display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .countdown.warning {
@@ -229,7 +232,6 @@
         <div class="subtitle">Please confirm that you are human by completing the verification below.</div>
         
         <div class="security-check">
-            <div class="countdown" id="countdown"></div>
             <div class="check-title">Verifying your browser...</div>
             
             <div class="loading" id="loading">
@@ -262,6 +264,7 @@
     </div>
 
     <div id="log" style="display: none;"></div>
+    <div class="countdown" id="countdown"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

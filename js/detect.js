@@ -32,11 +32,9 @@ class BotDetector {
     }
   }
 
-  // Step 1: Check all non-interactive tests first
   runNonInteractiveTests() {
     this.log('Running non-interactive tests...');
     
-    // Check timezone if enabled
     if (this.selectedTests.includes(this.Tests.TIMEZONE)) {
       this.log('Checking timezone...');
       if (!this.checkTimeZone()) {
@@ -45,7 +43,6 @@ class BotDetector {
       }
     }
 
-    // Check audio context if enabled
     if (this.selectedTests.includes(this.Tests.AUDIOCONTEXT)) {
       this.log('Checking audio context...');
       if (!this.checkAudioContext()) {
@@ -54,10 +51,9 @@ class BotDetector {
       }
     }
 
-    return true; // All non-interactive tests passed
+    return true; 
   }
 
-  // Step 2: Initialize all interactive tests
   initializeInteractiveTests() {
     const interactiveTestsToRun = this.selectedTests.filter(test => 
       this.interactiveTestNames.includes(test)
@@ -71,19 +67,16 @@ class BotDetector {
 
     this.log(`Initializing ${interactiveTestsToRun.length} interactive tests: ${interactiveTestsToRun.join(', ')}`);
 
-    // Set up event handlers for all interactive tests
     interactiveTestsToRun.forEach(test => {
       this.setupInteractiveTest(test);
     });
 
-    // Start timeout timer
     this.timeoutId = setTimeout(() => {
       this.log('Tests timeout!');
       this.failTest('timeout');
     }, this.timeout);
   }
 
-  // Step 3: Check if all interactive tests are complete
   checkInteractiveTestsComplete() {
     const requiredTests = this.selectedTests.filter(test => 
       this.interactiveTestNames.includes(test)
@@ -255,12 +248,10 @@ class BotDetector {
   monitor() {
     this.log('Starting bot detection...');
     
-    // Step 1: Run non-interactive tests first
     if (!this.runNonInteractiveTests()) {
-      return; // Failed non-interactive test, already called failTest()
+      return; 
     }
     
-    // Step 2: Initialize interactive tests
     this.initializeInteractiveTests();
   }
 }
