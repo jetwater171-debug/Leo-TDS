@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Check</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .security-check {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 30px 20px;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .countdown {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff6b6b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .countdown.warning {
+            background: #ffa726;
+        }
+
+        .countdown.danger {
+            background: #f44336;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .check-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .checkbox-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .checkbox-container:hover {
+            background-color: #e9ecef;
+        }
+
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .checkbox.checked {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+
+        .checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .checkbox-label {
+            font-size: 16px;
+            color: #333;
+            user-select: none;
+        }
+
+        .input-container {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-field {
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+        }
+
+        .input-label {
+            font-size: 14px;
+            color: #666;
+            text-align: left;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #667eea;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e9ecef;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+            
+            .logo {
+                font-size: 24px;
+            }
+            
+            .subtitle {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Security Check</div>
+        <div class="subtitle">Please confirm that you are human by completing the verification below.</div>
+        
+        <div class="security-check">
+            <div class="countdown" id="countdown"></div>
+            <div class="check-title">Verifying your browser...</div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Checking browser security</span>
+            </div>
+            
+            <div class="checkbox-container" id="checkboxContainer">
+                <div class="checkbox" id="checkbox"></div>
+                <div class="checkbox-label">I'm not a robot</div>
+            </div>
+            
+            <div class="input-container" id="inputContainer">
+                <div class="input-label">Please type any word here:</div>
+                <input type="text" class="input-field" id="humanInput" placeholder="Type any word...">
+            </div>
+            
+            <div class="device-instruction" id="deviceInstruction" style="display: none;">
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404; font-size: 14px;">
+                    📱 Please move or tilt your device to complete the verification
+                </div>
+            </div>
+            
+            <div class="status-message" id="statusMessage" style="display: none;"></div>
+        </div>
+        
+        <div class="footer">
+            This security check helps protect against automated requests.
+        </div>
+    </div>
+
+    <div id="log" style="display: none;"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loading = document.getElementById('loading');
+            const checkboxContainer = document.getElementById('checkboxContainer');
+            const inputContainer = document.getElementById('inputContainer');
+            const deviceInstruction = document.getElementById('deviceInstruction');
+            const checkbox = document.getElementById('checkbox');
+            const humanInput = document.getElementById('humanInput');
+            const countdown = document.getElementById('countdown');
+            
+            let countdownInterval;
+            
+            // Wait for botDetector to be available
+            function initializeUI() {
+                if (!window.botDetector || !window.botDetector.tests) {
+                    setTimeout(initializeUI, 100);
+                    return;
+                }
+                
+                const tests = Object.keys(window.botDetector.tests);
+                const hasKeydown = tests.includes('keydown');
+                const hasPointerdown = tests.includes('pointerdown');
+                const hasDeviceMotion = tests.includes('devicemotion');
+                const hasDeviceOrientation = tests.includes('deviceorientation');
+                
+                // Hide loading
+                loading.style.display = 'none';
+                
+                // Show appropriate UI based on tests
+                if (hasKeydown) {
+                    window.botDetector.log('Setting UI for keydown...');
+                    // If both keydown and pointerdown, show input (input click triggers pointerdown)
+                    inputContainer.style.display = 'flex';
+                    // Only auto-focus if pointerdown is NOT present (user needs to click first if pointerdown test exists)
+                    if (!hasPointerdown) {
+                        humanInput.focus();
+                    }
+                } else if (hasPointerdown) {
+                    window.botDetector.log('Setting UI for pointerdown...');
+                    // Only pointerdown, show checkbox
+                    checkboxContainer.style.display = 'flex';
+                }
+                
+                // Show device instruction if needed
+                if (hasDeviceMotion || hasDeviceOrientation) {
+                    window.botDetector.log('Setting UI for device motion/orientation...');
+                    deviceInstruction.style.display = 'block';
+                }
+                
+                // Start countdown timer
+                startCountdown();
+            }
+            
+            function startCountdown() {
+                if (!window.botDetector || !window.botDetector.timeout) return;
+                
+                let timeLeft = Math.floor(window.botDetector.timeout / 1000); // Convert ms to seconds
+                countdown.style.display = 'block';
+                
+                function updateCountdown() {
+                    if (timeLeft <= 0) {
+                        countdown.textContent = 'Time up!';
+                        countdown.className = 'countdown danger';
+                        clearInterval(countdownInterval);
+                        return;
+                    }
+                    
+                    countdown.textContent = `${timeLeft}s remaining`;
+                    
+                    // Change color based on time left
+                    if (timeLeft <= 5) {
+                        countdown.className = 'countdown danger';
+                    } else if (timeLeft <= 10) {
+                        countdown.className = 'countdown warning';
+                    } else {
+                        countdown.className = 'countdown';
+                    }
+                    
+                    timeLeft--;
+                }
+                
+                updateCountdown(); // Initial call
+                countdownInterval = setInterval(updateCountdown, 1000);
+            }
+            
+            // Checkbox interaction
+            checkboxContainer.addEventListener('click', function() {
+                checkbox.classList.add('checked');
+            });
+            
+            // Input interaction - any typing is sufficient
+            humanInput.addEventListener('input', function() {
+                if (this.value.length > 0) {
+                    this.style.borderColor = '#28a745';
+                }
+            });
+            
+            initializeUI();
+        });
+    </script>
+</body>
+</html>
