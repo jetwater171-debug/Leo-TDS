@@ -277,12 +277,13 @@
             
             // Wait for botDetector to be available
             function initializeUI() {
-                if (!window.botDetector || !window.botDetector.tests) {
+                console.log('Security Check UI initialization...');
+                if (!window.botDetector || !window.botDetector.selectedTests) {
                     setTimeout(initializeUI, 100);
                     return;
                 }
-                
-                const tests = Object.keys(window.botDetector.tests);
+                console.log('UI initialized!');
+                const tests = window.botDetector.selectedTests;
                 const hasKeydown = tests.includes('keydown');
                 const hasPointerdown = tests.includes('pointerdown');
                 const hasDeviceMotion = tests.includes('devicemotion');

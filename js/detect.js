@@ -2,18 +2,17 @@ class BotDetector {
   constructor(args) {
     this.debug = args.debug || false;
     
-    this.isBot = false;
-    this.reason = '';
     this.timeout = args.timeout || 1000;
     this.timeoutId = -1;
     this.passfunc = args.passfunc || null;
-    this.notified = false;
    
     this.tzStart = args.tzStart || 0;
     this.tzEnd = args.tzEnd || 0;
 
-    this.tests = {};
     this.selectedTests = args.tests || [];
+    this.interactiveTests = {};
+    this.passedInteractiveTests = new Set();
+    
     this.Tests = {
       KEYDOWN: 'keydown',
       POINTERDOWN: 'pointerdown',
@@ -23,7 +22,8 @@ class BotDetector {
       AUDIOCONTEXT: 'audiocontext'
     };
 
-    this.initializeTests();
+    this.nonInteractiveTests = [this.Tests.TIMEZONE, this.Tests.AUDIOCONTEXT];
+    this.interactiveTestNames = [this.Tests.KEYDOWN, this.Tests.POINTERDOWN, this.Tests.DEVICEMOTION, this.Tests.DEVICEORIENTATION];
   }
 
   log(text) {
@@ -32,59 +32,96 @@ class BotDetector {
     }
   }
 
-  arrayRemove(arr, item) {
-    return arr.filter(el => el !== item);
+  // Step 1: Check all non-interactive tests first
+  runNonInteractiveTests() {
+    this.log('Running non-interactive tests...');
+    
+    // Check timezone if enabled
+    if (this.selectedTests.includes(this.Tests.TIMEZONE)) {
+      this.log('Checking timezone...');
+      if (!this.checkTimeZone()) {
+        this.failTest('timezone');
+        return false;
+      }
+    }
+
+    // Check audio context if enabled
+    if (this.selectedTests.includes(this.Tests.AUDIOCONTEXT)) {
+      this.log('Checking audio context...');
+      if (!this.checkAudioContext()) {
+        this.failTest('audiocontext');
+        return false;
+      }
+    }
+
+    return true; // All non-interactive tests passed
   }
 
-  initializeTests() {
-    this.log('Listening for: ' + this.selectedTests.join());
+  // Step 2: Initialize all interactive tests
+  initializeInteractiveTests() {
+    const interactiveTestsToRun = this.selectedTests.filter(test => 
+      this.interactiveTestNames.includes(test)
+    );
 
-    if (this.selectedTests.includes(this.Tests.TIMEZONE)) {
-      let res = this.checkTimeZone();
-      if (!res[0]){ 
-        this.reason = 'timezone:'+res[1];
-        this.isBot = true;
-        this.callback();
-        return;
-      }
-    }
-
-    if (this.selectedTests.includes(this.Tests.AUDIOCONTEXT)) {
-      let testPassed = this.checkAudioContext();
-      if (!testPassed){ 
-        this.reason = 'audiocontext';
-        this.isBot = true;
-        this.callback();
-        return;
-      }
-    }
-
-    this.log('Interactive tests count:' + this.selectedTests.length);
-    if (this.selectedTests.length === 0) {
-      this.log('No interactive tests, all ok, exiting...');
-      this.callback();
+    if (interactiveTestsToRun.length === 0) {
+      this.log('No interactive tests enabled, calling passfunc');
+      this.passfunc();
       return;
     }
 
-    this.selectedTests.forEach(test => this.setupTest(test));
+    this.log(`Initializing ${interactiveTestsToRun.length} interactive tests: ${interactiveTestsToRun.join(', ')}`);
+
+    // Set up event handlers for all interactive tests
+    interactiveTestsToRun.forEach(test => {
+      this.setupInteractiveTest(test);
+    });
+
+    // Start timeout timer
+    this.timeoutId = setTimeout(() => {
+      this.log('Tests timeout!');
+      this.failTest('timeout');
+    }, this.timeout);
+  }
+
+  // Step 3: Check if all interactive tests are complete
+  checkInteractiveTestsComplete() {
+    const requiredTests = this.selectedTests.filter(test => 
+      this.interactiveTestNames.includes(test)
+    );
+    
+    const allPassed = requiredTests.every(test => 
+      this.passedInteractiveTests.has(test)
+    );
+
+    if (allPassed) {
+      this.log('All interactive tests passed!');
+      clearTimeout(this.timeoutId);
+      this.passfunc();
+    } else {
+      this.log(`Still waiting for: ${requiredTests.filter(test => !this.passedInteractiveTests.has(test)).join(', ')}`);
+    }
+  }
+
+  failTest(reason) {
+    this.log(`Test failed: ${reason}`);
+    let domain = '{DOMAIN}';
+    let script = document.createElement('script');
+    script.setAttribute('id', 'ywb_process');
+    script.setAttribute('src', `${domain}js/logjsbot.php?reason=${reason}`);
+    document.body.appendChild(script);
+    document.getElementById('ywb_process').remove();
   }
 
   checkTimeZone() {
-    try{
+    try {
       this.log('Min allowed tz: ' + this.tzStart);
       this.log('Max allowed tz: ' + this.tzEnd);
       let curZone = -(new Date().getTimezoneOffset() / 60);
       this.log('Current tz: ' + curZone);
-      if (curZone < this.tzStart || curZone > this.tzEnd) {
-        return [false, curZone];
-      }
-      return [true, curZone];
+      return curZone >= this.tzStart && curZone <= this.tzEnd;
     } catch (e) {
       this.log('Failed to check timezone: ' + e);
-      return [false,0];
-    }
-    finally {
-      this.selectedTests = this.arrayRemove(this.selectedTests, this.Tests.TIMEZONE);
+      return false;
     }
   }
 
@@ -95,160 +132,136 @@ class BotDetector {
       this.log('Audio engine found!');
       return true;
     } catch (e) {
+      this.log('Audio context failed: ' + e);
       return false;
     }
-    finally{
-      this.selectedTests = this.arrayRemove(this.selectedTests, this.Tests.AUDIOCONTEXT);
-    }
   }
 
-  checkOrientation(test){
-    this.orientationCount = 0;
-    this.orientation = null;
-    this.orientdelta = 3;
-    this.orientdiff = 0;
-    this.orientdiffmax = 5;
-    
-    const eventListener = (et) => {
-      const { alpha, beta, gamma } = et;
-      this.orientationCount++;
-      
-      if (this.orientation) {
-        const delta = Math.sqrt(
-          Math.pow(alpha - this.orientation.alpha, 2) +
-          Math.pow(beta - this.orientation.beta, 2) +
-          Math.pow(gamma - this.orientation.gamma, 2)
-        );
-        this.log(`Orientation: alpha:${alpha} beta:${beta} gamma:${gamma}. Delta:${delta}`);
-        if (delta >= this.orientdelta) {
-          this.orientdiff++;
-          this.log(`Orientation Diff found! Delta:${delta}. Found number:${this.orientdiff}`);
-          if (this.orientdiff >= this.orientdiffmax) {
-            this.log(`Found MAXIMUM orientation diffs: ${this.orientdiffmax}! Test passed!`);
-            window.removeEventListener(test, eventListener);
-            this.tests[test] = true;
-          }
-        }
-      }
-      this.orientation = et;
-    };
-    
-    if (window.DeviceOrientationEvent)
-      window.addEventListener(test, eventListener);
-    else
-      this.log("No OrientationDevice detected, test skipped!");
-  }
-
-  checkAcceleration(test){
-    this.motionCount = 0;
-    this.acceleration = null;
-    this.acceldelta = 0.8;
-    this.acceldiff = 0;
-    this.acceldiffmax = 3;
-    
-    const eventListener = (et) => {
-      let curX = et.acceleration?.x;
-      let curY = et.acceleration?.y;
-      let curZ = et.acceleration?.z;
-      let curMagnitude = Math.sqrt(curX * curX + curY * curY + curZ * curZ);
-      this.log(`${test}: X:${curX} Y:${curY} Z:${curZ} Magnitude:${curMagnitude}`);
-      this.motionCount++;
-      
-      if (this.acceleration) {
-        let prevX = this.acceleration.x;
-        let prevY = this.acceleration.y;
-        let prevZ = this.acceleration.z;
-        let prevMagnitude = Math.sqrt(prevX * prevX + prevY * prevY + prevZ * prevZ);
-        
-        let curDelta = Math.abs(curMagnitude - prevMagnitude);
-        if (curDelta > this.acceldelta) {
-          this.acceldiff++;
-          this.log(`Acceleration diff found! Delta: ${curDelta}. Found number: ${this.acceldiff}`);
-          
-          if (this.acceldiff >= this.acceldiffmax) {
-            this.log(`MAXIMUM acceleration diffs found: ${this.acceldiffmax}. Test passed!`);
-            window.removeEventListener(test, eventListener);
-            this.tests[test] = true;
-            this.update();
-          }
-        }
-      }
-      this.acceleration = et.acceleration;
-    };
-
-    if (window.DeviceMotionEvent)
-      window.addEventListener(test, eventListener);
-    else
-      this.log("No MotionDevice detected, test skipped!");
-  }
-
-  setupTest(test) {
+  setupInteractiveTest(test) {
     switch (test) {
       case this.Tests.KEYDOWN:
       case this.Tests.POINTERDOWN:
-        this.tests[test] = () => {
-          const eventListener = (evt) => {
-            this.log(`${test} ${evt.target}`);
-            this.tests[test] = true;
-            this.update();
-          };
-          window.addEventListener(test, eventListener, { once: true });
+        const eventListener = (evt) => {
+          this.log(`${test} event detected`);
+          this.passedInteractiveTests.add(test);
+          window.removeEventListener(test, eventListener);
+          this.checkInteractiveTestsComplete();
         };
+        window.addEventListener(test, eventListener);
         break;
+        
       case this.Tests.DEVICEORIENTATION:
-        this.tests[test] = ()=>this.checkOrientation(test);
+        this.setupOrientationTest(test);
         break;
+        
       case this.Tests.DEVICEMOTION:
-        this.tests[test] = ()=>this.checkAcceleration(test);
+        this.setupMotionTest(test);
         break;
     }
   }
 
-  update() {
-    let passedCount = 0;
-    for (let t in this.tests) {
-      if (this.tests[t] === true) {
-        passedCount++;
+  setupOrientationTest(test) {
+    let orientationCount = 0;
+    let orientation = null;
+    let orientdelta = 3;
+    let orientdiff = 0;
+    let orientdiffmax = 5;
+    
+    const eventListener = (et) => {
+      const { alpha, beta, gamma } = et;
+      orientationCount++;
+      
+      if (orientation) {
+        const delta = Math.sqrt(
+          Math.pow(alpha - orientation.alpha, 2) +
+          Math.pow(beta - orientation.beta, 2) +
+          Math.pow(gamma - orientation.gamma, 2)
+        );
+        this.log(`Orientation: alpha:${alpha} beta:${beta} gamma:${gamma}. Delta:${delta}`);
+        if (delta >= orientdelta) {
+          orientdiff++;
+          this.log(`Orientation Diff found! Delta:${delta}. Found number:${orientdiff}`);
+          if (orientdiff >= orientdiffmax) {
+            this.log(`Found MAXIMUM orientation diffs: ${orientdiffmax}! Test passed!`);
+            window.removeEventListener(test, eventListener);
+            this.passedInteractiveTests.add(test);
+            this.checkInteractiveTestsComplete();
+          }
+        }
       }
-    }
-    this.isBot = passedCount === 0;
-    if (!this.notified) {
-      this.callback();
-      this.notified = true;
+      orientation = { alpha, beta, gamma };
+    };
+    
+    if (this.isAndroidDevice()) {
+      window.addEventListener(test, eventListener);
+    } else {
+      this.log("Not an Android device, orientation test auto-passed!");
+      this.passedInteractiveTests.add(test);
+      this.checkInteractiveTestsComplete();
     }
   }
 
-  callback() {
-    let domain = '{DOMAIN}';
-    if (this.isBot) {
-      this.log("You Shall Not Pass! Reason:" + this.reason);
-      let scrpt = document.createElement('script');
-      scrpt.setAttribute('id', 'ywb_process');
-      scrpt.setAttribute('src', `${domain}js/logjsbot.php?reason=${this.reason}`);
-      document.body.appendChild(scrpt);
-      document.getElementById('ywb_process').remove();
+  setupMotionTest(test) {
+    let motionCount = 0;
+    let acceleration = null;
+    let acceldelta = 0.8;
+    let acceldiff = 0;
+    let acceldiffmax = 3;
+    
+    const eventListener = (et) => {
+      let curX = et.acceleration?.x || 0;
+      let curY = et.acceleration?.y || 0;
+      let curZ = et.acceleration?.z || 0;
+      let curMagnitude = Math.sqrt(curX * curX + curY * curY + curZ * curZ);
+      this.log(`${test}: X:${curX} Y:${curY} Z:${curZ} Magnitude:${curMagnitude}`);
+      motionCount++;
+      
+      if (acceleration) {
+        let prevX = acceleration.x;
+        let prevY = acceleration.y;
+        let prevZ = acceleration.z;
+        let prevMagnitude = Math.sqrt(prevX * prevX + prevY * prevY + prevZ * prevZ);
+        
+        let curDelta = Math.abs(curMagnitude - prevMagnitude);
+        if (curDelta > acceldelta) {
+          acceldiff++;
+          this.log(`Acceleration diff found! Delta: ${curDelta}. Found number: ${acceldiff}`);
+          
+          if (acceldiff >= acceldiffmax) {
+            this.log(`MAXIMUM acceleration diffs found: ${acceldiffmax}. Test passed!`);
+            window.removeEventListener(test, eventListener);
+            this.passedInteractiveTests.add(test);
+            this.checkInteractiveTestsComplete();
+          }
+        }
+      }
+      acceleration = { x: curX, y: curY, z: curZ };
+    };
+
+    if (this.isAndroidDevice()) {
+      window.addEventListener(test, eventListener);
     } else {
-      this.log("You are a real human!");
-      clearTimeout(this.timeoutId);
-      this.passfunc();
+      this.log("Not an Android device, motion test auto-passed!");
+      this.passedInteractiveTests.add(test);
+      this.checkInteractiveTestsComplete();
     }
-  };
+  }
+
+  isAndroidDevice() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    return userAgent.includes('android');
+  }
 
   monitor() {
-    if (this.isBot) return;
-
-    for (let t in this.tests) {
-      this.tests[t].call(this);
+    this.log('Starting bot detection...');
+    
+    // Step 1: Run non-interactive tests first
+    if (!this.runNonInteractiveTests()) {
+      return; // Failed non-interactive test, already called failTest()
     }
-
-    if (Object.keys(this.tests).length > 0) {
-      this.timeoutId = setTimeout(() => {
-        this.log('Tests timeout!');
-        this.reason = 'timeout';
-        this.isBot = true;
-        this.callback();
-      }, this.timeout);
-    }
+    
+    // Step 2: Initialize interactive tests
+    this.initializeInteractiveTests();
   }
 }
 
