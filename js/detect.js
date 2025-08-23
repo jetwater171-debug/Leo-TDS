@@ -5,6 +5,7 @@ class BotDetector {
     this.timeout = args.timeout || 1000;
     this.timeoutId = -1;
     this.passfunc = args.passfunc || null;
+    this.activeEventListeners = new Map(); // Track active event listeners
    
     this.tzStart = args.tzStart || 0;
     this.tzEnd = args.tzEnd || 0;
@@ -73,6 +74,7 @@ class BotDetector {
 
     this.timeoutId = setTimeout(() => {
       this.log('Tests timeout!');
+      this.removeAllEventListeners();
       this.failTest('timeout');
     }, this.timeout);
   }
@@ -89,10 +91,19 @@ class BotDetector {
     if (allPassed) {
       this.log('All interactive tests passed!');
       clearTimeout(this.timeoutId);
+      this.removeAllEventListeners();
       this.passfunc();
     } else {
       this.log(`Still waiting for: ${requiredTests.filter(test => !this.passedInteractiveTests.has(test)).join(', ')}`);
     }
+  }
+
+  removeAllEventListeners() {
+    this.log('Removing all active event listeners');
+    this.activeEventListeners.forEach((listener, eventType) => {
+      window.removeEventListener(eventType, listener);
+    });
+    this.activeEventListeners.clear();
   }
 
   failTest(reason) {
@@ -137,9 +148,11 @@ class BotDetector {
         const eventListener = (evt) => {
           this.log(`${test} event detected`);
           this.passedInteractiveTests.add(test);
+          this.activeEventListeners.delete(test);
           window.removeEventListener(test, eventListener);
           this.checkInteractiveTestsComplete();
         };
+        this.activeEventListeners.set(test, eventListener);
         window.addEventListener(test, eventListener);
         break;
         
@@ -176,6 +189,7 @@ class BotDetector {
           this.log(`Orientation Diff found! Delta:${delta}. Found number:${orientdiff}`);
           if (orientdiff >= orientdiffmax) {
             this.log(`Found MAXIMUM orientation diffs: ${orientdiffmax}! Test passed!`);
+            this.activeEventListeners.delete(test);
             window.removeEventListener(test, eventListener);
             this.passedInteractiveTests.add(test);
             this.checkInteractiveTestsComplete();
@@ -186,6 +200,7 @@ class BotDetector {
     };
     
     if (this.isAndroidDevice()) {
+      this.activeEventListeners.set(test, eventListener);
       window.addEventListener(test, eventListener);
     } else {
       this.log("Not an Android device, orientation test auto-passed!");
@@ -222,6 +237,7 @@ class BotDetector {
           
           if (acceldiff >= acceldiffmax) {
             this.log(`MAXIMUM acceleration diffs found: ${acceldiffmax}. Test passed!`);
+            this.activeEventListeners.delete(test);
             window.removeEventListener(test, eventListener);
             this.passedInteractiveTests.add(test);
             this.checkInteractiveTestsComplete();
@@ -232,6 +248,7 @@ class BotDetector {
     };
 
     if (this.isAndroidDevice()) {
+      this.activeEventListeners.set(test, eventListener);
       window.addEventListener(test, eventListener);
     } else {
       this.log("Not an Android device, motion test auto-passed!");
