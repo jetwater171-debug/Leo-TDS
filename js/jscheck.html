@@ -289,9 +289,13 @@
                 const tests = window.botDetector.selectedTests;
                 const hasKeydown = tests.includes('keydown');
                 const hasPointerdown = tests.includes('pointerdown');
-                const hasDeviceMotion = tests.includes('devicemotion');
-                const hasDeviceOrientation = tests.includes('deviceorientation');
-                
+                let hasDeviceMotion = false;
+                let hasDeviceOrientation = false;
+                if (window.botDetector.isAndroidDevice()) {
+                    hasDeviceMotion = tests.includes('devicemotion')
+                    hasDeviceOrientation = tests.includes('deviceorientation');
+                }
+
                 // Hide loading
                 loading.style.display = 'none';
                 

@@ -257,12 +257,14 @@ class BotDetector {
 }
 
 
-window.botDetector = new BotDetector({
-    debug: {DEBUG},
-    timeout: {JSTIMEOUT},
-    passfunc: processRequest,
-    tests: ["{JSCHECKS}"],
-    tzStart: {JSTZMIN},
-    tzEnd: {JSTZMAX}
+document.addEventListener('DOMContentLoaded', function() {
+    window.botDetector = new BotDetector({
+        debug: {DEBUG},
+        timeout: {JSTIMEOUT},
+        passfunc: processRequest,
+        tests: ["{JSCHECKS}"],
+        tzStart: {JSTZMIN},
+        tzEnd: {JSTZMAX}
+    });
+    window.botDetector.monitor();
 });
-window.botDetector.monitor();
