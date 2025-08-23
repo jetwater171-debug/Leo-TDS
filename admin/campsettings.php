@@ -459,7 +459,7 @@ global $c;
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
                             <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="-3" name="white.jschecks.tzstart" value="<?= $c->white->jsChecks->tzMin ?>" />
+                                <input type="text" class="form-control" placeholder="-3" name="white.jschecks.timezone.min" value="<?= $c->white->jsChecks->tzMin ?>" />
                             </div>
                         </div>
                     </div>
@@ -470,7 +470,7 @@ global $c;
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
                             <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="3" name="white.jschecks.tzend" value="<?= $c->white->jsChecks->tzMax ?>" />
+                                <input type="text" class="form-control" placeholder="3" name="white.jschecks.timezone.max" value="<?= $c->white->jsChecks->tzMax ?>" />
                             </div>
                         </div>
                     </div>
