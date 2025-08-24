@@ -37,10 +37,10 @@ if ($dbCamp===false){
     $cloaker = new Cloaker($c->filters);
 
     if ($c->white->jsChecks->enabled) {
-        $action = white(true);
+        $action = jscheck();
     } else if ($cloaker->is_bad_click()) { 
         $db->add_white_click($cloaker->click_params, $cloaker->block_reason, $c->campaignId);
-        $action = white(false);
+        $action = white();
     } else
         $action = black($cloaker->click_params);
 }

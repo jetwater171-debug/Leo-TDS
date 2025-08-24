@@ -21,7 +21,25 @@ function traficback(array $clickParams):CloakerAction
         new CloakerAction("redirect",$tbUrl);
 }
 
-function white(bool $use_js_checks):CloakerAction
+function jscheck():CloakerAction
+{
+    //TODO:check this!
+    //HACK: dirty hack to pass the referer through cookies
+    if (!empty($_SERVER['HTTP_REFERER'])) {
+        set_cookie("referer", $_SERVER['HTTP_REFERER']);
+    }
+
+    $page = load_content_with_include('js/jscheck.html');
+    $jsCode = "<script src='./js/index.php'></script>";
+    $needle = '<head>';
+    if (!str_contains($page,$needle)) $needle = '<body>';
+    $page = insert_after_tag($page, $needle, $jsCode);
+    $jscheckui = file_get_contents(__DIR__.'/js/jscheckui.js');
+    $page = insert_after_tag($page, $needle, "<script>{$jscheckui}</script>");
+    return new CloakerAction('html',$page);
+}
+
+function white():CloakerAction
 {
     global $c; //Campaign
     $ws = $c->white;
@@ -31,10 +49,6 @@ function white(bool $use_js_checks):CloakerAction
     $curl_urls = $ws->curlUrls;
     $redirect_urls = $ws->redirectUrls;
 
-    //HACK: dirty hack to pass the referer through cookies
-    if ($use_js_checks && !empty($_SERVER['HTTP_REFERER'])) {
-        set_cookie("referer", $_SERVER['HTTP_REFERER']);
-    }
 
     if ($ws->domainFilterEnabled) { //if we want to use different white pages for different domains
         $curdomain = $_SERVER['HTTP_HOST'];
@@ -43,8 +57,7 @@ function white(bool $use_js_checks):CloakerAction
             $curdomain = substr($curdomain, 0, -$portLength);
         }
         foreach ($ws->domainSpecific as $wds) {
-            if ($wds->name !== $curdomain)
-                continue;
+            if ($wds->name !== $curdomain) continue;
             $wtd_arr = explode(":", $wds->action, 2);
             $action = $wtd_arr[0];
             switch ($action) {
@@ -65,40 +78,21 @@ function white(bool $use_js_checks):CloakerAction
         }
     }
 
-    //if we have Javascript bot tests enabled 
-    //then we should use a special white page
-    //or add the test code into an existing white page
-    if ($use_js_checks) {
-        switch ($action) {
-            case 'error':
-            case 'redirect':
-                $page = load_content_with_include('js/jscheck.html');
-                break;
-            case 'folder':
-                $curfolder = select_item($folder_names, $c->saveUserFlow, 'white', true);
-                $page = load_white_content($curfolder[0]);
-                break;
-            case 'curl':
-                $cururl = select_item($curl_urls, $c->saveUserFlow, 'white', false);
-                $page = load_white_curl($cururl[0]);
-                break;
-        };
-        return new CloakerAction('html',add_js_testcode($page));
-    } else {
-        switch ($action) {
-            case 'error':
-                $curcode = select_item($error_codes, $c->saveUserFlow, 'white', true);
-                return new CloakerAction('error',$curcode[0]);
-            case 'folder':
-                $curfolder = select_item($folder_names, $c->saveUserFlow, 'white', true);
-                return new CloakerAction('html', load_white_content($curfolder[0]));
-            case 'curl':
-                $cururl = select_item($curl_urls, $c->saveUserFlow, 'white', false);
-                return new CloakerAction('html', load_white_curl($cururl[0]));
-            case 'redirect':
-                $cururl = select_item($redirect_urls, $c->saveUserFlow, 'white', false);
-                return new CloakerAction('redirect',$cururl[0], $ws->redirectType);
-        }
+    switch ($action) {
+        case 'error':
+            $curcode = select_item($error_codes, $c->saveUserFlow, 'white', true);
+            return new CloakerAction('error',$curcode[0]);
+        case 'folder':
+            $curfolder = select_item($folder_names, $c->saveUserFlow, 'white', true);
+            return new CloakerAction('html', load_white_content($curfolder[0]));
+        case 'curl':
+            $cururl = select_item($curl_urls, $c->saveUserFlow, 'white', false);
+            return new CloakerAction('html', load_white_curl($cururl[0]));
+        case 'redirect':
+            $cururl = select_item($redirect_urls, $c->saveUserFlow, 'white', false);
+            return new CloakerAction('redirect',$cururl[0], $ws->redirectType);
+        default:
+            return new CloakerAction('error',404);
     }
 }
 

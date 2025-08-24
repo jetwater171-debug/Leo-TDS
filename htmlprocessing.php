@@ -263,14 +263,6 @@ function load_white_curl(string $url):string
     return $html;
 }
 
-function add_js_testcode(string $html):string
-{
-    $jsCode = "<script src='./js/index.php'></script>";
-    $needle = '<head>';
-    if (!str_contains($html,$needle)) $needle = '<body>';
-    return insert_after_tag($html, $needle, $jsCode);
-}
-
 function add_backfix(string $html, $url, $second):string
 {
     $debug = DebugMethods::On()?'true':'false';
