@@ -171,7 +171,7 @@ class BotDetector {
     let orientation = null;
     let orientdelta = 3;
     let orientdiff = 0;
-    let orientdiffmax = 5;
+    let orientdiffmax = 3;
     
     const eventListener = (et) => {
       const { alpha, beta, gamma } = et;
@@ -212,7 +212,7 @@ class BotDetector {
   setupMotionTest(test) {
     let motionCount = 0;
     let acceleration = null;
-    let acceldelta = 0.8;
+    let acceldelta = 0.5;
     let acceldiff = 0;
     let acceldiffmax = 3;
     
