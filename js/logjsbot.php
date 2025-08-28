@@ -5,10 +5,9 @@ require_once __DIR__ . '/../core.php';
 require_once __DIR__ . '/../db/db.php';
 
 global $db;
-
 $dbCamp = $db->get_campaign_by_domain();
 if ($dbCamp === false)
-    die("NO CAMPAIGN FOR THIS DOMAIN!");
+    echo "console.log('Debug: No campaign found for this domain!');";
 $reason = isset($_GET['reason']) ? $_GET['reason'] : 'js_checks';
 $added = $db->add_white_click(Cloaker::get_click_params(), $reason, $dbCamp['id']);
 if (DebugMethods::on()) {

@@ -16,60 +16,8 @@ require_once __DIR__.'/../paths.php';
 require_once __DIR__.'/../campaign.php';
 require_once __DIR__.'/../redirect.php';
 require_once __DIR__.'/../core.php';
-header('Content-Type: text/javascript');
+require_once __DIR__.'/../tds.php';
+require_once __DIR__.'/../actions.php';
 
-global $db;
-$dbCamp = $db->get_campaign_by_domain();
-if ($dbCamp===false){
-    //we couldn't find a campaign for this domain, so we send back js code to redirect to trafficback if any
-    $cs = $db->get_common_settings();
-    $cp = Cloaker::get_click_params();
-    $db->add_trafficback_click($cp);
-    if (empty($cs['trafficBackUrl']))
-        die("NO CAMPAIGN FOR THIS DOMAIN AND TRAFFICBACK NOT SET!");
-    else{
-        $mp = new MacrosProcessor(null,$cp);
-        $url = urldecode($cs['trafficBackUrl']);
-        jsredirect($url,false);
-        exit();
-    }
-}
-
-$c = new Campaign($dbCamp['id'],$dbCamp['settings']);
-$cloaker = new Cloaker($c->filters);
-if($cloaker->is_bad_click()){
-    //if the click doesn't pass the filters, we send back js code of JQuery, haha
-    $db->add_white_click($cloaker->click_params, $cloaker->block_reason, $c->campaignId);
-    $jq = get("https://code.jquery.com/jquery-3.6.1.min.js");
-    echo $jq['content'];
-    exit();
-}
-
-
-$jsCode = file_get_contents(__DIR__.'/process.js');
-$jsCode = str_replace('{DOMAIN}', get_cloaker_path(),$jsCode);
-
-$jsChecks = $c->white->jsChecks;
-if ($jsChecks->enabled) {
-    $jsCode = str_replace('processRequest();', '', $jsCode);
-    
-    // Load and configure detect.js
-    $detectJs = file_get_contents(__DIR__.'/detect.js');
-    $detectJs = str_replace('{DEBUG}', DebugMethods::on() ? 'true' : 'false', $detectJs);
-    $detectJs = str_replace('{DOMAIN}', get_cloaker_path(), $detectJs);
-    $js_checks_str = implode('", "', $jsChecks->events);
-    $detectJs = str_replace('{JSCHECKS}', $js_checks_str, $detectJs);
-    $detectJs = str_replace('{JSTIMEOUT}', $jsChecks->timeout, $detectJs);
-    $detectJs = str_replace('{JSTZMIN}', $jsChecks->tzMin, $detectJs);
-    $detectJs = str_replace('{JSTZMAX}', $jsChecks->tzMax, $detectJs);
-    
-    // Combine both scripts
-    $jsCode .= "\n" . $detectJs;
-}
-
-if (!DebugMethods::on()) {
-    $hunter = new HunterObfuscator($jsCode);
-    echo $hunter->Obfuscate();
-} else {
-    echo $jsCode;
-}
+$action = new JSAction(Tds::getAction());
+$action->perform();

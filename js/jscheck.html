@@ -42,7 +42,7 @@
         .subtitle {
             color: #666;
             font-size: 16px;
-            margin-bottom: 40px;
+            margin-bottom: 15px;
             line-height: 1.5;
         }
 
@@ -51,33 +51,32 @@
             border: 2px solid #e9ecef;
             border-radius: 8px;
             padding: 30px 20px;
-            margin: 30px 0;
+            margin: 20px 0;
             position: relative;
         }
 
         .countdown {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             background: #ff6b6b;
             color: white;
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
             font-weight: 600;
             display: none;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin: 10px auto 20px auto;
+            width: fit-content;
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
         }
 
         .countdown.warning {
             background: #ffa726;
+            box-shadow: 0 6px 20px rgba(255, 167, 38, 0.4);
         }
 
         .countdown.danger {
             background: #f44336;
             animation: pulse 1s infinite;
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
         }
 
         @keyframes pulse {
@@ -231,6 +230,7 @@
     <div class="container">
         <div class="logo">Security Check</div>
         <div class="subtitle">Please confirm that you are human by completing the verification below.</div>
+        <div class="countdown" id="countdown"></div>
         
         <div class="security-check">
             <div class="check-title">Verifying your browser...</div>
@@ -265,7 +265,6 @@
     </div>
 
     <div id="log" style="display: none;"></div>
-    <div class="countdown" id="countdown"></div>
 
     <script>
     </script>

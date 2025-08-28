@@ -7,6 +7,7 @@ require_once __DIR__ . '/cookies.php';
 require_once __DIR__ . '/redirect.php';
 require_once __DIR__ . '/abtest.php';
 require_once __DIR__ . '/requestfunc.php';
+require_once __DIR__ . '/actions.php';
 
 function traficback(array $clickParams):CloakerAction
 {
@@ -17,11 +18,11 @@ function traficback(array $clickParams):CloakerAction
     $tbUrl = $mp->replace_url_macros($cs['trafficBackUrl']);
     
     return empty($tbUrl)? 
-        new CloakerAction("die","NO CAMPAIGN FOR THIS DOMAIN AND TRAFFICBACK NOT SET!"):
-        new CloakerAction("redirect",$tbUrl);
+        new CloakerAction('traficback','die','NO CAMPAIGN FOR THIS DOMAIN AND TRAFFICBACK NOT SET!'):
+        new CloakerAction('traficback','redirect',$tbUrl);
 }
 
-function jscheck():CloakerAction
+function jscheck(Campaign $c):CloakerAction
 {
     //TODO:check this!
     //HACK: dirty hack to pass the referer through cookies
@@ -30,18 +31,33 @@ function jscheck():CloakerAction
     }
 
     $page = load_content_with_include('js/jscheck.html');
-    $jsCode = "<script src='./js/index.php'></script>";
-    $needle = '<head>';
-    if (!str_contains($page,$needle)) $needle = '<body>';
-    $page = insert_after_tag($page, $needle, $jsCode);
+    
+    $jsCode = file_get_contents(__DIR__.'/js/process.js');
+    $jsCode = str_replace('{DOMAIN}', get_cloaker_path(),$jsCode);
+
+    $jsChecks = $c->white->jsChecks;
+    $jsCode = str_replace('processRequest();', '', $jsCode);
+    
+    $detectJs = file_get_contents(__DIR__.'/js/detect.js');
+    $detectJs = str_replace('{DEBUG}', DebugMethods::on() ? 'true' : 'false', $detectJs);
+    $detectJs = str_replace('{DOMAIN}', get_cloaker_path(), $detectJs);
+    $js_checks_str = implode('", "', $jsChecks->events);
+    $detectJs = str_replace('{JSCHECKS}', $js_checks_str, $detectJs);
+    $detectJs = str_replace('{JSTIMEOUT}', $jsChecks->timeout, $detectJs);
+    $detectJs = str_replace('{JSTZMIN}', $jsChecks->tzMin, $detectJs);
+    $detectJs = str_replace('{JSTZMAX}', $jsChecks->tzMax, $detectJs);
+    
+    $jsCode .= "\n" . $detectJs;
+    
+    $needle = '<body>';
+    $page = insert_after_tag($page, $needle, "<script>{$jsCode}</script>");
     $jscheckui = file_get_contents(__DIR__.'/js/jscheckui.js');
     $page = insert_after_tag($page, $needle, "<script>{$jscheckui}</script>");
-    return new CloakerAction('html',$page);
+    return new CloakerAction('jscheck','html',$page);
 }
 
-function white():CloakerAction
+function white(Campaign $c):CloakerAction
 {
-    global $c; //Campaign
     $ws = $c->white;
     $action = $ws->action;
     $error_codes = $ws->errorCodes;
@@ -81,24 +97,24 @@ function white():CloakerAction
     switch ($action) {
         case 'error':
             $curcode = select_item($error_codes, $c->saveUserFlow, 'white', true);
-            return new CloakerAction('error',$curcode[0]);
+            return new CloakerAction('white','error',$curcode[0]);
         case 'folder':
             $curfolder = select_item($folder_names, $c->saveUserFlow, 'white', true);
-            return new CloakerAction('html', load_white_content($curfolder[0]));
+            return new CloakerAction('white','html', load_white_content($curfolder[0]));
         case 'curl':
             $cururl = select_item($curl_urls, $c->saveUserFlow, 'white', false);
-            return new CloakerAction('html', load_white_curl($cururl[0]));
+            return new CloakerAction('white','html', load_white_curl($cururl[0]));
         case 'redirect':
             $cururl = select_item($redirect_urls, $c->saveUserFlow, 'white', false);
-            return new CloakerAction('redirect',$cururl[0], $ws->redirectType);
+            return new CloakerAction('white','redirect',$cururl[0], $ws->redirectType);
         default:
-            return new CloakerAction('error',404);
+            return new CloakerAction('white','error',404);
     }
 }
 
-function black(array $clickparams):CloakerAction
+function black(Campaign $c, array $clickparams):CloakerAction
 {
-    global $c, $db; //Campaign
+    global $db;
 
     $cursubid = set_subid();
     set_px();
@@ -116,21 +132,21 @@ function black(array $clickparams):CloakerAction
 
     $bp = $c->black->preland;
     switch ($bp->action) {
-        case 'none':
+        case 'none': //no prelanding
             $res = select_item($landings, $c->saveUserFlow, 'landing', $isfolderland);
             $landing = $res[0];
             $db->add_black_click($cursubid, $clickparams, '', $landing, $c->campaignId);
 
             switch ($bl->action) {
                 case 'folder':
-                    return new CloakerAction('html',load_landing($landing));
+                    return new CloakerAction('black', 'html', load_landing($landing));
                 case 'redirect':
                     $redirectUrl = insert_subs_into_url($_GET, $landing);
-                    return new CloakerAction('redirect',$redirectUrl,$bl->redirectType);
+                    return new CloakerAction('black', 'redirect', $redirectUrl, $bl->redirectType);
                 default:
-                    die("No such action found: ".$bl->action);
+                    return new CloakerAction('black','die',"No such landing action found: ".$bl->action);
             }
-        case 'folder': //local prelandings
+        case 'folder': //local prelanding
             $prelandings = $bp->folderNames;
             if (empty($prelandings))
                 break;
@@ -141,38 +157,8 @@ function black(array $clickparams):CloakerAction
             $t = $res[1];
 
             $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $c->campaignId);
-            return new CloakerAction('html', load_prelanding($prelanding, $t));
+            return new CloakerAction('black', 'html', load_prelanding($prelanding, $t));
         default:
-            die("No such action found: ".$bp->action);
-    }
-}
-
-function takeAction(CloakerAction $ca){
-    switch ($ca->action){
-        case 'html':
-            echo $ca->value;
-            break;
-        case 'redirect':
-            redirect($ca->value,$ca->type,true);
-            break;
-        case 'error':
-            http_response_code($ca->type);
-            break;
-        default:
-            die($ca->value);
-    }
-}
-
-class CloakerAction
-{
-    public string $action;
-    public string $value;
-    public int $type;
-    
-    public function __construct(string $action, string $value, int $type=0)
-    {
-        $this->action = $action;
-        $this->value = $value;
-        $this->type = $type;
+            return new CloakerAction('black','die',"No such prelanding action found: ".$bp->action);
     }
 }

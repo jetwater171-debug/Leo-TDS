@@ -21,35 +21,16 @@ if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] == '/robots.txt') 
     exit();
 }
 
-require_once __DIR__ . '/campaign.php';
-require_once __DIR__ . '/core.php';
-require_once __DIR__ . '/db/db.php';
-require_once __DIR__ . '/main.php';
+require_once __DIR__ . '/tds.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/redirect.php';
 
-global $db;
-$dbCamp = $db->get_campaign_by_domain();
-if ($dbCamp===false){
-    $action = traficback(Cloaker::get_click_params());
-} else {
-    $c = new Campaign($dbCamp['id'],$dbCamp['settings']);
-    $cloaker = new Cloaker($c->filters);
-
-    if ($c->white->jsChecks->enabled) {
-        $action = jscheck();
-    } else if ($cloaker->is_bad_click()) { 
-        $db->add_white_click($cloaker->click_params, $cloaker->block_reason, $c->campaignId);
-        $action = white();
-    } else
-        $action = black($cloaker->click_params);
-}
-
-if ($action->type!=='redirect'){
+$action = Tds::getAction();
+if ($action->action!=='redirect'){
     DebugMethods::stop("YWBMainCycle");
-    takeAction($action);
+    $action->perform();
 }
 else{
-    takeAction($action);
+    $action->perform();
     DebugMethods::stop("YWBMainCycle");
 }

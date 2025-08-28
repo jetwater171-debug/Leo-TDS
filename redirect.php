@@ -12,17 +12,18 @@ function redirect($url, $redirect_type = 302, $rep_macros = false): void
     header('Location: ' . $url, true, $redirect_type);
 }
 
-function jsredirect($url, $add_script_tag=true, $rep_macros = false): void
+function jsredirect(string $url, bool $add_script_tag=true, bool $rep_macros = false): string
 {
     $url = urldecode($url);
     if ($rep_macros) {
         $mp = new MacrosProcessor();
         $url = $mp->replace_url_macros($url);
     }
+    $js_code = "window.location='$url'";
     if ($add_script_tag) {
-        echo "<script type='text/javascript'> window.location='$url';</script>";
+        return "<script type='text/javascript'>{$js_code}</script>";
     } else {
-        echo "window.location='$url'";
+        return $js_code;
     }
 }
 
