@@ -1,5 +1,6 @@
 class BotDetector {
   constructor(args) {
+    this.subid = args.subid || '';
     this.debug = args.debug || false;
     
     this.timeout = args.timeout || 1000;
@@ -111,7 +112,7 @@ class BotDetector {
     let domain = '{DOMAIN}';
     let script = document.createElement('script');
     script.setAttribute('id', 'ywb_process');
-    script.setAttribute('src', `${domain}js/logjsbot.php?reason=${reason}`);
+    script.setAttribute('src', `${domain}js/logjsbot.php?reason=${reason}&subid=${this.subid}`);
     document.body.appendChild(script);
     document.getElementById('ywb_process').remove();
   }
@@ -281,7 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
         passfunc: processRequest,
         tests: ["{JSCHECKS}"],
         tzStart: {JSTZMIN},
-        tzEnd: {JSTZMAX}
+        tzEnd: {JSTZMAX},
+        subid: {SUBID}
     });
     window.botDetector.monitor();
 });

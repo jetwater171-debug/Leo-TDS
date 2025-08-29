@@ -1,7 +1,9 @@
 async function processRequest() {
     const domain = '{DOMAIN}';
-    let url = `${domain}js/jsprocessing.php`;
+    const subid = '{SUBID}';
+    let url = `${domain}js/jsprocessing.php?subid=${subid}`;
     const params = new URLSearchParams();
+    //TODO: check what for is these params used?
     params.append('uri', window.location.href);
     const referrer = document.referrer;
     if (referrer) {
@@ -10,7 +12,7 @@ async function processRequest() {
     if (window.location.search) {
         params.append('search', window.location.search.substring(1));
     }
-    url += `?${params.toString()}`;
+    url += `&${params.toString()}`;
 
     try {
         const response = await fetch(url, { credentials: 'include' });
