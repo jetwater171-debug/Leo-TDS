@@ -24,7 +24,6 @@ require_once __DIR__ . '/bases/device/Cache/Doctrine/CacheProvider.php';
 require_once __DIR__ . '/bases/device/Cache/CacheInterface.php';
 require_once __DIR__ . '/bases/device/Cache/DoctrineBridge.php';
 //GEO and referer
-require_once __DIR__ . '/bases/referer.php';
 require_once __DIR__ . '/bases/iputils.php';
 require_once __DIR__ . '/bases/ipcountry.php';
 
