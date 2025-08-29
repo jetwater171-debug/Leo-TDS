@@ -43,7 +43,7 @@ if ($is_bad_click) {
     header("YWBAction: none", true, 200);
     return http_response_code(200);
 } else { //common user
-    $ca = black($cloaker->click_params);
+    $ca = black($c, $cloaker->click_params);
     if ($ca->action==='html'){
         header("YWBAction: " . $c->black->jsconnectAction, true, 200);
         echo $ca->value;

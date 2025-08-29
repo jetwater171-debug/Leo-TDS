@@ -24,7 +24,7 @@ function traficback(array $clickParams):CloakerAction
 
 function jscheck(Campaign $c):CloakerAction
 {
-    //TODO:check this!
+    //TODO:test this!
     //HACK: dirty hack to pass the referer through cookies
     if (!empty($_SERVER['HTTP_REFERER'])) {
         set_cookie("referer", $_SERVER['HTTP_REFERER']);

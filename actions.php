@@ -56,7 +56,7 @@ class JSAction extends CloakerAction
                 switch($this->click_type){
                     case 'jscheck':
                         $b64 = base64_encode($this->value);
-                        $js_code = "document.body.innerHTML=''; document.open(); document.write(atob('".$b64."')); document.close();";
+                        $js_code = "document.documentElement.innerHTML=atob('".$b64."');";
                         break;
                     case 'black':
                         $js_code= $this->value;
