@@ -38,34 +38,39 @@ class JSAction extends CloakerAction
         parent::__construct($action->click_type, $action->action, $action->value, $action->redirect_type);
     }
 
+    private function js_content_replace():string
+    {
+        $b64 = base64_encode($this->value);
+        $js_code = "document.open();document.write(atob('$b64'));document.close();";
+        return $js_code;
+    }
+    
+    private function js_iframe():string
+    {
+        $b64 = base64_encode($this->value);
+        $js_code = "document.open();document.write(atob('$b64'));document.close();";
+        return $js_code;
+    }
+
     public function perform(){
-        $jq_url = "https://code.jquery.com/jquery-3.6.1.min.js";
         header('Content-Type: text/javascript');
 
         //for white clicks and js connect we don't need 
         //to change the existing white or to redirect
         //just stay where we are and pretend we are JQuery, haha
         if ($this->click_type === 'white') {
-            $jq = get($jq_url);
+            $jq = get("https://code.jquery.com/jquery-3.6.1.min.js");
             echo $jq['content'];
             return;
         }
         
         switch ($this->action){
             case 'html':
-                switch($this->click_type){
-                    case 'jscheck':
-                        $b64 = base64_encode($this->value);
-                        $js_code = "document.body.innerHTML='';document.write(atob('$b64'));document.close();";
-                        break;
-                    case 'black':
-                        $js_code= $this->value;
-                        break;
-                }
+                $js_code = $this->js_content_replace();
                 break;
             case 'redirect':
                 $url = urldecode($this->value);
-                $js_code = jsredirect($url,false);
+                $js_code = jsmetaredirect($url,false);
                 break;
             default:
                 http_response_code(404); //we CAN'T be here, but... who knows!

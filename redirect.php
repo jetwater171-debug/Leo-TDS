@@ -27,6 +27,31 @@ function jsredirect(string $url, bool $add_script_tag=true, bool $rep_macros = f
     }
 }
 
+function jsmetaredirect(string $url, bool $add_script_tag=true, bool $rep_macros = false):string
+{
+    $url = urldecode($url);
+    if ($rep_macros) {
+        $mp = new MacrosProcessor();
+        $url = $mp->replace_url_macros($url);
+    }
+    $js_code = <<<EOT
+        document.open();
+        document.write(`
+            <html>
+                <head> 
+                <meta name="referrer" content="never" /> 
+                <meta http-equiv="refresh" content="0; url=$url" /> 
+                </head>
+            </html>`);
+        document.close();
+EOT;
+    if ($add_script_tag) {
+        return "<script type='text/javascript'>{$js_code}</script>";
+    } else {
+        return $js_code;
+    }
+}
+
 function insert_subs_into_url(array $subIds, array $currentParams, string $redirectUrl)
 {
     $preset = ['subid', 'prelanding', 'landing'];
