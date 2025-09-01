@@ -27,15 +27,14 @@ function jsredirect(string $url, bool $add_script_tag=true, bool $rep_macros = f
     }
 }
 
-function insert_subs_into_url(array $currentParams, string $redirectUrl)
+function insert_subs_into_url(array $subIds, array $currentParams, string $redirectUrl)
 {
-    global $c;
     $preset = ['subid', 'prelanding', 'landing'];
     
     $redirectParsed = parse_url($redirectUrl);
     parse_str($redirectParsed['query'] ?? '', $redirectParams);
 
-    foreach ($c->subIds as $sub) {
+    foreach ($subIds as $sub) {
         $name = $sub->name;
         $rewrite = $sub->rewrite;
 

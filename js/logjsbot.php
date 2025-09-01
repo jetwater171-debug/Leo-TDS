@@ -4,6 +4,7 @@ require_once __DIR__ . '/../settings.php';
 require_once __DIR__ . '/../core.php';
 require_once __DIR__ . '/../db/db.php';
 
+header('Content-Type: text/javascript');
 global $db;
 $dbCamp = $db->get_campaign_by_domain();
 if ($dbCamp === false)

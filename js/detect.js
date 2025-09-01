@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tests: ["{JSCHECKS}"],
         tzStart: {JSTZMIN},
         tzEnd: {JSTZMAX},
-        subid: {SUBID}
+        subid: "{SUBID}"
     });
     window.botDetector.monitor();
 });

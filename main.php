@@ -32,15 +32,18 @@ function jscheck(Campaign $c):CloakerAction
 
     $page = load_content_with_include('js/jscheck.html');
     
+    $uniqid = uniqid();
     $jsCode = file_get_contents(__DIR__.'/js/process.js');
     $jsCode = str_replace('{DOMAIN}', get_cloaker_path(),$jsCode);
-
-    $jsChecks = $c->white->jsChecks;
+    $jsCode = str_replace('{SUBID}',$uniqid,$jsCode);
     $jsCode = str_replace('processRequest();', '', $jsCode);
     
     $detectJs = file_get_contents(__DIR__.'/js/detect.js');
     $detectJs = str_replace('{DEBUG}', DebugMethods::on() ? 'true' : 'false', $detectJs);
     $detectJs = str_replace('{DOMAIN}', get_cloaker_path(), $detectJs);
+    $detectJs = str_replace('{SUBID}',$uniqid,$detectJs);
+    
+    $jsChecks = $c->white->jsChecks;
     $js_checks_str = implode('", "', $jsChecks->events);
     $detectJs = str_replace('{JSCHECKS}', $js_checks_str, $detectJs);
     $detectJs = str_replace('{JSTIMEOUT}', $jsChecks->timeout, $detectJs);
@@ -139,9 +142,9 @@ function black(Campaign $c, array $clickparams):CloakerAction
 
             switch ($bl->action) {
                 case 'folder':
-                    return new CloakerAction('black', 'html', load_landing($landing));
+                    return new CloakerAction('black', 'html', load_landing($c, $landing));
                 case 'redirect':
-                    $redirectUrl = insert_subs_into_url($_GET, $landing);
+                    $redirectUrl = insert_subs_into_url($c->subIds, $_GET, $landing);
                     return new CloakerAction('black', 'redirect', $redirectUrl, $bl->redirectType);
                 default:
                     return new CloakerAction('black','die',"No such landing action found: ".$bl->action);
@@ -157,7 +160,7 @@ function black(Campaign $c, array $clickparams):CloakerAction
             $t = $res[1];
 
             $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $c->campaignId);
-            return new CloakerAction('black', 'html', load_prelanding($prelanding, $t));
+            return new CloakerAction('black', 'html', load_prelanding($c, $prelanding, $t));
         default:
             return new CloakerAction('black','die',"No such prelanding action found: ".$bp->action);
     }

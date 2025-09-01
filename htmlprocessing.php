@@ -37,9 +37,8 @@ function load_content_with_include($url): string
 }
 
 //Load content of black landing from another folder
-function load_prelanding($url, $land_number): string
+function load_prelanding(Campaign $c, string $url, int $land_number): string
 {
-    global $c; //campaign
     $fullpath = get_abs_from_rel($url);
 
     $html = load_content_with_include($url);
@@ -53,7 +52,7 @@ function load_prelanding($url, $land_number): string
     $html = $mp->replace_html_macros($html);
     $html = fix_phone_and_name($html);
     //adding subs into forms
-    $html = insert_subs_into_forms($html);
+    $html = insert_subs_into_forms($c->subIds, $html);
 
     //removing target=_blank
     $html = preg_replace('/(<a[^>]+)(target="_blank")/i', "\\1", $html);
@@ -93,15 +92,14 @@ function load_prelanding($url, $land_number): string
     $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress); 
     $html = add_backfix($html, $url, $second);
 
-    $html = add_images_lazy_load($html);
+    if ($c->scripts->imagesLazyLoad)
+        $html = add_images_lazy_load($html);
     return $html;
 }
 
 //Load content of black landing from another folder
-function load_landing($url)
+function load_landing(Campaign $c, string $url)
 {
-    global $c; //campaign
-
     $fullpath = get_abs_from_rel($url);
 
     $html = load_content_with_include($url);
@@ -131,7 +129,7 @@ function load_landing($url)
     }
 
     //add subs into forms
-    $html = insert_subs_into_forms($html);
+    $html = insert_subs_into_forms($c->subIds, $html);
 
     $html = insert_file_content($html, "fixanchors.js", "<body", false, true);
     
@@ -147,7 +145,8 @@ function load_landing($url)
         $html = add_backfix($html, $url, $second);
     }
     
-    $html = add_images_lazy_load($html);
+    if ($c->scripts->imagesLazyLoad)
+        $html = add_images_lazy_load($html);
 
     return $html;
 }
@@ -202,9 +201,6 @@ function fix_phone_and_name($html)
 
 function add_images_lazy_load($html)
 {
-    global $c; //campaign
-    if (!$c->scripts->imagesLazyLoad)
-        return $html;
     $html = preg_replace('/(<img\s)((?!.*?loading=([\'\"])[^\'\"]+\3)[^>]*)(>)/s', '<img loading="lazy" \\2\\4', $html);
     return $html;
 }
@@ -280,12 +276,11 @@ function add_backfix(string $html, $url, $second):string
 }
 
 //inserts all subs into hidden fields of each form
-function insert_subs_into_forms($html)
+function insert_subs_into_forms(array $subIds, string $html):string
 {
-    global $c; //campaign
     $all_subs = '';
     $preset = ['subid', 'prelanding', 'landing'];
-    foreach ($c->subIds as $sub) {
+    foreach ($subIds as $sub) {
         $key = $sub->name;
         $value = $sub->rewrite;
 

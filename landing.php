@@ -25,11 +25,11 @@ $ls = $c->black->land;
 switch ($ls->action) {
     case 'folder':
         $landing = select_item_by_index($ls->folderNames, $l);
-        echo load_landing($landing);
+        echo load_landing($c, $landing);
         break;
     case 'redirect':
         $redirectUrl = select_item_by_index($ls->redirectUrls, $l);
-        $fullUrl = insert_subs_into_url($_GET, $redirectUrl);
+        $fullUrl = insert_subs_into_url($c->subIds, $_GET, $redirectUrl);
         redirect($fullUrl, $ls->redirectType, true);
         break;
 }
