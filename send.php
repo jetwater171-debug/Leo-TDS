@@ -56,7 +56,7 @@ switch ($res["info"]["http_code"]) {
     case 200:
         $db->add_lead($subid, $_POST);
         if ($useUTP) {
-            echo jsredirect("/thankyou/index.php?" . http_build_query($_POST));
+            echo redirect("/thankyou/index.php?" . http_build_query($_POST),"js");
         } else {
             echo $res["content"];
         }

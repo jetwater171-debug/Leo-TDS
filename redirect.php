@@ -1,54 +1,19 @@
 <?php
 require_once __DIR__ . '/macros.php';
 
-function redirect($url, $redirect_type = 302, $rep_macros = false): void
+function redirect($url, $redirect_type = 302, $rep_macros = false)
 {
     $url = urldecode($url);
     if ($rep_macros) {
         $mp = new MacrosProcessor();
         $url = $mp->replace_url_macros($url);
     }
-    header('X-Robots-Tag: noindex, nofollow');
-    header('Location: ' . $url, true, $redirect_type);
-}
-
-function jsredirect(string $url, bool $add_script_tag=true, bool $rep_macros = false): string
-{
-    $url = urldecode($url);
-    if ($rep_macros) {
-        $mp = new MacrosProcessor();
-        $url = $mp->replace_url_macros($url);
-    }
-    $js_code = "window.location='$url'";
-    if ($add_script_tag) {
-        return "<script type='text/javascript'>{$js_code}</script>";
+    
+    if ($redirect_type==='js') {
+        return "<script type='text/javascript'>window.location='$url';</script>";
     } else {
-        return $js_code;
-    }
-}
-
-function jsmetaredirect(string $url, bool $add_script_tag=true, bool $rep_macros = false):string
-{
-    $url = urldecode($url);
-    if ($rep_macros) {
-        $mp = new MacrosProcessor();
-        $url = $mp->replace_url_macros($url);
-    }
-    $js_code = <<<EOT
-        document.open();
-        document.write(`
-            <html>
-                <head> 
-                <meta name="referrer" content="never" /> 
-                <meta http-equiv="refresh" content="0; url=$url" /> 
-                </head>
-            </html>`);
-        document.close();
-EOT;
-    if ($add_script_tag) {
-        return "<script type='text/javascript'>{$js_code}</script>";
-    } else {
-        return $js_code;
+        header('X-Robots-Tag: noindex, nofollow');
+        header('Location: ' . $url, true, $redirect_type);
     }
 }
 

@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const anchors = document.querySelectorAll('a[href^="#"]');
     for (let anchor of anchors) {
         let id = anchor.getAttribute('href').substring(1);

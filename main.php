@@ -33,10 +33,6 @@ function jscheck(Campaign $c):CloakerAction
     $page = load_content_with_include('js/jscheck.html');
     
     $uniqid = uniqid();
-    $jsCode = file_get_contents(__DIR__.'/js/process.js');
-    $jsCode = str_replace('{DOMAIN}', get_cloaker_path(),$jsCode);
-    $jsCode = str_replace('{SUBID}',$uniqid,$jsCode);
-    $jsCode = str_replace('processRequest();', '', $jsCode);
     
     $detectJs = file_get_contents(__DIR__.'/js/detect.js');
     $detectJs = str_replace('{DEBUG}', DebugMethods::on() ? 'true' : 'false', $detectJs);
@@ -50,12 +46,20 @@ function jscheck(Campaign $c):CloakerAction
     $detectJs = str_replace('{JSTZMIN}', $jsChecks->tzMin, $detectJs);
     $detectJs = str_replace('{JSTZMAX}', $jsChecks->tzMax, $detectJs);
     
-    $jsCode .= "\n" . $detectJs;
-    
+    if (!DebugMethods::on()) {
+        $hunter = new HunterObfuscator($detectJs);
+        $detectJs = $hunter->Obfuscate();
+    }  
     $needle = '<body>';
-    $page = insert_after_tag($page, $needle, "<script>{$jsCode}</script>");
+    $page = insert_after_tag($page, $needle, "<script>{$detectJs}</script>");
+   
     $jscheckui = file_get_contents(__DIR__.'/js/jscheckui.js');
+    if (!DebugMethods::on()) {
+        $hunter = new HunterObfuscator($jscheckui);
+        $jscheckui = $hunter->Obfuscate();
+    }  
     $page = insert_after_tag($page, $needle, "<script>{$jscheckui}</script>");
+    
     return new CloakerAction('jscheck','html',$page);
 }
 

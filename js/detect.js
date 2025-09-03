@@ -1,11 +1,11 @@
 class BotDetector {
   constructor(args) {
     this.subid = args.subid || '';
+    this.domain = args.domain || '';
     this.debug = args.debug || false;
     
     this.timeout = args.timeout || 1000;
     this.timeoutId = -1;
-    this.passfunc = args.passfunc || null;
     this.activeEventListeners = new Map(); // Track active event listeners
    
     this.tzStart = args.tzStart || 0;
@@ -109,12 +109,32 @@ class BotDetector {
 
   failTest(reason) {
     this.log(`Test failed: ${reason}`);
-    let domain = '{DOMAIN}';
     let script = document.createElement('script');
     script.setAttribute('id', 'ywb_process');
-    script.setAttribute('src', `${domain}js/logjsbot.php?reason=${reason}&subid=${this.subid}`);
+    script.setAttribute('src', `${this.domain}js/index.php?reason=${reason}&subid=${this.subid}`);
     document.body.appendChild(script);
     document.getElementById('ywb_process').remove();
+  }
+  
+  passfunc() {
+      let url = `${this.domain}js/index.php?subid=${this.subid}`;
+      const params = new URLSearchParams();
+      //TODO: check what for is these params used?
+      params.append('uri', window.location.href);
+      const referrer = document.referrer;
+      if (referrer) {
+          params.append('referrer', referrer);
+      }
+      if (window.location.search) {
+          params.append('search', window.location.search.substring(1));
+      }
+      url += `&${params.toString()}`;
+      
+      let script = document.createElement('script');
+      script.setAttribute('id', 'ywb_process');
+      script.setAttribute('src', url);
+      document.body.appendChild(script);
+      document.getElementById('ywb_process').remove();
   }
 
   checkTimeZone() {
@@ -279,11 +299,12 @@ document.addEventListener('DOMContentLoaded', function() {
     window.botDetector = new BotDetector({
         debug: {DEBUG},
         timeout: {JSTIMEOUT},
-        passfunc: processRequest,
         tests: ["{JSCHECKS}"],
         tzStart: {JSTZMIN},
         tzEnd: {JSTZMAX},
+        domain: "{DOMAIN}",
         subid: "{SUBID}"
     });
     window.botDetector.monitor();
 });
+
