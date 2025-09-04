@@ -17,6 +17,12 @@ function session_read($name){
     return $_SESSION[$name] ?? null;
 }
 
+function session_remove($name){
+    get_session();
+    unset($_SESSION[$name]);
+    session_write_close();
+}
+
 function get_cookie($name): string
 {
     get_session(true);

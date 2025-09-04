@@ -25,8 +25,9 @@ if (!DebugMethods::on() && isset($_SERVER['HTTP_SEC_FETCH_DEST']) && $_SERVER['H
 
 require_once __DIR__.'/../tds.php';
 require_once __DIR__.'/../actions.php';
+require_once __DIR__.'/../cookies.php';
 
-if (isset($_GET['subid']))
+if (!is_null(session_read('jscheck_pending')))
     $action = Tds::processJsCheck();
 else
     $action = Tds::getJsAction();

@@ -1,6 +1,5 @@
 class BotDetector {
   constructor(args) {
-    this.subid = args.subid || '';
     this.domain = args.domain || '';
     this.debug = args.debug || false;
     
@@ -111,13 +110,13 @@ class BotDetector {
     this.log(`Test failed: ${reason}`);
     let script = document.createElement('script');
     script.setAttribute('id', 'ywb_process');
-    script.setAttribute('src', `${this.domain}js/index.php?reason=${reason}&subid=${this.subid}`);
+    script.setAttribute('src', `${this.domain}js/index.php?reason=${reason}`);
     document.body.appendChild(script);
     document.getElementById('ywb_process').remove();
   }
   
   passfunc() {
-      let url = `${this.domain}js/index.php?subid=${this.subid}`;
+      let url = `${this.domain}js/index.php`;
       const params = new URLSearchParams();
       params.append('uri', window.location.href);
       const referrer = document.referrer;
@@ -127,7 +126,7 @@ class BotDetector {
       if (window.location.search) {
           params.append('search', window.location.search.substring(1));
       }
-      url += `&${params.toString()}`;
+      url += `?${params.toString()}`;
       
       let script = document.createElement('script');
       script.setAttribute('id', 'ywb_process');
@@ -301,8 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tests: ["{JSCHECKS}"],
         tzStart: {JSTZMIN},
         tzEnd: {JSTZMAX},
-        domain: "{DOMAIN}",
-        subid: "{SUBID}"
+        domain: "{DOMAIN}"
     });
     window.botDetector.monitor();
 });

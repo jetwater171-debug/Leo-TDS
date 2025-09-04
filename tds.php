@@ -72,6 +72,7 @@ class Tds
                 $action = new JsAction("traficback", "js", "console.log('Debug: No campaign found for this domain!');");
             else
                 $action = new JsAction("traficback", "error", "");
+            return $action;
         }
         
         if (isset($_GET['reason'])) //This means that the user didn't pass JS checks
@@ -83,14 +84,30 @@ class Tds
             }
             else
                 $action = new JsAction("white", "error", "");
-        }
-        else{
-            //TODO: check if SUBID.txt file exists
-            //if not - it is a scam, log it
-            //if it does - check its creation time and if current time is more than js check time + 5 seconds behind, then it is also a scam!
-            //only if two of those params are ok, then allow black
-            session_write('jscheck_passed', true);
+        } 
+        else 
+        {
+            $jscheck_start_time = session_read('jscheck_pending');
+            $current_time = time();
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
+            $max_execution_time = $c->white->jsChecks->timeout / 1000; // Convert from milliseconds to seconds
+            $allowed_time = $jscheck_start_time + $max_execution_time + 5; // Add 5 second buffer
+            
+            if ($current_time > $allowed_time) {
+                // Attempt to pass JS check after timeout
+                $db->add_white_click(Cloaker::get_click_params(), 'jscheck_scam_timeout', $dbCamp['id']);
+                session_remove('jscheck_pending');
+                if (DebugMethods::on()) {
+                    $action = new JsAction("white", "js", "console.log('Debug: JS check scam - timeout exceeded');");
+                } else {
+                    $action = new JsAction("white", "error", "");
+                }
+                return $action;
+            }
+            
+            // All security checks passed - remove pending flag and allow black
+            session_remove('jscheck_pending');
+            session_write('jscheck_passed', true);
             $action = black($c, Cloaker::get_click_params());
             $action = JsAction::FromCloakerAction($action);
             if ($c->black->jsconnectAction === 'iframe') {

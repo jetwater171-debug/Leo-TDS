@@ -32,12 +32,9 @@ function jscheck(Campaign $c):CloakerAction
 
     $page = load_content_with_include('js/jscheck.html');
     
-    $uniqid = uniqid();
-    
     $detectJs = file_get_contents(__DIR__.'/js/detect.js');
     $detectJs = str_replace('{DEBUG}', DebugMethods::on() ? 'true' : 'false', $detectJs);
     $detectJs = str_replace('{DOMAIN}', get_cloaker_path(), $detectJs);
-    $detectJs = str_replace('{SUBID}',$uniqid,$detectJs);
     
     $jsChecks = $c->white->jsChecks;
     $js_checks_str = implode('", "', $jsChecks->events);
@@ -57,9 +54,10 @@ function jscheck(Campaign $c):CloakerAction
     if (!DebugMethods::on()) {
         $hunter = new HunterObfuscator($jscheckui);
         $jscheckui = $hunter->Obfuscate();
-    }  
+    }
     $page = insert_after_tag($page, $needle, "<script>{$jscheckui}</script>");
     
+    session_write('jscheck_pending', time());
     return new CloakerAction('jscheck','html',$page);
 }
 
