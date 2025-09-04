@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/settings.php';
+require_once __DIR__.'/logging.php';
 class DebugMethods
 {
     static array $start_times;
@@ -36,6 +37,17 @@ class DebugMethods
         error_reporting(E_ALL);
     }
 
+    public static function add_global_exception_handler():void
+    {
+        set_exception_handler(function (\Throwable $exception) {
+            $msg = "Unhandled exception: " . $exception->getMessage() . " in " . $exception->getFile() . " on line " . $exception->getLine();
+            error_log($msg);
+            add_log('errors', $msg);
+
+            echo "An unexpected error occurred. Please try again later.";
+        });
+    }
+
     public static function check_php():void
     {
         $ver=phpversion();
@@ -69,6 +81,7 @@ if (DebugMethods::on()){
     DebugMethods::display_errors();
 }
 
+DebugMethods::add_global_exception_handler();
 DebugMethods::check_php();
 DebugMethods::check_curl();
 DebugMethods::check_sqlite();
