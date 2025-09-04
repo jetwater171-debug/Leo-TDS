@@ -1,57 +1,33 @@
-//use the script like this:
-/*
-<script src="backfix.js" 
-  data-backlink="https://example.com?subid={subid}" 
-  data-showcaselink="https://example2.com"
-  data-traceenabled="false"
-  data-redirect="false"
-  data-isoff="false">
-</script>
- */
 const scriptTag = document.currentScript;
-//If redirect is true, then after back button click there will be a redirect to the backLink.
-//Else backLink will be shown using an iframe
 const redirect = scriptTag.hasAttribute("data-redirect")
   ? scriptTag.getAttribute("data-redirect") == "true"
   : false;
-//An url that the user will see using and iframe or redirect
 const backLink = scriptTag.getAttribute("data-backlink");
-//An url that the user will see in an iframe after (s)he clicks Back SECOND TIME
-const showcaseLink = scriptTag.getAttribute("data-showcaselink") ?? backLink;
-//If true, then debug info will be printed to console
+const secondLink = scriptTag.getAttribute("data-secondlink") ?? backLink;
 const traceEnabled = scriptTag.hasAttribute("data-traceenabled")
   ? scriptTag.getAttribute("data-traceenabled") == "true"
   : false;
-//Using "true" for this attribute you can temporary turn off the script
-const isOff = scriptTag.hasAttribute("data-isoff")
-  ? scriptTag.getAttribute("data-isoff") == "true"
-  : false;
 
-//Don't edit anything down below if you are not sure, what you are doing!
 document.addEventListener("DOMContentLoaded", function() {
-  if (isOff) {
-    trace("BackFix switched OFF! Exiting...");
-    return;
-  }
   const frameName = "LandFrame";
-  const showcaseFrameName = "ShowcaseFrame";
+  const secondFrameName = "SecondFrame";
 
   trace(
-    "Back Button Fix v0.4 by Yellow Web (https://yellowweb.top)",
+    "Back Button Fix v0.4.1 by Yellow Web",
     "font-size:25px;color:yellow;font-weight:bold",
   );
 
-  if (!traceEnabled && isLocalHost()) {
-    trace("Localhost found!");
-    return;
+  if (isLocalHost()) {
+    if (traceEnabled) trace("Localhost found!");
+    else return;
   }
   if (isInIframe()) {
     trace("We are in frame!");
-    return;
+    //return;
   }
   trace(`Back link is: ${backLink}`);
   trace(`Mode is: ${redirect ? "Redirect" : "Iframe"}`);
-  if (!redirect) trace(`Showcase link is: ${showcaseLink}`);
+  if (!redirect) trace(`Second link is: ${secondLink}`);
   removeAnchors();
   trace("Anchors fix started...");
   backInFrame(backLink);
@@ -86,12 +62,12 @@ document.addEventListener("DOMContentLoaded", function() {
             window.location.href = backLink;
           } else {
             showFrame(frameName);
-            createFrame(showcaseFrameName, showcaseLink);
+            createFrame(secondFrameName, secondLink);
           }
           break;
         case 0:
           trace("Time to show showcase!");
-          showFrame(showcaseFrameName);
+          showFrame(secondFrameName);
           break;
         default:
           break;

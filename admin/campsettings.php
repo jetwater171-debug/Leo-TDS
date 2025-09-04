@@ -821,7 +821,7 @@ global $c;
                         </div>
                         <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
                             <div class="input-group custom-go-button">
-                                <input type="text" name="scripts.backfix.address" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->backfixAddress?>" />
+                                <input type="text" name="scripts.backfix.url" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->backfixAddress?>" />
                             </div>
                         </div>
                     </div>

