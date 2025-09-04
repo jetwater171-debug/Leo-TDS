@@ -4,7 +4,7 @@ $cssFsPath = __DIR__.'/css';
 $cssPath = get_cloaker_path().'css';
 ?>
     <!-- Google Fonts-->
-    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,700,900" rel="stylesheet" />
+    <link rel="stylesheet" href="<?=$cssPath?>/gfonts.css?v=<?= filemtime($cssFsPath.'/main.css') ?>" />
     <!-- main CSS-->
     <link rel="stylesheet" href="<?=$cssPath?>/main.css?v=<?= filemtime($cssFsPath.'/main.css') ?>" />
     <!-- style CSS-->

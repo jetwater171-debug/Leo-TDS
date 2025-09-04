@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let hasDeviceMotion = false;
         let hasDeviceOrientation = false;
         if (window.botDetector.isAndroidDevice()) {
-            hasDeviceMotion = tests.includes('devicemotion')
+            hasDeviceMotion = tests.includes('devicemotion');
             hasDeviceOrientation = tests.includes('deviceorientation');
         }
 

@@ -3,9 +3,18 @@ function set_cookie($name, $value, $path = '/'): void
 {
     $expires = time() + 60 * 60 * 24 * 5; //time to live for cookies - 5 days
     header("Set-Cookie: {$name}={$value}; Expires={$expires}; Path={$path}; SameSite=None; Secure", false);
+    session_write($name, $value);
+}
+
+function session_write($name, $value){
     get_session();
     $_SESSION[$name] = $value;
     session_write_close();
+}
+
+function session_read($name){
+    get_session(true);
+    return $_SESSION[$name] ?? null;
 }
 
 function get_cookie($name): string
@@ -73,6 +82,7 @@ function get_session($readOnly = false)
         if ($readOnly)
             session_start(['read_and_close' => true]);
         else {
+            //TODO:what for is this cookie_secure?
             ini_set("session.cookie_secure", 1);
             session_start();
         }

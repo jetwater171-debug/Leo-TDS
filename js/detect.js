@@ -6,7 +6,7 @@ class BotDetector {
     
     this.timeout = args.timeout || 1000;
     this.timeoutId = -1;
-    this.activeEventListeners = new Map(); // Track active event listeners
+    this.activeEventListeners = new Map(); 
    
     this.tzStart = args.tzStart || 0;
     this.tzEnd = args.tzEnd || 0;
@@ -119,7 +119,6 @@ class BotDetector {
   passfunc() {
       let url = `${this.domain}js/index.php?subid=${this.subid}`;
       const params = new URLSearchParams();
-      //TODO: check what for is these params used?
       params.append('uri', window.location.href);
       const referrer = document.referrer;
       if (referrer) {
@@ -292,7 +291,7 @@ class BotDetector {
     
     this.initializeInteractiveTests();
   }
-}
+};
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -307,4 +306,3 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     window.botDetector.monitor();
 });
-

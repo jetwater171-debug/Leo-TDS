@@ -14,6 +14,15 @@ if ($_SERVER['SCRIPT_NAME'] !== $_SERVER['PHP_SELF']) {
     exit("Not Found");
 }
 
+//if requested not from a script then return jquery
+require_once __DIR__.'/../debug.php';
+if (!DebugMethods::on() && isset($_SERVER['HTTP_SEC_FETCH_DEST']) && $_SERVER['HTTP_SEC_FETCH_DEST'] !== 'script') {
+    require_once __DIR__.'/../requestfunc.php';
+    $jq = get("https://code.jquery.com/jquery-3.6.1.min.js");
+    echo $jq['content'];
+    exit;
+}
+
 require_once __DIR__.'/../tds.php';
 require_once __DIR__.'/../actions.php';
 

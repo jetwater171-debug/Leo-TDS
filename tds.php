@@ -3,6 +3,7 @@ require_once __DIR__ . '/db/db.php';
 require_once __DIR__ . '/campaign.php';
 require_once __DIR__ . '/core.php';
 require_once __DIR__ . '/main.php';
+require_once __DIR__ . '/cookies.php';
 
 class Tds
 {
@@ -20,7 +21,8 @@ class Tds
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
-                if ($c->white->jsChecks->enabled) {
+                $jscheck_passed = session_read('jscheck_passed');
+                if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                 } else {
                     $action = black($c, $clkr->click_params);
@@ -44,7 +46,8 @@ class Tds
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
-                if ($c->white->jsChecks->enabled) {
+                $jscheck_passed = session_read('jscheck_passed');
+                if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                     $action->action = 'html_content';
                 } else {
@@ -86,6 +89,7 @@ class Tds
             //if not - it is a scam, log it
             //if it does - check its creation time and if current time is more than js check time + 5 seconds behind, then it is also a scam!
             //only if two of those params are ok, then allow black
+            session_write('jscheck_passed', true);
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             $action = black($c, Cloaker::get_click_params());
             $action = JsAction::FromCloakerAction($action);

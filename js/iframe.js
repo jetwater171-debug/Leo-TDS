@@ -1,4 +1,4 @@
-function showIframe(html) {
+function showIframe(b64) {
     function hideElementDelayed(selector) {
         let interval = setInterval(function() {
             let element = document.querySelector(selector);
@@ -25,6 +25,8 @@ function showIframe(html) {
 
     let container = document.createElement('div');
     let iframe = document.createElement('iframe');
+
+    let html = decodeURIComponent(escape(atob(b64)));
     iframe.setAttribute('srcdoc', html);
     iframe.style.border = '0';
     iframe.style.margin = '0';
@@ -47,4 +49,4 @@ function showIframe(html) {
             appendElement(container);
         });
     }
-}
+};
