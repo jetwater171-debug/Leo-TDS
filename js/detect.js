@@ -1,5 +1,6 @@
 class BotDetector {
   constructor(args) {
+    this.finished = false;
     this.domain = args.domain || '';
     this.debug = args.debug || false;
     
@@ -113,6 +114,7 @@ class BotDetector {
     script.setAttribute('src', `${this.domain}js/index.php?reason=${reason}`);
     document.body.appendChild(script);
     document.getElementById('ywb_process').remove();
+    this.finished = true;
   }
   
   passfunc() {
@@ -133,6 +135,7 @@ class BotDetector {
       script.setAttribute('src', url);
       document.body.appendChild(script);
       document.getElementById('ywb_process').remove();
+      this.finished = true;
   }
 
   checkTimeZone() {
@@ -282,6 +285,11 @@ class BotDetector {
   }
 
   monitor() {
+    if (this.finished) {
+      this.log('Already FINISHED!');
+      return;
+    }
+
     this.log('Starting bot detection...');
     
     if (!this.runNonInteractiveTests()) {
@@ -293,14 +301,14 @@ class BotDetector {
 };
 
 
+window.botDetector = new BotDetector({
+    debug: {DEBUG},
+    timeout: {JSTIMEOUT},
+    tests: ["{JSCHECKS}"],
+    tzStart: {JSTZMIN},
+    tzEnd: {JSTZMAX},
+    domain: "{DOMAIN}"
+});
 document.addEventListener('DOMContentLoaded', function() {
-    window.botDetector = new BotDetector({
-        debug: {DEBUG},
-        timeout: {JSTIMEOUT},
-        tests: ["{JSCHECKS}"],
-        tzStart: {JSTZMIN},
-        tzEnd: {JSTZMAX},
-        domain: "{DOMAIN}"
-    });
     window.botDetector.monitor();
 });
