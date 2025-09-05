@@ -84,13 +84,13 @@ function set_conversion_cookies($data): void
 
 function get_session($readOnly = false)
 {
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        if ($readOnly)
-            session_start(['read_and_close' => true]);
-        else {
-            //TODO:what for is this cookie_secure?
-            ini_set("session.cookie_secure", 1);
-            session_start();
-        }
-    }
+    if (session_status() === PHP_SESSION_ACTIVE) return;
+    
+    session_set_cookie_params(["SameSite" => "None"]); //can be used from js connected ones
+    session_set_cookie_params(["Secure" => "true"]); //https always
+    session_set_cookie_params(["HttpOnly" => "false"]); //can be used from js code
+    if ($readOnly)
+        session_start(['read_and_close' => true]);
+    else 
+        session_start();
 }
