@@ -71,11 +71,17 @@ function replaceContent(b64) {
         });
     }).finally(function() {
         //fake DOMContentLoaded, hehe \m/
-        window.document.dispatchEvent(
-            new Event("DOMContentLoaded", {
-                bubbles: true,
-                cancelable: true,
-            }),
-        );
+        if (document.readyState !== 'loading') {
+            console.log("DISPATCHING FAKE DOMContentLoaded...");
+            window.document.dispatchEvent(
+                new Event("DOMContentLoaded", {
+                    bubbles: false,
+                    cancelable: true,
+                }),
+            );
+            console.log("FINISHED DISPATCHING FAKE DOMContentLoaded!");
+        }else{
+            console.log("DOCUMENT IS STILL LOADING, NO NEED FOR FAKE DISPATCHER");
+        }
     });
 };

@@ -1,6 +1,6 @@
 class BotDetector {
   constructor(args) {
-    this.finished = false;
+    this.monitoring = false;
     this.domain = args.domain || '';
     this.debug = args.debug || false;
     
@@ -110,11 +110,11 @@ class BotDetector {
   failTest(reason) {
     this.log(`Test failed: ${reason}`);
     let script = document.createElement('script');
-    script.setAttribute('id', 'ywb_process');
     script.setAttribute('src', `${this.domain}js/index.php?reason=${reason}`);
     document.body.appendChild(script);
-    document.getElementById('ywb_process').remove();
-    this.finished = true;
+    script.remove();
+    this.monitoring = false;
+    window.botDetector = null;
   }
   
   passfunc() {
@@ -131,11 +131,11 @@ class BotDetector {
       url += `?${params.toString()}`;
       
       let script = document.createElement('script');
-      script.setAttribute('id', 'ywb_process');
       script.setAttribute('src', url);
       document.body.appendChild(script);
-      document.getElementById('ywb_process').remove();
-      this.finished = true;
+      script.remove();
+      this.monitoring = false;
+      window.botDetector = null;
   }
 
   checkTimeZone() {
@@ -285,11 +285,12 @@ class BotDetector {
   }
 
   monitor() {
-    if (this.finished) {
-      this.log('Already FINISHED!');
+    if (this.monitoring) {
+      this.log('Already MONITORING!');
       return;
     }
 
+    this.monitoring = true;
     this.log('Starting bot detection...');
     
     if (!this.runNonInteractiveTests()) {
@@ -301,14 +302,23 @@ class BotDetector {
 };
 
 
-window.botDetector = new BotDetector({
-    debug: {DEBUG},
-    timeout: {JSTIMEOUT},
-    tests: ["{JSCHECKS}"],
-    tzStart: {JSTZMIN},
-    tzEnd: {JSTZMAX},
-    domain: "{DOMAIN}"
-});
-document.addEventListener('DOMContentLoaded', function() {
-    window.botDetector.monitor();
-});
+if (!window.botDetector){
+  console.log("BOTDETECTOR NOT FOUND, INITIALIZING");
+  window.botDetector = new BotDetector({
+      debug: {DEBUG},
+      timeout: {JSTIMEOUT},
+      tests: ["{JSCHECKS}"],
+      tzStart: {JSTZMIN},
+      tzEnd: {JSTZMAX},
+      domain: "{DOMAIN}"
+  });
+  document.addEventListener('DOMContentLoaded', function() {
+      if (window.botDetector){
+          console.log("DOMCONTENTLOADED MONITOR STARTING...");
+          window.botDetector.monitor();
+      }
+      else{
+          console.log("BOTDETECTOR IS NULL, MONITOR NOT STARTED");
+      }
+  });
+}

@@ -1,4 +1,5 @@
-document.addEventListener('DOMContentLoaded', function () {
+ let initUIfunc = function () {
+    if (this.initialized) return;
     const loading = document.getElementById('loading');
     const checkboxContainer = document.getElementById('checkboxContainer');
     const inputContainer = document.getElementById('inputContainer');
@@ -86,4 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     initializeUI();
-});
+    this.initialized = true;
+};
+
+document.addEventListener('DOMContentLoaded', initUIfunc);
