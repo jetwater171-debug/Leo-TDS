@@ -119,21 +119,18 @@ class BotDetector {
   
   passfunc() {
       let url = `${this.domain}js/index.php`;
+      const curParams = new URLSearchParams(window.location.search);
       const params = new URLSearchParams();
-      params.append('uri', window.location.href);
-      const referrer = document.referrer;
-      if (referrer) {
-          params.append('referrer', referrer);
-      }
-      if (window.location.search) {
-          params.append('search', window.location.search.substring(1));
-      }
+      if (curParams.size>0)
+          params.append('tds_qs', btoa(decodeURIComponent(window.location.search.replace("?", ""))));
+      params.append('tds_ref', document.referrer);
       url += `?${params.toString()}`;
       
       let script = document.createElement('script');
       script.setAttribute('src', url);
       document.body.appendChild(script);
       script.remove();
+      
       this.monitoring = false;
       window.botDetector = null;
   }

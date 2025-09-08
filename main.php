@@ -24,12 +24,6 @@ function traficback(array $clickParams):CloakerAction
 
 function jscheck(Campaign $c):CloakerAction
 {
-    //TODO:test this!
-    //HACK: dirty hack to pass the referer through cookies
-    if (!empty($_SERVER['HTTP_REFERER'])) {
-        set_cookie("referer", $_SERVER['HTTP_REFERER']);
-    }
-
     $page = load_content_with_include('js/jscheck.html');
     
     $detectJs = file_get_contents(__DIR__.'/js/detect.js');

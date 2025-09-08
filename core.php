@@ -33,24 +33,24 @@ use DeviceDetector\DeviceDetector;
 use DeviceDetector\Cache\DoctrineBridge;
 class Cloaker
 {
-    var array $s;
-    var string $block_reason = "";
-    var array $click_params = [];
+    private array $filters;
+    public string $block_reason = "";
+    public array $click_params = [];
 
-    public function __construct(array $s=[])
+    public function __construct(array $filters=[], array $prefill=[])
     {
         DebugMethods::start("YWBCoreConstruct");
-        $this->s = $s;
-        $this->click_params = Cloaker::get_click_params();
+        $this->filters = $filters;
+        $this->click_params = self::get_click_params($prefill);
         DebugMethods::stop("YWBCoreConstruct");
     }
 
-    public static function get_click_params(): array
+    public static function get_click_params(array $prefill=[]): array
     {
         ClientHints::requestClientHints();
         $a = [];
         $a['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
-        $a['referer'] = get_referer();
+        $a['referer'] = $prefill['tds_ref'] ?? $_SERVER['HTTP_REFERER'] ?? '';
         $lang = new Language();
         $a['lang'] = $lang->getLanguage();
         
@@ -58,7 +58,7 @@ class Cloaker
         $dd = new DeviceDetector($a['ua'], $clientHints);
 
         DebugMethods::start("YWBCoreDeviceDetector");
-        $phpFileCache = new Doctrine\Common\Cache\PhpFileCache(__DIR__ . '/tmp/');
+        $phpFileCache = new Doctrine\Common\Cache\PhpFileCache(__DIR__ . '/cache/');
         $dd->setCache(new DoctrineBridge($phpFileCache));
         $dd->parse();
         $clientInfo = $dd->getClient();
@@ -78,7 +78,8 @@ class Cloaker
         $a['country'] = getcountry($a['ip']);
         $a['isp'] = getisp($a['ip']);
         DebugMethods::stop("YWBCoreMaxMind");
-        $a['url'] = $_SERVER['REQUEST_URI'];
+        $a['url'] = $prefill['tds_qs'] ?? $_SERVER['REQUEST_URI'];
+        
         return $a;
     }
 
@@ -142,9 +143,9 @@ class Cloaker
     {
         try {
             DebugMethods::start("YWBCoreCheck");
-            if (!array_key_exists('rules', $this->s))
+            if (!array_key_exists('rules', $this->filters))
                 return false;
-            return !$this->match_filters($this->s['condition'] === 'AND', $this->s['rules']);
+            return !$this->match_filters($this->filters['condition'] === 'AND', $this->filters['rules']);
         } finally {
             DebugMethods::stop("YWBCoreCheck");
         }

@@ -1,7 +1,7 @@
 /backups
 /temp_update
 /logs
-/tmp
+/cache
 /land
 /preland
 /black
@@ -14,3 +14,4 @@
 bases/update.txt
 bases/*.mmdb
 tur.xml
+bases/test.txt

@@ -1,13 +1,4 @@
 <?php
-//This file must be included if you want to connect the cloaker using Javascript.
-//This works good for any website builders or GitHub for example.
-//Use the following code: <script src="https://your.domain/js/index.php"></script>
-//If the user passes the verification, the action you specified for the JS connection in campaign settings
-//will be performed: 
-//1.redirect 
-//2.content substitution 
-//3.show iframe
-
 //fix for Apache Multiviews and/or PHP Development Server
 if ($_SERVER['SCRIPT_NAME'] !== $_SERVER['PHP_SELF']) {
     http_response_code(404);
@@ -30,5 +21,11 @@ require_once __DIR__.'/../cookies.php';
 if (!is_null(session_read('jscheck_pending')))
     $action = Tds::processJsCheck();
 else
-    $action = Tds::getJsAction();
+{
+    $prefill = [];
+    if (isset($_GET['tds_qs']))
+        $prefill['tds_qs'] = base64_decode($_GET['tds_qs']);
+    $prefill['tds_ref'] = $_GET['tds_ref']??'';
+    $action = Tds::getJsAction($prefill);
+}
 $action->perform();

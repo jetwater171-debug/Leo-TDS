@@ -32,15 +32,15 @@ class Tds
         return $action;
     }
 
-    public static function getJsAction() : JsAction
+    public static function getJsAction($prefill = []) : JsAction
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
         if ($dbCamp === false) {
-            $action = traficback(Cloaker::get_click_params());
+            $action = traficback(Cloaker::get_click_params($prefill));
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
-            $clkr = new Cloaker($c->filters);
+            $clkr = new Cloaker($c->filters, $prefill);
 
             if ($clkr->is_bad_click()) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
