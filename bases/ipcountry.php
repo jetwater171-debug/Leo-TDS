@@ -5,31 +5,14 @@ use GeoIp2\Database\Reader;
 function getip()
 {
     //Will return Cloudflare's connecting ip only if we are behind the cloud
-    if (
-    isset($_SERVER['HTTP_CF_CONNECTING_IP']) &&
-    str_contains(strtolower(getisp($_SERVER['REMOTE_ADDR'])), "cloudflare")
-    )
+    if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) &&
+        str_contains(strtolower(getisp($_SERVER['REMOTE_ADDR'])), "cloudflare"))
         return $_SERVER['HTTP_CF_CONNECTING_IP'];
 
-    $ipfound = 'Unknown';
-
-    if (isset($_SERVER['REMOTE_ADDR'])) {
-        $ipfound = $_SERVER['REMOTE_ADDR'];
-    } else if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        $ipfound = $_SERVER['HTTP_CLIENT_IP'];
-    } else if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-        $ip = explode(", ", $ip);
-        if (count($ip) <= 1) {
-            $ip = explode(",", $ip[0]);
-        }
-        if (!empty($ip[0])) {
-            $ipfound = $ip[0];
-        }
-    }
-
+    $ipfound = $_SERVER['REMOTE_ADDR'];
     if ($ipfound === '::1' || !is_public_ip($ipfound))
         return '109.124.224.100'; //for debugging
+    
     return $ipfound;
 }
 
