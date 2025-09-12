@@ -153,38 +153,75 @@ class Cloaker
 
     private function is_proxy_or_vpn($ip): bool
     {
-        $url = 'https://blackbox.ipinfo.app/lookup/';
-        $res = file_get_contents($url . $ip);
-
-        if (!is_string($res) || !strpos($http_response_header[0], "200")) {
-            return false;
+        //checks the commonly added by proxies header X-Forwarded-For
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $xip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            $xip = explode(", ", $xip);
+            if (count($xip) <= 1) {
+                $xip = explode(",", $xip[0]);
+            }
+            if (!empty($xip[0])) {
+                $xip = $xip[0];
+            }
+            if ($xip!==$ip) return true;
         }
 
-        if ($res === 'Y')
-            return true;
-
+        //perform checks using 3rd party services, SLOW
+        $blackbox = $this->is_bad_by_blackbox($ip);
+        if ($blackbox !== null) return $blackbox;
         $ipintel = $this->is_bad_by_ipintel($ip);
         return ($ipintel === null ? false : $ipintel);
+    }
+
+    private function is_bad_by_blackbox($ip): ?bool
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://blackbox.ipinfo.app/lookup/' . $ip);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+        $res = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($http_code !== 200) {
+            add_log('trace', "is_bad_by_blackbox: $ip from blackbox: $http_code");
+            return null;
+        }
+
+        return $res === 'Y';
     }
 
     private function is_bad_by_ipintel($ip): ?bool
     {
         $contactEmail = "support@" . $_SERVER['HTTP_HOST'];
-        $timeout = 5; //by default, wait no longer than 5 secs for a response
         $banOnProbability = 0.99;
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         curl_setopt($ch, CURLOPT_URL, "http://check.getipintel.net/check.php?ip=$ip&contact=$contactEmail&flags=m");
+        
         $response = curl_exec($ch);
+        $error = curl_error($ch);
+        $errno = curl_errno($ch);
         curl_close($ch);
 
-        if ($response > $banOnProbability) {
+        if ($errno > 0) {
+            add_log('error', "is_bad_by_ipintel: $ip from ipintel: $errno - $error");
+            return null;
+        }
+
+        if ($response === false) {
+            add_log('error', "is_bad_by_ipintel: $ip from ipintel: response is false");
+            return null;
+        }
+
+        if ($response >= $banOnProbability) {
             return true;
         } else {
             if ($response < 0 || strcmp($response, "") == 0) {
+                add_log('error', "is_bad_by_ipintel: $ip from ipintel: response is incorrect");
                 return null;
             }
             return false;
