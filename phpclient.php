@@ -7,8 +7,8 @@
  * require_once __DIR__ . '/fromfolder/cloaker_client.php';
  */
 
-define("YC_API_KEY", "your-campaign-api-key");
-define("YC_API_URL", "your-campaign-api-url");
+define("YC_API_KEY", "test");
+define("YC_API_URL", "http://localhost:8080/fromfolder/phpapi.php");
 
 //if called directly return 404, haha
 if (__FILE__ === $_SERVER['PHP_SELF']) {
@@ -18,9 +18,10 @@ if (__FILE__ === $_SERVER['PHP_SELF']) {
 
 class YellowCloakerClient 
 {
-    public function connect() 
+    public function connect()
     {
-        $params =$this->collectParams();
+        $this->requestClientHints();
+        $params = $this->collectParams();
         $response = $this->sendRequest($params);
         return $response;
     }
@@ -58,29 +59,28 @@ class YellowCloakerClient
     {
         $params = [
             'api_key' => YC_API_KEY,
-            'remote_address' => $_SERVER['REMOTE_ADDR'],
-            'cf_address' => $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',
-            'forwarded_for' => $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-            'referer' => $_SERVER['HTTP_REFERER'] ?? '',
-            'url' => $_SERVER['REQUEST_URI'] ?? '/',
-            'query_string' => $_SERVER['QUERY_STRING'] ?? '',
-            'method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
-            'host' => $_SERVER['HTTP_HOST'] ?? '',
-            'accept_language' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
-            'accept_encoding' => $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '',
-            'connection' => $_SERVER['HTTP_CONNECTION'] ?? '',
-            'timestamp' => time()
+            'tds_ua' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'tds_ref' => $_SERVER['HTTP_REFERER'] ?? '',
+            'tds_url' => $_SERVER['REQUEST_URI'] ?? '/',
+            'tds_query_string' => $_SERVER['QUERY_STRING'] ?? '',
+            'tds_host' => $_SERVER['HTTP_HOST'] ?? '',
+            'tds_lang' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
         ];
+
+        $params['tds_ip']=[];
+        $params['tds_ip']['REMOTE_ADDR'] = $_SERVER['REMOTE_ADDR'];
+        if (isset($_SERVER['HTTP_CF_CONNECTING_IP']))
+            $params['tds_ip']['HTTP_CF_CONNECTING_IP'] = $_SERVER['HTTP_CF_CONNECTING_IP'];
+        if (isset($_SERVER['HTTP_X_FORWARDED_FOR']))
+            $params['tds_ip']['HTTP_X_FORWARDED_FOR'] = $_SERVER['HTTP_X_FORWARDED_FOR'];
         
-        // Add all GET parameters
-        if (!empty($_GET)) {
-            $params['get_params'] = $_GET;
-        }
-        
-        // Add all POST parameters if present
-        if (!empty($_POST)) {
-            $params['post_params'] = $_POST;
+        //adding client hints if they are present
+        foreach ($_SERVER as $key => $value) {
+            if (strpos($key, 'HTTP_SEC_CH_UA_') === 0) {
+                if (!array_key_exists('tds_client_hints', $params))
+                    $params['tds_client_hints'] = [];
+                $params['tds_client_hints'][$key] = $value;
+            }
         }
         
         return $params;
@@ -136,6 +136,20 @@ class YellowCloakerClient
             return $_SERVER['HTTP_CF_CONNECTING_IP'];
 
         return $_SERVER['REMOTE_ADDR'];
+    }
+
+    private function requestClientHints(): void
+    {
+        $headers = [
+            'Sec-CH-UA', 'Sec-CH-UA-Arch', 'Sec-CH-UA-Bitness',
+            'Sec-CH-UA-Full-Version', 'Sec-CH-UA-Full-Version-List',
+            'Sec-CH-UA-Mobile', 'Sec-CH-UA-Platform', 'Sec-CH-UA-Platform-Version',
+            'Sec-CH-UA-WoW64', 'Sec-CH-UA-Model'
+        ];
+        $headers_str = implode(', ', $headers);
+        header('Accept-CH: ' . $headers_str, true);
+        header('Critical-CH: ' . $headers_str, true);
+        header('Vary: ' . $headers_str, true);
     }
 
     private function log($msg, $addIp = false)

@@ -32,7 +32,7 @@ class Tds
         return $action;
     }
 
-    public static function getJsAction($prefill = []) : JsAction
+    public static function getJsAction(array $prefill) : JsAction
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();

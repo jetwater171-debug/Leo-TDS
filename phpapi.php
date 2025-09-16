@@ -1,10 +1,13 @@
 <?php
-/**
- * YellowCloaker API Endpoint for PHP Client Connections
- * 
- * This endpoint receives requests from the PHP client library
- * and returns cloaker decisions in JSON format
- */
+require_once __DIR__.'/logging.php';
+require_once __DIR__.'/db/db.php';
+
+// Allow access only for user-agent that contains YellowCloaker
+if (empty($_SERVER['HTTP_USER_AGENT']) || strpos($_SERVER['HTTP_USER_AGENT'], 'YellowCloaker') === false) {
+    add_log('warning','Attempt to access API with invalid user-agent',true);
+    http_response_code(404);
+    exit;
+}
 
 // Set JSON response header
 header('Content-Type: application/json');
@@ -14,6 +17,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    add_log('warning','Not a POST request',true);
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit;
@@ -31,8 +35,16 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 
 // Validate required fields
 if (!isset($data['api_key']) || empty($data['api_key'])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'API key required']);
+    http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized']);
+    exit;
+}
+
+global $db;
+$campaign = $db->get_campaign_by_apikey($data['api_key']);
+if (!$campaign) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
 
