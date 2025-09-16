@@ -1,22 +1,31 @@
 <?php
+require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/geoip2.phar';
 use GeoIp2\Database\Reader;
+use GeoIp2\Exception\AddressNotFoundException;
 
-function getip()
+function getip(array|null $headers = null): string
 {
-    //Will return Cloudflare's connecting ip only if we are behind the cloud
-    if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) &&
-        str_contains(strtolower(getisp($_SERVER['REMOTE_ADDR'])), "cloudflare"))
-        return $_SERVER['HTTP_CF_CONNECTING_IP'];
+    if (is_null($headers)) $headers = $_SERVER;
+    
+    $remoteAddr = $headers['REMOTE_ADDR'];
+    
+    //Will return Cloudflare's connecting ip only if requests come from Cloudflare
+    if (isset($headers['HTTP_CF_CONNECTING_IP'])){
+        $cfip = $headers['HTTP_CF_CONNECTING_IP'];
+        if (str_contains(strtolower(getisp($remoteAddr)), "cloudflare"))
+            return $cfip;
+        else
+            add_log("bases", "Fake CloudflareIP: $cfip, RemoteAddr: $remoteAddr");
+    }
 
-    $ipfound = $_SERVER['REMOTE_ADDR'];
-    if ($ipfound === '::1' || !is_public_ip($ipfound))
+    if ($remoteAddr === '::1' || !is_public_ip($remoteAddr))
         return '109.124.224.100'; //for debugging
     
-    return $ipfound;
+    return $remoteAddr;
 }
 
-function is_public_ip($ip): bool
+function is_public_ip(string $ip): bool
 {
     return filter_var(
     $ip,
@@ -25,32 +34,32 @@ function is_public_ip($ip): bool
     ) === $ip;
 }
 
-function getcountry($ip = null)
+function getcountry(string $ip): string
 {
-    if (is_null($ip))
-        $ip = getip();
-    if ($ip === 'Unknown')
-        return 'Unknown';
+    if ($ip === 'Unknown') return 'Unknown';
     $reader = new Reader(__DIR__ . '/GeoLite2-Country.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
     try {
         $record = $reader->country($ip);
         return $record->country->isoCode;
-    } catch (GeoIp2\Exception\AddressNotFoundException $exception) {
+    } catch (AddressNotFoundException $exception) {
+        add_log("bases", "GetCountry AddressNotFoundException: $ip");
         return 'Unknown';
     }
 }
 
-function getisp($ip)
+function getisp(string $ip)
 {
+    if ($ip === 'Unknown') return 'Unknown';
     $reader = new Reader(__DIR__ . '/GeoLite2-ASN.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
     try {
         $record = $reader->asn($ip);
         return $record->autonomousSystemOrganization;
-    } catch (GeoIp2\Exception\AddressNotFoundException $exception) {
+    } catch (AddressNotFoundException $exception) {
+        add_log("bases", "GetISP AddressNotFoundException: $ip");
         return 'Unknown';
     }
 }
