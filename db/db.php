@@ -497,7 +497,14 @@ class Db
         
         $settingsJson = file_get_contents(__DIR__ . '/default.json');
         $settings = json_decode($settingsJson, true);
-        $settings['apikey'] =  sprintf('%04X%04X-%04X-%04X-%04X-%04X%04X%04X', 
+        $settings['apikey'] = $this->generate_api_key();
+        $settingsJson = json_encode($settings);
+        return $this->exec_write_query($query,[$name=>SQLITE3_TEXT,$settingsJson=>SQLITE3_TEXT],true);
+    }
+
+    private function generate_api_key(): string
+    {
+        return sprintf('%04X%04X-%04X-%04X-%04X-%04X%04X%04X', 
             mt_rand(0, 65535),
                     mt_rand(0, 65535), 
                     mt_rand(0, 65535), 
@@ -506,8 +513,12 @@ class Db
                     mt_rand(0, 65535), 
                     mt_rand(0, 65535), 
                     mt_rand(0, 65535));
-        $settingsJson = json_encode($settings);
-        return $this->exec_write_query($query,[$name=>SQLITE3_TEXT,$settingsJson=>SQLITE3_TEXT],true);
+    }
+
+    public function get_campaign_by_apikey(string $apikey): array
+    {
+        $query = "SELECT * FROM campaigns WHERE settings->>'apikey' = :apikey";
+        return $this->exec_read_query($query, [$apikey=>SQLITE3_TEXT]);
     }
 
     public function clone_campaign($id): bool|int
