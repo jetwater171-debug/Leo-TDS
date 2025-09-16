@@ -1,8 +1,6 @@
 <?php
 //Language detection
-require_once __DIR__ . '/bases/lang/AcceptLanguage.php';
-require_once __DIR__ . '/bases/lang/Language.php';
-require_once __DIR__ . '/bases/lang/LanguageDetector.php';
+require_once __DIR__ . '/bases/language.php';
 //Device/Model/Browser/Platform detection
 require_once __DIR__ . '/bases/device/autoload.php';
 require_once __DIR__ . '/bases/device/ClientHints.php';
@@ -27,7 +25,6 @@ require_once __DIR__ . '/bases/device/Cache/DoctrineBridge.php';
 require_once __DIR__ . '/bases/iputils.php';
 require_once __DIR__ . '/bases/ipcountry.php';
 
-use Sinergi\BrowserDetector\Language;
 use DeviceDetector\ClientHints;
 use DeviceDetector\DeviceDetector;
 use DeviceDetector\Cache\DoctrineBridge;
@@ -49,12 +46,12 @@ class Cloaker
     {
         ClientHints::requestClientHints();
         $a = [];
-        $a['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+        $a['ua'] = $prefill['tds_ua'] ?? $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
         $a['referer'] = $prefill['tds_ref'] ?? $_SERVER['HTTP_REFERER'] ?? '';
-        $lang = new Language();
-        $a['lang'] = $lang->getLanguage();
+        $lang = $prefill['tds_lang'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+        $a['lang'] = LanguageDetector::detect($lang);
         
-        $clientHints = ClientHints::factory($_SERVER); 
+        $clientHints = ClientHints::factory($prefill['tds_client_hints'] ?? $_SERVER); 
         $dd = new DeviceDetector($a['ua'], $clientHints);
 
         DebugMethods::start("YWBCoreDeviceDetector");
@@ -74,7 +71,7 @@ class Cloaker
         $a['model'] = $dd->getModel();
         
         DebugMethods::start("YWBCoreMaxMind");
-        $a['ip'] = getip();
+        $a['ip'] = getip($prefill['tds_ip']??$_SERVER);
         $a['country'] = getcountry($a['ip']);
         $a['isp'] = getisp($a['ip']);
         DebugMethods::stop("YWBCoreMaxMind");
