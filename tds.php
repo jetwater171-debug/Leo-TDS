@@ -119,4 +119,29 @@ class Tds
 
         return $action;
     }
+
+    public static function getPhpAction($apikey,array $prefill) : PhpAction
+    {
+        global $db;
+        $dbCamp = $db->get_campaign_by_apikey($apikey);
+        if ($dbCamp === false) {
+            $action = traficback(Cloaker::get_click_params($prefill));
+        } else {
+            $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
+            $clkr = new Cloaker($c->filters, $prefill);
+
+            if ($clkr->is_bad_click()) {
+                $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
+                $action = white($c);
+            } else {
+                $jscheck_passed = session_read('jscheck_passed');
+                if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
+                    $action = jscheck($c);
+                } else {
+                    $action = black($c, $clkr->click_params);
+                }
+            }
+        }
+        return PhpAction::FromCloakerAction($action);
+    }
 }

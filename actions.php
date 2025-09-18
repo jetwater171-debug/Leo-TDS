@@ -96,3 +96,27 @@ class JsAction extends CloakerAction
         echo $js_code;
     }
 }
+
+
+class PhpAction extends CloakerAction
+{
+    public static function FromCloakerAction(CloakerAction $action):PhpAction
+    {
+        return new PhpAction($action->click_type, $action->action, $action->value, $action->redirect_type);
+    }
+    
+    public function perform(){
+        header('Content-Type: application/json');
+
+        //for white clicks we just send action='none'
+        if ($this->click_type === 'white') {
+            echo json_encode(['action' => 'none']);
+            return;
+        }
+        
+        if ($this->action === 'html')
+            $this->value = base64_encode($this->value);
+
+        echo json_encode($this);
+    }
+}

