@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/geoip2.phar';
-use GeoIp2\Database\Reader;
-use GeoIp2\Exception\AddressNotFoundException;
+use GeoIp2\Database\Reader as GeoIp2Reader;
+use GeoIp2\Exception\AddressNotFoundException as ANFException;
 
 function getip(array|null $headers = null): string
 {
@@ -37,13 +37,13 @@ function is_public_ip(string $ip): bool
 function getcountry(string $ip): string
 {
     if ($ip === 'Unknown') return 'Unknown';
-    $reader = new Reader(__DIR__ . '/GeoLite2-Country.mmdb');
+    $reader = new GeoIp2Reader(__DIR__ . '/GeoLite2-Country.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
     try {
         $record = $reader->country($ip);
         return $record->country->isoCode;
-    } catch (AddressNotFoundException $exception) {
+    } catch (ANFException $exception) {
         add_log("bases", "GetCountry AddressNotFoundException: $ip");
         return 'Unknown';
     }
@@ -52,13 +52,13 @@ function getcountry(string $ip): string
 function getisp(string $ip)
 {
     if ($ip === 'Unknown') return 'Unknown';
-    $reader = new Reader(__DIR__ . '/GeoLite2-ASN.mmdb');
+    $reader = new GeoIp2Reader(__DIR__ . '/GeoLite2-ASN.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
     try {
         $record = $reader->asn($ip);
         return $record->autonomousSystemOrganization;
-    } catch (AddressNotFoundException $exception) {
+    } catch (ANFException $exception) {
         add_log("bases", "GetISP AddressNotFoundException: $ip");
         return 'Unknown';
     }

@@ -72,7 +72,7 @@ function downloadMaxMindDB($licenseKey, $directory, $editionId): string
         curl_close($ch);
         return "$editionId processed!";
     } catch (Exception $e) {
-        add_log('error', "Error processing $editionId: " . $e->getMessage());
+        add_error_log("MaxMind bases update: Error processing $editionId: " . $e->getMessage());
         return "$editionId Error: " . $e->getMessage();
     }
 }

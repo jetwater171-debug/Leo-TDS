@@ -1,23 +1,25 @@
 <?php
 require_once __DIR__ . '/bases/ipcountry.php';
 require_once __DIR__ . '/debug.php';
-function add_log($subdir, $msg, $logIp = false)
+function add_log(string $subdir, string $msg, bool $logIp = false)
 {
-    if ($subdir ==='trace' && !DebugMethods::on())
-        return;
+    if ($subdir ==='trace' && !DebugMethods::on()) return;
     $dir = __DIR__ . "/logs/$subdir";
     if (!file_exists($dir)) 
         mkdir($dir, 0777, true);
-    $date = date("d.m.y");
+    $datetime = explode(' ', date("d.m.y H:i:s"));
+    $date = $datetime[0];  // "d.m.y"
+    $time = $datetime[1];  // "H:i:s"
     $fileName = "$dir/$date.log";
-    $file = fopen($fileName, 'a+');
-    $time = date("Y-m-d H:i:s");
     if ($logIp) {
         $ip = getip();
         $time .= " $ip";
     }
     $msg = "$time $msg\n";
-    fwrite($file, $msg);
-    fflush($file);
-    fclose($file);
+    file_put_contents($fileName, $msg, FILE_APPEND | LOCK_EX);
+}
+
+function add_error_log(string $msg, bool $logIp = false)
+{
+    add_log('error',$msg,$logIp);
 }

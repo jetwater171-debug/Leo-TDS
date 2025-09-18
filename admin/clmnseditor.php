@@ -156,7 +156,7 @@ function get_current_columns_for_type(string $table, ?int $campId = null): array
             return $s['statistics']['leads'];
         default:
             $errMsg = "Table $table not found in campaign settings";
-            add_log('error', $errMsg);
+            add_error_log($errMsg);
             trigger_error($errMsg, E_USER_ERROR);
             exit;
     }
@@ -199,7 +199,7 @@ function save_columns_for_type(array $columns, string $table, ?int $campId = nul
             return $db->save_campaign_settings($campId, $s);
         default:
             $errMsg = "Table $table not found in campaign settings";
-            add_log('error', $errMsg);
+            add_error_log($errMsg);
             trigger_error($errMsg, E_USER_ERROR);
             exit;
     }
@@ -217,7 +217,7 @@ function save_stats_columns(array $columns, string $name, int $campId): bool
     }
     
     $errMsg = "Stats table $name not found in campaign $campId settings";
-    add_log('error', $errMsg);
+    add_error_log($errMsg);
     trigger_error($errMsg, E_USER_ERROR);
     exit;
 }
@@ -227,7 +227,7 @@ function save_stats_table(int $campId, string $tableName,array $tableConfig): bo
     global $db;
     $s = $db->get_campaign_settings($campId);
     if (empty($s)) {
-        add_log('error', "Error: campaign $campId not found");
+        add_error_log("Save stats table: campaign $campId not found");
         return false;
     }
 
@@ -264,7 +264,7 @@ function delete_stats_table($campId, $tableName): bool {
     global $db;
     $s = $db->get_campaign_settings($campId);
     if (empty($s)) {
-        add_log('error', "Error: campaign $campId not found");
+        add_error_log("Delete stats table: campaign $campId not found");
         return false;
     }
 
@@ -279,7 +279,7 @@ function delete_stats_table($campId, $tableName): bool {
     }
 
     if (!$found) {
-        add_log('error', "Error deleting stats table: table $tableName not found in campaign $campId");
+        add_error_log("Delete stats table: table $tableName not found in campaign $campId");
         return false;
     }
 

@@ -205,12 +205,12 @@ class Cloaker
         curl_close($ch);
 
         if ($errno > 0) {
-            add_log('error', "is_bad_by_ipintel: $ip from ipintel: $errno - $error");
+            add_error_log("is_bad_by_ipintel: $ip from ipintel: $errno - $error");
             return null;
         }
 
         if ($response === false) {
-            add_log('error', "is_bad_by_ipintel: $ip from ipintel: response is false");
+            add_error_log("is_bad_by_ipintel: $ip from ipintel: response is false");
             return null;
         }
 
@@ -218,7 +218,7 @@ class Cloaker
             return true;
         } else {
             if ($response < 0 || strcmp($response, "") == 0) {
-                add_log('error', "is_bad_by_ipintel: $ip from ipintel: response is incorrect");
+                add_error_log("is_bad_by_ipintel: $ip from ipintel: response is incorrect");
                 return null;
             }
             return false;

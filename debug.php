@@ -42,7 +42,7 @@ class DebugMethods
         set_exception_handler(function (\Throwable $exception) {
             $msg = "Unhandled exception: " . $exception->getMessage() . " in " . $exception->getFile() . " on line " . $exception->getLine();
             error_log($msg);
-            add_log('errors', $msg);
+            add_error_log($msg);
 
             echo "An unexpected error occurred. Please try again later.";
         });

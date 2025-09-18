@@ -95,7 +95,7 @@ function convert_currency($amount, $from): float
             $res = json_decode(file_get_contents($url), true);
             $rate = $res['rates']['USD'];
             if (empty($rate)) {
-                add_log('errors',"Currency conversion failed for $from to USD! Rate is empty! Url: $url");
+                add_error_log("Currency conversion failed for $from to USD! Rate is empty! Url: $url");
                 return $amount;
             }
             return round($amount * $rate, 2);
@@ -123,7 +123,7 @@ function convert_currency($amount, $from): float
             if (!$useCache) {
                 $curlRes = get($xmlUrl);
                 if ($curlRes['error']) {
-                    add_log('errors', "Curl error while trying to get Turkish Central Bank rates: " . $curlRes['error']);
+                    add_error_log("Curl error while trying to get Turkish Central Bank rates: " . $curlRes['error']);
                     return $amount;
                 }
                 
@@ -135,7 +135,7 @@ function convert_currency($amount, $from): float
             // Parse the XML
             $xml = simplexml_load_string($xmlContent);
             if ($xml === false) {
-                add_log('errors', "Failed to parse Turkish Central Bank XML data");
+                add_error_log("Failed to parse Turkish Central Bank XML data");
                 return $amount;
             }
             
@@ -150,7 +150,7 @@ function convert_currency($amount, $from): float
             }
             
             if ($rate === null || $rate <= 0) {
-                add_log('errors', "Currency $from not found in Turkish Central Bank data or invalid rate");
+                add_error_log("Currency $from not found in Turkish Central Bank data or invalid rate");
                 return $amount;
             }
             
@@ -158,12 +158,12 @@ function convert_currency($amount, $from): float
             return round($amount / $rate, 2);
         }
         else{
-            add_log('errors',"Currency $from is not supported by any conversion APIs!");
+            add_error_log("Currency $from is not supported by any conversion APIs!");
             return $amount;
         }
     }
     catch (Exception $e) {
-        add_log('errors', "Currency conversion failed for $amount $from to USD: " . $e->getMessage());
+        add_error_log("Currency conversion failed for $amount $from to USD: " . $e->getMessage());
         return $amount;
     }
 }
