@@ -10,7 +10,7 @@ class MacrosProcessor
     private ?array $clickParams;
     public function __construct(?string $subid = null, ?array $clickParams = null)
     {
-        $this->subid = $subid ?? get_cookie('subid');
+        $this->subid = $subid ?? get_subid();
         $this->clickParams = $clickParams;
     }
 
@@ -61,80 +61,91 @@ class MacrosProcessor
     private function get_macro_value($macro,$is_s2s = false): string|bool
     {
         global $db;
-        if ($macro === 'subid') {
-            $cookie = get_cookie($macro);
-            if (empty($cookie)) {
-                add_log("macros", "Couldn't get subid macros value from cookie.");
-                return false;
-            }
-            return $cookie;
+        
+        return match(true) {
+            $macro === 'subid' => $this->subid ?? false,
+            $macro === 'domain' => $_SERVER['HTTP_HOST'],
+            $macro === 'time' => time(),
+            
+            // Click parameter names
+            in_array($macro, ['ip', 'country', 'lang', 'os', 'osver', 'client', 'clientver', 'device', 'brand', 'model', 'isp', 'ua', 'preland', 'land', 'status']) => 
+                $this->getClickParam($macro, $db),
+            
+            // Custom click parameters (c.*)
+            str_starts_with($macro, 'c.') => 
+                $this->getCustomClickParam($macro, $db),
+            
+            // Hash macros (hash:*)
+            str_starts_with($macro, 'hash:') => 
+                $this->getHashedMacro($macro, $is_s2s),
+            
+            // Random macros (random:*)
+            str_starts_with($macro, 'random:') => 
+                $this->getRandomMacro($macro),
+            
+            // Unknown macro
+            default => $this->logUnknownMacro($macro)
+        };
+    }
+    
+    private function getClickParam($macro, $db): string|bool
+    {
+        if (!empty($this->clickParams))
+            return $this->clickParams[$macro];
+        if (!empty($this->subid)) {
+            $click = $db->get_clicks_by_subid($this->subid, true);
+            return $click[$macro];
         }
-
-        $clickParamNames = ['ip', 'country', 'lang', 'os', 'osver', 'client', 'clientver', 'device', 'brand', 'model', 'isp', 'ua', 'preland', 'land', 'status'];
-        if (in_array($macro, $clickParamNames)) {
-            if (!empty($this->clickParams))
-                return $this->clickParams[$macro];
-            if (!empty($this->subid)) {
-                $click = $db->get_clicks_by_subid($this->subid, true);
-                return $click[$macro];
-            }
-            add_log("macros", "Couldn't get macros $macro value. Clickparams and subid not set!");
+        add_log("macros", "Couldn't get macros $macro value. Clickparams and subid not set!");
+        return false;
+    }
+    
+    private function getCustomClickParam($macro, $db): string|bool
+    {
+        if (empty($this->subid)) {
+            add_log("macros", "Couldn't get macros $macro value from DB. Subid not set!");
             return false;
         }
-
-        //we need to find click parameter with this name, we can do that only if we know subid
-        if (str_starts_with($macro, "c.")) {
-            if (empty($this->subid)) {
-                add_log("macros", "Couldn't get macros $macro value from DB. Subid not set!");
-                return false;
-            } else {
-                $click = $db->get_clicks_by_subid($this->subid, true);
-                if (count($click['params']) == 0) {
-                    add_log(
-                    "macros",
-                    "Couldn't find click macro $macro value. Subid:{$this->subid}, Params are EMPTY!"
-                    );
-                    return false;
-                }
-                $p = $click['params'];
-                $cmacro = substr($macro, 2);
-                if (array_key_exists($cmacro, $p)) {
-                    return $p[$cmacro];
-                } else {
-                    add_log(
-                    "macros",
-                    "Couldn't find click macro $macro value. Subid:{$this->subid}, Params:" . json_encode($p)
-                    );
-                    return false;
-                }
-            }
+        
+        $click = $db->get_clicks_by_subid($this->subid, true);
+        if (count($click['params']) == 0) {
+            add_log("macros", "Couldn't find click macro $macro value. Subid:{$this->subid}, Params are EMPTY!");
+            return false;
         }
-        if ($macro === 'domain') {
-            return $_SERVER['HTTP_HOST'];
+        
+        $p = $click['params'];
+        $cmacro = substr($macro, 2);
+        if (array_key_exists($cmacro, $p)) {
+            return $p[$cmacro];
         }
-
-        if ($macro === 'time') {
-            return time();
+        
+        add_log("macros", "Couldn't find click macro $macro value. Subid:{$this->subid}, Params:" . json_encode($p));
+        return false;
+    }
+    
+    private function getHashedMacro($macro, $is_s2s): string|bool
+    {
+        $toHash = substr($macro, 5);
+        $toHashValue = $this->get_macro_value($toHash, $is_s2s);
+        if ($toHashValue === false) {
+            add_log("macros", "Couldn't find macro $toHash value to hash. Subid:{$this->subid}");
+            return false;
         }
-        if (str_starts_with($macro, "hash:")) {
-            $toHash = substr($macro, 5);
-            $toHashValue = $this->get_macro_value($toHash, $is_s2s);
-            if ($toHashValue === false) {
-                add_log("macros", "Couldn't find  macro $toHash value to hash. Subid:{$this->subid}");
-                return false;
-            }
-            $hashed = md5($toHashValue);
-            add_log("macros", "Hashing $toHashValue to $hashed");
-            return $hashed;
-        }
-        if (str_starts_with($macro, "random:")) {
-            $range = explode('-', substr($macro, 7));
-            $selected = rand($range[0], $range[1]);
-            add_log("macros", "Got random $selected from range $range");
-            return $selected;
-        }
-
-        //some kind of strange macros, we need to log this situation
+        $hashed = md5($toHashValue);
+        add_log("macros", "Hashing $toHashValue to $hashed");
+        return $hashed;
+    }
+    
+    private function getRandomMacro($macro): int
+    {
+        $range = explode('-', substr($macro, 7));
+        $selected = rand($range[0], $range[1]);
+        add_log("macros", "Got random $selected from range " . implode('-', $range));
+        return $selected;
+    }
+    
+    private function logUnknownMacro($macro): bool
+    {
         add_log("macros", "Couldn't find macros: $macro. Subid:{$this->subid}");
         return false;
     }

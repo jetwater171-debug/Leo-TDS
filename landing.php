@@ -16,7 +16,8 @@ if (empty($campId))
 $settings = $db->get_campaign_settings($campId);
 $c = new Campaign($campId, $settings);
 //adding the fact that user reached landing to the database
-$subid = get_cookie('subid');
+$subid = get_subid();
+if (empty($subid)) die('NO SUBID FOUND!');
 $db->add_lpctr($subid);
 
 $l = $_GET['l'] ?? -1;

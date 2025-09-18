@@ -29,14 +29,19 @@ function get_cookie($name): string
     return $_COOKIE[$name] ?? $_SESSION[$name] ?? '';
 }
 
+function get_subid(): string
+{
+    return get_cookie('subid');
+}
+
 function set_subid(): string
 {
     //giving each user a unique ID - subid and saving it to cookies
     //or getting it from cookies if exists
-    $cursubid = get_cookie('subid');
+    $cursubid = get_subid();
     if (empty($cursubid))
         $cursubid = uniqid();
-    set_cookie('subid', $cursubid, '/');
+    set_cookie('subid', $cursubid);
     return $cursubid;
 }
 
@@ -44,11 +49,11 @@ function set_px(): void
 {
     $curpx = $_GET['px'] ?? '';
     if (empty($curpx)) return;
-    set_cookie('px', $curpx, '/');
+    set_cookie('px', $curpx);
 }
 
 //if the user has already converted before with the same data return true
-function has_conversion_cookies($data): bool
+function has_conversion_cookies(array $data): bool
 {
     $cdata = get_cookie('postmd5');
     $ctime = get_cookie('ctime');
@@ -58,7 +63,7 @@ function has_conversion_cookies($data): bool
         return false;
     }
 
-    $curmd5 = md5($data);
+    $curmd5 = md5(json_encode($data));
     if ($cdata !== $curmd5) {
         set_conversion_cookies($data);
         return false;
@@ -75,9 +80,9 @@ function has_conversion_cookies($data): bool
     return false;
 }
 
-function set_conversion_cookies($data): void
+function set_conversion_cookies(array $data): void
 {
-    $curmd5 = md5($data);
+    $curmd5 = md5(json_encode($data));
     set_cookie('postmd5', $curmd5);
     set_cookie('ctime', (new DateTime())->getTimestamp());
 }

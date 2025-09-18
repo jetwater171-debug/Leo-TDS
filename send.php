@@ -8,7 +8,7 @@ require_once __DIR__ . '/paths.php';
 require_once __DIR__ . '/requestfunc.php';
 global $db, $cloSettings;
 
-$subid = get_cookie('subid');
+$subid = get_subid();
 if (empty($subid) && isset($_POST['subid']))
     $subid = $_POST['subid'];
 
