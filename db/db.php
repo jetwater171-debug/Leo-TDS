@@ -461,6 +461,23 @@ class Db
         return $this->exec_update_query($updateQuery,[$subid=>SQLITE3_TEXT]);
     }
 
+    public function update_click_params(int $clickId, array $params): bool
+    {
+        if (empty($clickId)) {
+            add_log("warning", "Skipping params update - empty click ID provided");
+            return false;
+        }
+
+        $paramsJson = json_encode($params);
+        if ($paramsJson === false) {
+            add_log("warning", "Failed to encode params to JSON for click ID: $clickId");
+            return false;
+        }
+
+        $updateQuery = "UPDATE clicks SET params = :params WHERE id = :id";
+        return $this->exec_update_query($updateQuery, [$paramsJson=>SQLITE3_TEXT, $clickId=>SQLITE3_INTEGER]);
+    }
+
     private function subid_exists($subid): bool
     {
         if (empty($subid)) {
