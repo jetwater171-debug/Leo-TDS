@@ -518,7 +518,11 @@ class Db
     public function get_campaign_by_apikey(string $apikey): array
     {
         $query = "SELECT * FROM campaigns WHERE settings->>'apikey' = :apikey";
-        return $this->exec_read_query($query, [$apikey=>SQLITE3_TEXT]);
+        $camp = $this->exec_read_query($query, [$apikey=>SQLITE3_TEXT],true);
+        if (isset($camp['settings'])) {
+            $camp['settings'] = json_decode($camp['settings'], true);
+        }
+        return $camp;
     }
 
     public function clone_campaign($id): bool|int
@@ -757,7 +761,7 @@ class Db
             }
             return $firstOnly?$arr[0]??[]:$arr;
         } catch (Exception $e) {
-            add_log("errors",  $e->getMessage());
+            add_error_log( $e->getMessage());
             return [];
         } finally {
             if (isset($db)) $db->close();
