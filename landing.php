@@ -23,14 +23,14 @@ $db->add_lpctr($subid);
 $l = $_GET['l'] ?? -1;
 $ls = $c->black->land;
 
+$abtest = new AbTest($c);
 switch ($ls->action) {
     case 'folder':
-        $landing = select_item_by_index($ls->folderNames, $l);
+        $landing = $abtest->select_item_by_index($ls->folderNames, $l);
         echo load_landing($c, $landing);
         break;
     case 'redirect':
-        $redirectUrl = select_item_by_index($ls->redirectUrls, $l);
-        $fullUrl = insert_subs_into_url($c->subIds, $_GET, $redirectUrl);
-        redirect($fullUrl, $ls->redirectType, true);
+        $redirectUrl = $abtest->select_item_by_index($ls->redirectUrls, $l);
+        redirect($redirectUrl, $ls->redirectType, true);
         break;
 }

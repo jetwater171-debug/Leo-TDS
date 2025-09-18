@@ -9,7 +9,6 @@ class Campaign implements JsonSerializable
     public array $filters;
     public bool $saveUserFlow;
     public string $apiKey;
-    public array $subIds;
 
     public WhiteSettings $white;
     public BlackSettings $black;
@@ -29,11 +28,6 @@ class Campaign implements JsonSerializable
         $this->white = WhiteSettings::fromArray($s['white']);
         $this->black = BlackSettings::fromArray($s['black']);
 
-        $this->subIds = [];
-        foreach ($s['subids'] as $sr){
-            $this->subIds[] = new SubIdRewrite($sr['name'], $sr['rewrite']);
-        }
-
         $this->scripts = ScriptsSettings::fromArray($s['scripts']);
         $this->postback = PostbackSettings::fromArray($s['postback']);
         $this->statistics = StatisticsSettings::fromArray($s['statistics']);
@@ -48,7 +42,6 @@ class Campaign implements JsonSerializable
         "apikey" => $this->apiKey,
         "white" => $this->white,
         "black" => $this->black,
-        "subids" => $this->subIds,
         "statistics" => $this->statistics,
         "postback" => $this->postback,
         "scripts" => $this->scripts
@@ -292,25 +285,6 @@ class ScriptsSettings implements JsonSerializable
         ],
         "imagesLazyLoad" => $this->imagesLazyLoad
         ]
-        ];
-    }
-}
-
-class SubIdRewrite implements JsonSerializable
-{
-    public string $name;
-    public string $rewrite;
-
-    public function __construct($name, $rewrite){
-        $this->name = $name;
-        $this->rewrite = $rewrite;
-    }
-
-    function jsonSerialize():array
-    {
-        return [
-        "name" => $this->name,
-        "rewrite" => $this->rewrite
         ];
     }
 }

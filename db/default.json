@@ -100,12 +100,6 @@
     },
     "imageslazyload": false
   },
-  "subids": [
-    {
-      "name": "subid",
-      "rewrite": "sub1"
-    }
-  ],
   "statistics": {
     "timezone": "Europe/Moscow",
     "blocked": [

@@ -93,18 +93,19 @@ function white(Campaign $c):CloakerAction
         }
     }
 
+    $abtest = new AbTest($c);
     switch ($action) {
         case 'error':
-            $curcode = select_item($error_codes, $c->saveUserFlow, 'white', true);
+            $curcode = $abtest->select_item($error_codes, 'white', false);
             return new CloakerAction('white','error',$curcode[0]);
         case 'folder':
-            $curfolder = select_item($folder_names, $c->saveUserFlow, 'white', true);
+            $curfolder = $abtest->select_item($folder_names, 'white', true);
             return new CloakerAction('white','html', load_white_content($curfolder[0]));
         case 'curl':
-            $cururl = select_item($curl_urls, $c->saveUserFlow, 'white', false);
+            $cururl = $abtest->select_item($curl_urls, 'white', false);
             return new CloakerAction('white','html', load_white_curl($cururl[0]));
         case 'redirect':
-            $cururl = select_item($redirect_urls, $c->saveUserFlow, 'white', false);
+            $cururl = $abtest->select_item($redirect_urls, 'white', false);
             return new CloakerAction('white','redirect',$cururl[0], $ws->redirectType);
         default:
             return new CloakerAction('white','error',404);
@@ -122,42 +123,45 @@ function black(Campaign $c, array $clickparams):CloakerAction
     $isfolderland = false;
 
     $bl = $c->black->land;
-    if ($bl->action == 'redirect')
-        $landings = $bl->redirectUrls;
-    else if ($bl->action == 'folder') {
-        $landings = $bl->folderNames;
-        $isfolderland = true;
-    }
+    $landings = match($bl->action) {
+        'redirect' => $bl->redirectUrls,
+        'folder' => $bl->folderNames,
+        default => []
+    };
+    $isfolderland = $bl->action == 'folder';
 
+    $abtest = new AbTest($c);
     $bp = $c->black->preland;
     switch ($bp->action) {
         case 'none': //no prelanding
-            $res = select_item($landings, $c->saveUserFlow, 'landing', $isfolderland);
+            $res = $abtest->select_item($landings, 'landing', $isfolderland);
             $landing = $res[0];
             $db->add_black_click($cursubid, $clickparams, '', $landing, $c->campaignId);
 
-            switch ($bl->action) {
-                case 'folder':
-                    return new CloakerAction('black', 'html', load_landing($c, $landing));
-                case 'redirect':
-                    $redirectUrl = insert_subs_into_url($c->subIds, $_GET, $landing);
-                    return new CloakerAction('black', 'redirect', $redirectUrl, $bl->redirectType);
-                default:
-                    return new CloakerAction('black','die',"No such landing action found: ".$bl->action);
-            }
+            $action = match ($bl->action) {
+                'folder' => new CloakerAction(
+                    'black', 'html', load_landing($c, $landing)),
+                'redirect' => new CloakerAction(
+                    'black', 'redirect', $landing, $bl->redirectType),
+                default => new CloakerAction('black','die',"No such landing action found: ".$bl->action)
+            };
+            break;
         case 'folder': //local prelanding
             $prelandings = $bp->folderNames;
             if (empty($prelandings))
-                break;
-            $res = select_item($prelandings, $c->saveUserFlow, 'prelanding', true);
+                add_error_log("No prelanding folders found in campaign {$c->campaignId}!", false, true);
+            $res = $abtest->select_folder($prelandings, 'prelanding');
             $prelanding = $res[0];
-            $res = select_item($landings, $c->saveUserFlow, 'landing', $isfolderland);
+            $res = $abtest->select_item($landings, 'landing', $isfolderland);
             $landing = $res[0];
             $t = $res[1];
 
             $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $c->campaignId);
-            return new CloakerAction('black', 'html', load_prelanding($c, $prelanding, $t));
+            $action = new CloakerAction('black', 'html', load_prelanding($c, $prelanding, $t));
+            break;
         default:
-            return new CloakerAction('black','die',"No such prelanding action found: ".$bp->action);
+            $action = new CloakerAction('black','die',"No such prelanding action found: ".$bp->action);
+            break;
     }
+    return $action;
 }

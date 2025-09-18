@@ -19,7 +19,8 @@ function add_log(string $subdir, string $msg, bool $logIp = false)
     file_put_contents($fileName, $msg, FILE_APPEND | LOCK_EX);
 }
 
-function add_error_log(string $msg, bool $logIp = false)
+function add_error_log(string $msg, bool $logIp = false,bool $die = false)
 {
     add_log('error',$msg,$logIp);
+    if ($die) die($msg);
 }

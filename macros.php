@@ -2,7 +2,6 @@
 require_once __DIR__ . '/cookies.php';
 require_once __DIR__ . '/db/db.php';
 require_once __DIR__ . '/logging.php';
-require_once __DIR__ . '/bases/ipcountry.php';
 
 class MacrosProcessor
 {
@@ -58,7 +57,7 @@ class MacrosProcessor
         return $new_url;
     }
 
-    private function get_macro_value($macro,$is_s2s = false): string|bool
+    private function get_macro_value($macro): string|bool
     {
         global $db;
         
@@ -77,7 +76,7 @@ class MacrosProcessor
             
             // Hash macros (hash:*)
             str_starts_with($macro, 'hash:') => 
-                $this->getHashedMacro($macro, $is_s2s),
+                $this->getHashedMacro($macro),
             
             // Random macros (random:*)
             str_starts_with($macro, 'random:') => 
@@ -123,10 +122,10 @@ class MacrosProcessor
         return false;
     }
     
-    private function getHashedMacro($macro, $is_s2s): string|bool
+    private function getHashedMacro($macro): string|bool
     {
         $toHash = substr($macro, 5);
-        $toHashValue = $this->get_macro_value($toHash, $is_s2s);
+        $toHashValue = $this->get_macro_value($toHash);
         if ($toHashValue === false) {
             add_log("macros", "Couldn't find macro $toHash value to hash. Subid:{$this->subid}");
             return false;

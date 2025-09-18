@@ -13,36 +13,7 @@ function redirect($url, $redirect_type = 302, $rep_macros = false)
         return "<script type='text/javascript'>window.location='$url';</script>";
     } else {
         header('X-Robots-Tag: noindex, nofollow');
+        header('Referrer-Policy: no-referrer');
         header('Location: ' . $url, true, $redirect_type);
     }
-}
-
-function insert_subs_into_url(array $subIds, array $currentParams, string $redirectUrl)
-{
-    $preset = ['subid', 'prelanding', 'landing'];
-    
-    $redirectParsed = parse_url($redirectUrl);
-    parse_str($redirectParsed['query'] ?? '', $redirectParams);
-
-    foreach ($subIds as $sub) {
-        $name = $sub->name;
-        $rewrite = $sub->rewrite;
-
-        if (in_array($name, $preset) && !empty(get_cookie($name))) {
-            $redirectParams[$rewrite] = get_cookie($name);
-        }
-        else if (isset($currentParams[$name])) {
-            $redirectParams[$rewrite] = $currentParams[$name];
-        }
-    }
-
-    $newQuery = http_build_query($redirectParams);
-
-    $path = $redirectParsed['path']??'';
-    $finalRedirectUrl = $redirectParsed['scheme'] . '://' . $redirectParsed['host'] . $path;
-    if (!empty($newQuery)) {
-        $finalRedirectUrl .= '?' . $newQuery;
-    }
-
-    return $finalRedirectUrl;
 }

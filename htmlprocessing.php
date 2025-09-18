@@ -1,6 +1,4 @@
 <?php
-require_once __DIR__ . '/js/obfuscator.php';
-require_once __DIR__ . '/bases/ipcountry.php';
 require_once __DIR__ . '/requestfunc.php';
 require_once __DIR__ . '/paths.php';
 require_once __DIR__ . '/htmlinject.php';
@@ -51,8 +49,6 @@ function load_prelanding(Campaign $c, string $url, int $land_number): string
     $mp = new MacrosProcessor();
     $html = $mp->replace_html_macros($html);
     $html = fix_phone_and_name($html);
-    //adding subs into forms
-    $html = insert_subs_into_forms($c->subIds, $html);
 
     //removing target=_blank
     $html = preg_replace('/(<a[^>]+)(target="_blank")/i', "\\1", $html);
@@ -129,9 +125,6 @@ function load_landing(Campaign $c, string $url)
         $replacelandurl = $mp->replace_url_macros($c->scripts->replaceLandingAddress); //replace macros
         $html = insert_file_content($html, 'replacelanding.js', '</body>', true, true, '{REDIRECT}', $replacelandurl);
     }
-
-    //add subs into forms
-    $html = insert_subs_into_forms($c->subIds, $html);
 
     $html = insert_file_content($html, "fixanchors.js", "<body", false, true);
     
@@ -279,31 +272,6 @@ EOT;
     if (!str_contains($html,$needle)) $needle = '</body>';
     return insert_before_tag($html, $needle, $jsCode);
 }
-
-//inserts all subs into hidden fields of each form
-function insert_subs_into_forms(array $subIds, string $html):string
-{
-    $all_subs = '';
-    $preset = ['subid', 'prelanding', 'landing'];
-    foreach ($subIds as $sub) {
-        $key = $sub->name;
-        $value = $sub->rewrite;
-
-        if (in_array($key, $preset) && !empty(get_cookie($key))) {
-            $html = preg_replace('/(<input[^>]*name="' . $value . '"[^>]*>)/', "", $html);
-            $all_subs = $all_subs . '<input type="hidden" name="' . $value . '" value="' . get_cookie($key) . '"/>';
-        } elseif (!empty($_GET[$key])) {
-            $html = preg_replace('/(<input[^>]*name="' . $value . '"[^>]*>)/', "", $html);
-            $all_subs = $all_subs . '<input type="hidden" name="' . $value . '" value="' . $_GET[$key] . '"/>';
-        }
-    }
-    if (!empty($all_subs)) {
-        return insert_after_tag($html, '<form', $all_subs);
-    }
-    return $html;
-}
-
-
 
 //rewrite relative urls (not starting with http or //)
 function rewrite_relative_urls($html, $url)

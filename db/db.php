@@ -57,7 +57,7 @@ class Db
         return $this->get_campaign_clicks($startdate, $enddate, $campId, false);
     }
     
-    public function get_clicks_by_subid($subid, bool $firstOnly = false): array
+    public function get_clicks_by_subid(string $subid, bool $firstOnly = false): array
     {
         if (empty($subid)) {
             add_log("trace", "Skipping clicks retrieval - empty subid provided");
@@ -425,7 +425,7 @@ class Db
         return $this->exec_update_query($updateQuery,[$status=>SQLITE3_TEXT,$leaddata=>SQLITE3_TEXT,$subid=>SQLITE3_TEXT]);
     }
 
-    public function update_status($subid, $status, $payout): bool
+    public function update_status(string $subid, string $status, float $payout): bool
     {
         if (empty($subid)) {
             add_log("warning", "Skipping status update - empty subid provided");

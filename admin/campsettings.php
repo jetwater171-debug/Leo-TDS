@@ -971,49 +971,7 @@ global $c;
             </div>
             <br />
             <hr />
-            <h4>#6 Subids (utms) settings</h4>
-            <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-            <label class="login2 pull-left pull-left-pro">
-                <img src="img/info.ico" title="The cloaker takes subs from the url and rewrites them so that their name changes to the one you provided. The value remains the same. Example:  you had in your request https://xxx.com?cn=MyCampaign you configured it like: cn => utm_campaign       now on your local landing you'll have a field <input type='hidden' name='utm_campaign' value='MyCampaign'/> and if the landing was a redirect, then it will be now: https://redirect.com?utm_campaign=MyCampaign"/> Parameters rewrite
-            </label>
-                    </div>
-                </div>
-            </div>
- 
-            <div id="subs_container">
-                <?php for ($i = 0; $i < count($c->subIds); $i++) {
-                        $sn = $c->subIds[$i]->name;
-                        $sr = $c->subIds[$i]->rewrite;
-                ?>
-                <div class="form-group-inner subs">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="subid" value="<?=$sn?>" name="subids[<?= $i ?>][name]" />
-                            </div>
-                        </div>
-                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                            <p>=></p>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="sub_id" value="<?=$sr?>" name="subids[<?= $i ?>][rewrite]" />
-                            </div>
-                        </div>
-                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                            <a href="javascript:void(0)" class="remove-sub-item btn btn-primary">Delete</a>
-                        </div>
-                    </div>
-                </div>
-                <?php } ?>
-            </div>
-            <a id="add-sub-item" class="btn btn-primary" href="javascript:;">Add</a>
-
-            <br />
-            <hr />
-            <h4>#7 Campaign statistics settings</h4>
+            <h4>#6 Campaign statistics settings</h4>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
@@ -1027,7 +985,7 @@ global $c;
             </div>
             <br />
             <hr />
-            <h4>#8 Postbacks settings</h4>
+            <h4>#7 Postbacks settings</h4>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
@@ -1178,7 +1136,7 @@ global $c;
                 <a id="add-s2s-item" class="btn btn-primary">Add</a>
                 <hr />
             </div>
-            <h4>#9 Campaign's API</h4>
+            <h4>#8 Campaign's API</h4>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
@@ -1189,7 +1147,7 @@ global $c;
                     </div>
                     <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
                         <div class="input-group custom-go-button">
-                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/api.php?apikey=<?= $c->apiKey ?>"/>
+                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/phpconnect.php?apikey=<?= $c->apiKey ?>"/>
                         </div>
                     </div>
                 </div>
