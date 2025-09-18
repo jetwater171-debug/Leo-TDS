@@ -68,11 +68,11 @@ class MacrosProcessor
             
             // Click parameter names
             in_array($macro, ['ip', 'country', 'lang', 'os', 'osver', 'client', 'clientver', 'device', 'brand', 'model', 'isp', 'ua', 'preland', 'land', 'status']) => 
-                $this->getClickParam($macro, $db),
+                $this->getClickParam($macro),
             
             // Custom click parameters (c.*)
             str_starts_with($macro, 'c.') => 
-                $this->getCustomClickParam($macro, $db),
+                $this->getCustomClickParam($macro),
             
             // Hash macros (hash:*)
             str_starts_with($macro, 'hash:') => 
@@ -87,11 +87,12 @@ class MacrosProcessor
         };
     }
     
-    private function getClickParam($macro, $db): string|bool
+    private function getClickParam($macro): string|bool
     {
         if (!empty($this->clickParams))
             return $this->clickParams[$macro];
         if (!empty($this->subid)) {
+            global $db;
             $click = $db->get_clicks_by_subid($this->subid, true);
             return $click[$macro];
         }
@@ -99,14 +100,20 @@ class MacrosProcessor
         return false;
     }
     
-    private function getCustomClickParam($macro, $db): string|bool
+    private function getCustomClickParam($macro): string|bool
     {
         if (empty($this->subid)) {
             add_log("macros", "Couldn't get macros $macro value from DB. Subid not set!");
             return false;
         }
         
-        $click = $db->get_clicks_by_subid($this->subid, true);
+        //TODO:check if clickparams have 'params' key
+        if (!empty($this->clickParams))
+           $click = $this->clickParams;
+        else {
+            global $db;
+            $click = $db->get_clicks_by_subid($this->subid, true);
+        }
         if (count($click['params']) == 0) {
             add_log("macros", "Couldn't find click macro $macro value. Subid:{$this->subid}, Params are EMPTY!");
             return false;

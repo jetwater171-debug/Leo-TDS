@@ -76,7 +76,8 @@ class Cloaker
         $a['isp'] = getisp($a['ip']);
         DebugMethods::stop("YWBCoreMaxMind");
         $a['url'] = $prefill['tds_qs'] ?? $_SERVER['REQUEST_URI'];
-        
+        //TODO: check prefill url
+        //TODO: add query string as an array
         return $a;
     }
 
