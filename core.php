@@ -75,9 +75,13 @@ class Cloaker
         $a['country'] = getcountry($a['ip']);
         $a['isp'] = getisp($a['ip']);
         DebugMethods::stop("YWBCoreMaxMind");
-        $a['url'] = $prefill['tds_qs'] ?? $_SERVER['REQUEST_URI'];
-        //TODO: check prefill url
-        //TODO: add query string as an array
+        
+        $a['url'] = $prefill['tds_url'] ?? $_SERVER['REQUEST_URI'];
+        //host - is where from the traffic comes
+        $a['host'] = $prefill['tds_host'] ?? $_SERVER['HTTP_HOST'];
+        //domain is where the traffic goes
+        $a['domain'] = $_SERVER['HTTP_HOST']; 
+        parse_str($prefill['tds_qs'] ?? $_SERVER['QUERY_STRING']??'', $a['qs']);
         return $a;
     }
 
@@ -101,40 +105,103 @@ class Cloaker
     private function match_filter(array $filter): bool
     {
         $val = $filter['value'] ?? '';
+        $curParamName = $filter['id'];
 
-        switch ($filter['id']) {
-            case 'os':
-                return $this->operator($val, $filter['operator'], 'os');
-            case 'country':
-                return $this->operator($val, $filter['operator'], 'country');
-            case 'language':
-                return $this->operator($val, $filter['operator'], 'lang');
-            case 'useragent':
-                return $this->operator($val, $filter['operator'], 'ua');
-            case 'isp':
-                return $this->operator($val, $filter['operator'], 'isp');
-            case 'url':
-                return $this->operator($val, $filter['operator'], 'url');
-            case 'referer':
-                return $this->operator($val, $filter['operator'], 'referer');
-            case 'vpntor':
-                $vpnDetected = $this->is_proxy_or_vpn($this->click_params['ip']);
-                if ($val === 0 && $vpnDetected)
-                    return true;
-                if ($val === 1 && !$vpnDetected)
-                    return true;
-                $this->block_reason = $filter['id'];
-                return false;
-            case 'ipbase':
-                $inBase = $this->is_ip_in_base($this->click_params['ip'], $val);
-                if ($filter['operator'] === 'contains' && $inBase)
-                    return true;
-                if ($filter['operator'] === 'not_contains' && !$inBase)
-                    return true;
-                $this->block_reason = $filter['id'];
-                return false;
+        $standardParams = [
+            'os', 'osver', 'device', 'brand', 'model', 'client', 'clientver', 
+            'country', 'language', 'useragent', 'isp', 'referer', 'domain', 'host'
+        ];
+        if (in_array($curParamName, $standardParams)) {
+            $paramValue = $this->click_params[$curParamName];
+            $check = $this->operator($val, $filter['operator'], $paramValue);
+            if ($check) return true;
         }
-        return true;
+        else{
+            switch ($curParamName) {
+                case 'urlparam':
+                    $pName = $val[0];
+                    $pVal = explode(',',$val[1]);
+                    $clickQS = $this->click_params['qs'];
+                    if (isset($clickQS[$pName])) {
+                        $check = $this->operator($pVal, $filter['operator'], $clickQS[$pName]);
+                    }
+                    return $this->operator($val[1], $filter['operator'], $val[0]);
+                case 'vpntor':
+                    $vpnDetected = $this->is_proxy_or_vpn($this->click_params['ip']);
+                    if ($val === 0 && $vpnDetected)
+                        return true;
+                    if ($val === 1 && !$vpnDetected)
+                        return true;
+                    break;
+                case 'ipbase':
+                    $inBase = $this->is_ip_in_base($this->click_params['ip'], $val);
+                    if ($filter['operator'] === 'contains' && $inBase)
+                        return true;
+                    if ($filter['operator'] === 'not_contains' && !$inBase)
+                        return true;
+                    break;
+                default:
+                    die("No operator defined for $curParamName check!");
+            }
+        }
+        $this->block_reason = $curParamName;
+        return false;
+    }
+    
+    private function operator(string $val, string $operator, string $paramValue): bool
+    {
+        $check = true;
+        switch ($operator) {
+            case 'param_in':
+            case 'in':
+                $values = explode(',', $val);
+                $check = $this->in_arrayi($paramValue, $values);
+                break;
+            case 'param_not_in':
+            case 'not_in':
+                $values = explode(',', $val);
+                $check = !$this->in_arrayi($paramValue, $values);
+                break;
+            case 'contains':
+                $values = explode(',', $val);
+                $contains = false;
+                foreach ($values as $value) {
+                    if (empty($value))
+                        continue;
+                    if (stripos($paramValue, $value) !== false) {
+                        $contains = true;
+                        break;
+                    }
+                }
+                if (!$contains)
+                    $check = false;
+                break;
+            case 'not_contains':
+                $values = explode(',', $val);
+                $contains = false;
+                foreach ($values as $value) {
+                    if (empty($value))
+                        continue;
+                    if (stripos($paramValue, $value) !== false) {
+                        $contains = true;
+                        break;
+                    }
+                }
+                if ($contains)
+                    $check = false;
+                break;
+            case 'not_equal':
+                $check = strtolower($paramValue) !== strtolower($val);
+                break;
+            default:
+                die("Operator $operator is not defined!");
+        }
+        return $check;
+    }
+
+    private function in_arrayi($needle, $haystack)
+    {
+        return in_array(strtolower($needle), array_map('strtolower', $haystack));
     }
 
     public function is_bad_click(): bool
@@ -235,61 +302,5 @@ class Cloaker
         return IpUtils::checkIp($ip, $cidr);
     }
 
-    private function operator(string $val, string $operator, string $param): bool
-    {
-        $check = true;
-        switch ($operator) {
-            case 'in':
-                $values = explode(',', $val);
-                $check = $this->in_arrayi($this->click_params[$param], $values);
-                break;
-            case 'not_in':
-                $values = explode(',', $val);
-                $check = !$this->in_arrayi($this->click_params[$param], $values);
-                break;
-            case 'contains':
-                $values = explode(',', $val);
-                $contains = false;
-                foreach ($values as $value) {
-                    if (empty($value))
-                        continue;
-                    if (stripos($this->click_params[$param], $value) !== false) {
-                        $contains = true;
-                        break;
-                    }
-                }
-                if (!$contains)
-                    $check = false;
-                break;
-            case 'not_contains':
-                $values = explode(',', $val);
-                $contains = false;
-                foreach ($values as $value) {
-                    if (empty($value))
-                        continue;
-                    if (stripos($this->click_params[$param], $value) !== false) {
-                        $contains = true;
-                        break;
-                    }
-                }
-                if ($contains)
-                    $check = false;
-                break;
-            case 'not_equal':
-                $check = strtolower($this->click_params[$param]) !== strtolower($val);
-                break;
-            default:
-                throw new Exception("No operator $operator defined for $param check!");
-        }
-        if (!$check) {
-            $this->block_reason = $param;
-            return false;
-        }
-        return true;
-    }
-
-    private function in_arrayi($needle, $haystack)
-    {
-        return in_array(strtolower($needle), array_map('strtolower', $haystack));
-    }
+    
 }
