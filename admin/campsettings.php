@@ -1326,6 +1326,7 @@ global $c;
         var rules_basic = <?=json_encode($c->filters)?>;
 
         $('#filtersbuilder').queryBuilder({
+            operators: $.fn.queryBuilder.constructor.DEFAULTS.operators.concat(paramOperators),
             filters: tdsFilters,
             <?php
             if (!empty($c->filters)) {

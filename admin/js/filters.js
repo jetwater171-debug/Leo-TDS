@@ -1,3 +1,4 @@
+
 var tdsFilters = [
     {
         id: 'os',
@@ -76,14 +77,6 @@ var tdsFilters = [
         placeholder: 'en,ru'
     },
     {
-        id: 'url',
-        label: 'URL',
-        input: 'text',
-        type: 'string',
-        operators: ['contains', 'not_contains'],
-        size: 70
-    },
-    {
         id: 'useragent',
         label: 'UserAgent',
         input: 'text',
@@ -113,6 +106,22 @@ var tdsFilters = [
         size: 70
     },
     {
+        id: 'domain',
+        label: 'Domain',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in'],
+        size: 70
+    },
+    {
+        id: 'host',
+        label: 'Host',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in'],
+        size: 70
+    },
+    {
         id: 'vpntor',
         label: 'VPN&Tor',
         type: 'integer',
@@ -130,5 +139,34 @@ var tdsFilters = [
         operators: ['contains', 'not_contains'],
         placeholder: 'path to base file(s) in bases folder: bots1.txt,bots2.txt',
         size: 70
+    },
+    {
+        id: 'urlparam',
+        label: 'URL Parameter',
+        type: 'string',
+        input: 'text',                
+        placeholder: ['URL parameter name', 'value(s) separated by comma'],
+        operators: [
+            'param_in',
+            'param_not_in'
+        ],
+        size: 30
     }
+];
+
+var paramOperators = [
+  {
+    type: 'param_in',
+    nb_inputs: 2,
+    multiple: false,
+    apply_to: ['string'],
+    label: 'in'
+  },
+  {
+    type: 'param_not_in',
+    nb_inputs: 2,
+    multiple: false,
+    apply_to: ['string'],
+    label: 'not in'
+  }
 ];
