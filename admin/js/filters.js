@@ -14,7 +14,7 @@ var tdsFilters = [
         label: 'OS version',
         input: 'number',
         type: 'integer',
-        operators: ['equal', 'not_equal','less_or_equal','greater_or_equal'],
+        operators: ['in', 'not_in','less_or_equal','greater_or_equal'],
         placeholder: 10,
         size: 50
     },
@@ -32,7 +32,7 @@ var tdsFilters = [
         label: 'Brand',
         input: 'text',
         type: 'string',
-        operators: ['contains', 'not_contains'],
+        operators: ['contains','not_contains','in', 'not_in'],
         size: 70
     },
     {
@@ -40,7 +40,7 @@ var tdsFilters = [
         label: 'Model',
         input: 'text',
         type: 'string',
-        operators: ['contains', 'not_contains'],
+        operators: ['contains','not_contains','in', 'not_in'],
         size: 70
     },
     {
@@ -48,7 +48,7 @@ var tdsFilters = [
         label: 'Client',
         input: 'text',
         type: 'string',
-        operators: ['contains', 'not_contains'],
+        operators: ['contains', 'not_contains','in', 'not_in'],
         size: 70
     },
     {
@@ -56,7 +56,7 @@ var tdsFilters = [
         label: 'ClientVer',
         input: 'text',
         type: 'string',
-        operators: ['contains', 'not_contains'],
+        operators: ['less_or_equal','greater_or_equal','in', 'not_in'],
         size: 50
     },
     {
@@ -99,7 +99,7 @@ var tdsFilters = [
         label: 'Referer',
         input: 'text',
         type: 'string',
-        operators: ['not_equal', 'contains', 'not_contains'],
+        operators: ['equal', 'not_equal', 'contains', 'not_contains'],
         validation: {
             allow_empty_value: true
         },
@@ -136,7 +136,7 @@ var tdsFilters = [
         id: 'ipbase',
         label: 'IP Base',
         type: 'string',
-        operators: ['contains', 'not_contains'],
+        operators: ['in', 'not_in'],
         placeholder: 'path to base file(s) in bases folder: bots1.txt,bots2.txt',
         size: 70
     },

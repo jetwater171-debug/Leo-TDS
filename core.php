@@ -28,6 +28,8 @@ require_once __DIR__ . '/bases/ipcountry.php';
 use DeviceDetector\ClientHints;
 use DeviceDetector\DeviceDetector;
 use DeviceDetector\Cache\DoctrineBridge;
+use DeviceDetector\Parser\Device\AbstractDeviceParser;
+
 class Cloaker
 {
     private array $filters;
@@ -120,12 +122,19 @@ class Cloaker
             switch ($curParamName) {
                 case 'urlparam':
                     $pName = $val[0];
-                    $pVal = explode(',',$val[1]);
+                    $pValues = $val[1];
                     $clickQS = $this->click_params['qs'];
-                    if (isset($clickQS[$pName])) {
-                        $check = $this->operator($pVal, $filter['operator'], $clickQS[$pName]);
+                    if (!isset($clickQS[$pName])) 
+                    {
+                        if ($filter['operator'] === 'param_not_in')
+                            return true;
                     }
-                    return $this->operator($val[1], $filter['operator'], $val[0]);
+                    else
+                    {
+                        $check = $this->operator($pValues, $filter['operator'], $clickQS[$pName]);
+                        if ($check) return true;
+                    }
+                    break;
                 case 'vpntor':
                     $vpnDetected = $this->is_proxy_or_vpn($this->click_params['ip']);
                     if ($val === 0 && $vpnDetected)
@@ -135,13 +144,13 @@ class Cloaker
                     break;
                 case 'ipbase':
                     $inBase = $this->is_ip_in_base($this->click_params['ip'], $val);
-                    if ($filter['operator'] === 'contains' && $inBase)
+                    if ($filter['operator'] === 'in' && $inBase)
                         return true;
-                    if ($filter['operator'] === 'not_contains' && !$inBase)
+                    if ($filter['operator'] === 'not_in' && !$inBase)
                         return true;
                     break;
                 default:
-                    die("No operator defined for $curParamName check!");
+                    die("No operator defined for '$curParamName' check!");
             }
         }
         $this->block_reason = $curParamName;
@@ -190,6 +199,15 @@ class Cloaker
                 if ($contains)
                     $check = false;
                 break;
+            case 'less_or_equal':
+                $check = version_compare($paramValue, $val, '<=');
+                break;
+            case 'greater_or_equal':
+                $check = version_compare($paramValue, $val, '>=');
+                break;
+            case 'equal':
+                $check = strtolower($paramValue) === strtolower($val);
+                break;
             case 'not_equal':
                 $check = strtolower($paramValue) !== strtolower($val);
                 break;
@@ -199,9 +217,14 @@ class Cloaker
         return $check;
     }
 
-    private function in_arrayi($needle, $haystack)
+    private function in_arrayi(string $needle, array $haystack): bool
     {
-        return in_array(strtolower($needle), array_map('strtolower', $haystack));
+        foreach ($haystack as $item) {
+            if (strcasecmp($needle, $item) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function is_bad_click(): bool
