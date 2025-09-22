@@ -8,12 +8,15 @@
  */
 
 //if called directly return 404, haha
-if (__FILE__ === $_SERVER['SCRIPT_FILENAME']) {
+if (__FILE__ === $_SERVER['SCRIPT_FILENAME'] ||
+    //fix for apache multiviews or php dev server
+    $_SERVER['SCRIPT_NAME'] !== $_SERVER['PHP_SELF']) 
+{
     http_response_code(404);
     exit;
 }
 
-define("YC_API_KEY", "test2");
+define("YC_API_KEY", "test");
 define("YC_API_URL", "http://localhost:8080/fromfolder/phpconnect.php");
 define("YC_DEBUG", true);
 
@@ -69,7 +72,7 @@ class YellowCloakerClient
             'tds_ua' => $_SERVER['HTTP_USER_AGENT'] ?? '',
             'tds_ref' => $_SERVER['HTTP_REFERER'] ?? '',
             'tds_url' => $_SERVER['REQUEST_URI'] ?? '/',
-            'tds_query_string' => $_SERVER['QUERY_STRING'] ?? '',
+            'tds_qs' => $_SERVER['QUERY_STRING'] ?? '',
             'tds_host' => $_SERVER['HTTP_HOST'] ?? '',
             'tds_lang' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
         ];
