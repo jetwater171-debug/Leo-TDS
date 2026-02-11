@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__."/password.php";
-require_once __DIR__."/securitycheck.php";
-require_once __DIR__."/../paths.php";
+require_once __DIR__ . "/password.php";
+require_once __DIR__ . "/securitycheck.php";
+require_once __DIR__ . "/../paths.php";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $result = array('success' => check_password(false));
@@ -105,14 +105,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             setupMatrixRain();
             const form = document.getElementById('login-form');
             const submitButton = form.querySelector('button[type="submit"]');
             const passwordInput = document.getElementById('password');
             const fakeInput = document.getElementById('fake-input');
             const cursor = document.getElementById('cursor');
-            
+
             // Focus input on page load
             passwordInput.focus();
 
@@ -124,7 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }, 530);
 
             // Handle password input
-            passwordInput.addEventListener('input', function(e) {
+            passwordInput.addEventListener('input', function (e) {
                 const value = this.value;
                 fakeInput.textContent = 'X'.repeat(value.length);
             });
@@ -137,22 +137,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             });
 
             // Handle form submission
-            form.addEventListener('submit', async function(e) {
+            form.addEventListener('submit', async function (e) {
                 e.preventDefault();
-                
+
                 submitButton.disabled = true;
                 submitButton.classList.add('loading');
-                
+
                 const password = passwordInput.value;
                 const formData = new FormData();
                 formData.append('password', password);
-                
+
                 try {
                     const response = await fetch('login.php', {
                         method: 'POST',
                         body: formData
                     });
-                    
+
                     const data = await response.json();
                     if (data.success) {
                         window.location.href = 'index.php';
@@ -174,7 +174,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="grid-overlay"></div>
     <div id="main">
         <div id="title">
-            <img src="<?=$cloPath?>img/logobig.png" alt="Yellow Cloaker Logo" />
+            <img src="<?= $cloPath ?>img/logobig.png" alt="Yellow Cloaker Logo" />
         </div>
         <div class="login-container">
             <form id="login-form">
@@ -189,12 +189,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                 </div>
                 <button type="submit" class="login-button">
-                    <img src="<?=$cloPath?>img/loading.apng" class="loading-img" alt="Loading..." />
+                    <img src="<?= $cloPath ?>img/loading.apng" class="loading-img" alt="Loading..." />
                     <span>Login to Dashboard</span>
                 </button>
             </form>
             <div class="version-info">
-                <?php include __DIR__."/version.php"; ?>
+                <?php include __DIR__ . "/version.php"; ?>
             </div>
         </div>
     </div>

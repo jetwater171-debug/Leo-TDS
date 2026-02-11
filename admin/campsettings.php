@@ -7,14 +7,27 @@ global $c;
 <!doctype html>
 <html lang="en">
 <?php include __DIR__.'/head.php' ?>
+<link rel="stylesheet" href="<?=get_cloaker_path()?>css/campsettings.css?v=<?=filemtime(__DIR__.'/css/campsettings.css')?>">
 
 <body>
     <?php include __DIR__.'/header.php' ?>
-    < class="all-content-wrapper">
-
-        <form id="campsettings" style="padding:35px;background-color:#1D2A48;">
-            <h4>#0 Domains</h4>
-
+    <div class="all-content-wrapper">
+        <div class="camp-layout">
+            <nav class="camp-sidebar">
+                <ul>
+                    <li><a href="#sec-domains" class="active">Domains</a></li>
+                    <li><a href="#sec-safepage">Safe Page</a></li>
+                    <li><a href="#sec-moneypage">Money Page</a></li>
+                    <li><a href="#sec-filters">Filters</a></li>
+                    <li><a href="#sec-scripts">Scripts</a></li>
+                    <li><a href="#sec-statistics">Statistics</a></li>
+                    <li><a href="#sec-postbacks">Postbacks</a></li>
+                    <li><a href="#sec-api">API</a></li>
+                </ul>
+            </nav>
+            <div class="camp-content">
+        <form id="campsettings">
+            <section id="sec-domains" class="camp-section active">
             <div class="form-group-inner">
             <div class="row">
                 <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
@@ -47,8 +60,9 @@ global $c;
                 <?php } ?>
             </div>
             <a id="add-domain-item" class="btn btn-primary" href="javascript:;">Add Domain</a>
-            <hr />
-            <h4>#1 Safe page settings</h4>
+            </section>
+
+            <section id="sec-safepage" class="camp-section">
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -476,9 +490,9 @@ global $c;
                     </div>
                 </div>
             </div>
-            <br />
-            <hr />
-            <h4>#2 Money page settings</h4>
+            </section>
+
+            <section id="sec-moneypage" class="camp-section">
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -764,9 +778,9 @@ global $c;
                     </div>
                 </div>
             </div>
-            <br />
-            <hr />
-            <h4>#4 Cloaker filters</h4>
+            </section>
+
+            <section id="sec-filters" class="camp-section">
             <div class="form-group-inner">
                 <p>
                 Here you define: which traffic will be ALLOWED to see the money pages.
@@ -775,8 +789,9 @@ global $c;
                     <div id="filtersbuilder"></div>
                 </div>
             </div>
-            <hr />
-            <h4>#5 Additional scripts settings</h4>
+            </section>
+
+            <section id="sec-scripts" class="camp-section">
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -969,9 +984,9 @@ global $c;
                     </div>
                 </div>
             </div>
-            <br />
-            <hr />
-            <h4>#6 Campaign statistics settings</h4>
+            </section>
+
+            <section id="sec-statistics" class="camp-section">
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
@@ -983,9 +998,9 @@ global $c;
                     </div>
                 </div>
             </div>
-            <br />
-            <hr />
-            <h4>#7 Postbacks settings</h4>
+            </section>
+
+            <section id="sec-postbacks" class="camp-section">
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
@@ -1134,9 +1149,10 @@ global $c;
                     <?php } ?>
                 </div>
                 <a id="add-s2s-item" class="btn btn-primary">Add</a>
-                <hr />
             </div>
-            <h4>#8 Campaign's API</h4>
+            </section>
+
+            <section id="sec-api" class="camp-section">
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
@@ -1153,23 +1169,17 @@ global $c;
                 </div>
             </div>
 
-            <div class="form-group-inner">
-                <div class="login-btn-inner">
-                    <div class="row">
-                        <div class="col-lg-3"></div>
-                        <div class="col-lg-9">
-                            <div class="login-horizental cancel-wp pull-left">
-                                <button class="btn btn-lg btn-primary" type="submit">
-                                    <strong>Save
-                                        settings</strong>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            </section>
+
+            <div class="camp-save-bar">
+                <button class="btn btn-lg btn-primary" type="submit">
+                    <strong>Save settings</strong>
+                </button>
             </div>
         </form>
-    </div>
+            </div><!-- .camp-content -->
+        </div><!-- .camp-layout -->
+    </div><!-- .all-content-wrapper -->
     <!--cloneData-->
     <script src="js/cloneData.js"></script>
     <script>
@@ -1336,6 +1346,7 @@ global $c;
         });
 
     </script>
+    <script src="js/campsettings-nav.js"></script>
 </body>
 
 <?php

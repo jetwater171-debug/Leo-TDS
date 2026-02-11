@@ -11,7 +11,7 @@ $admDomain = $cloSettings['adminDomain'];
 if (isset($admDomain) && !empty($admDomain)) {
     $currentDomain = $_SERVER['SERVER_NAME'] ?? '';
     if ($currentDomain !== $admDomain) {
-        add_log('warning',"Tried to access admin page from $currentDomain, but admin  Domain $admDomain is set. User not allowed to access this page!");
+        add_log('warning', "Tried to access admin page from $currentDomain, but admin  Domain $admDomain is set. User not allowed to access this page!");
         if ($cloSettings['debug'] === true) {
             echo "Admin Domain $admDomain is set, but your domain is $currentDomain. You are not allowed to access this page! ";
         } else {
@@ -21,8 +21,8 @@ if (isset($admDomain) && !empty($admDomain)) {
     }
 }
 if (!check_password(false)) {
-    $loginPath = get_cloaker_path()."login.php";
-    if (!str_contains($loginPath,$_SERVER['PHP_SELF'])) {
+    $loginPath = get_cloaker_path() . "login.php";
+    if (!str_contains($loginPath, $_SERVER['PHP_SELF'])) {
         redirect($loginPath);
         exit();
     }
