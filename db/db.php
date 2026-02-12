@@ -494,7 +494,7 @@ class Db
             return false;
         }
         $query = "SELECT COUNT(*) AS count FROM clicks WHERE subid = :subid";
-        $res = $this->exec_read_query($query, [$subid => SQLITE3_TEXT]);
+        $res = $this->exec_read_query($query, [$subid => SQLITE3_TEXT], true);
         return $res['count'] > 0;
     }
 
