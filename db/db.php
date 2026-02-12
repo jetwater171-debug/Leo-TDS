@@ -487,6 +487,20 @@ class Db
         return $this->exec_update_query($updateQuery, [$paramsJson => SQLITE3_TEXT, $clickId => SQLITE3_INTEGER]);
     }
 
+    public function get_funnel_stats(int $campId, string $flowName, string $status): array
+    {
+        $query = "SELECT preland, land, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow GROUP BY preland, land";
+        return $this->exec_read_query($query, [$status => SQLITE3_TEXT, $campId => SQLITE3_INTEGER, $flowName => SQLITE3_TEXT]);
+    }
+
+    public function get_variant_stats(int $campId, string $flowName, string $column, string $status): array
+    {
+        $allowed = ['preland', 'land'];
+        if (!in_array($column, $allowed, true)) return [];
+        $query = "SELECT $column AS variant, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow GROUP BY $column";
+        return $this->exec_read_query($query, [$status => SQLITE3_TEXT, $campId => SQLITE3_INTEGER, $flowName => SQLITE3_TEXT]);
+    }
+
     private function subid_exists($subid): bool
     {
         if (empty($subid)) {

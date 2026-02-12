@@ -70,6 +70,9 @@
       {
         "name": "Flow 1",
         "filters": {},
+        "distribution": "equal",
+        "optimize_for": "Lead",
+        "optimize_mode": "funnels",
         "prelanding": {
           "action": "none",
           "folders": [

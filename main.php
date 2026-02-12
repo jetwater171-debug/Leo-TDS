@@ -133,10 +133,16 @@ function black(Campaign $c, int $flowIndex, array $clickparams): CloakerAction
 
     $abtest = new AbTest($c);
     $bp = $flow->preland;
+    $isThompson = $flow->distribution === 'thompson';
+
     switch ($bp->action) {
         case 'none': //no prelanding
-            $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $bl->distribution, $bl->weights);
-            $landing = $res[0];
+            if ($isThompson) {
+                $landing = $abtest->select_thompson_variant($landings, 'land', $flow->name, $flow->optimize_for);
+            } else {
+                $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $flow->distribution, $bl->weights);
+                $landing = $res[0];
+            }
             $db->add_black_click($cursubid, $clickparams, '', $landing, $flow->name, $c->campaignId);
 
             $action = match ($bl->action) {
@@ -159,10 +165,20 @@ function black(Campaign $c, int $flowIndex, array $clickparams): CloakerAction
             if (empty($prelandings)) {
                 add_error_log("No prelanding folders found in campaign {$c->campaignId}!", false, true);
             }
-            $res = $abtest->select_distributed($prelandings, 'prelanding', true, $bp->distribution, $bp->weights);
-            $prelanding = $res[0];
-            $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $bl->distribution, $bl->weights);
-            $landing = $res[0];
+
+            if ($isThompson && $flow->optimize_mode === 'funnels') {
+                [$prelanding, $landing] = $abtest->select_thompson_funnel(
+                    $prelandings, $landings, $flow->name, $flow->optimize_for
+                );
+            } elseif ($isThompson) {
+                $prelanding = $abtest->select_thompson_variant($prelandings, 'preland', $flow->name, $flow->optimize_for);
+                $landing = $abtest->select_thompson_variant($landings, 'land', $flow->name, $flow->optimize_for);
+            } else {
+                $res = $abtest->select_distributed($prelandings, 'prelanding', true, $flow->distribution, $bp->weights);
+                $prelanding = $res[0];
+                $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $flow->distribution, $bl->weights);
+                $landing = $res[0];
+            }
 
             $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $flow->name, $c->campaignId);
             $action = new CloakerAction('black', 'html', load_prelanding($c, $prelanding));

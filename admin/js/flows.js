@@ -18,28 +18,28 @@ document.addEventListener('DOMContentLoaded', function () {
         if (redirects) redirects.style.display = e.target.value === 'redirect' ? 'block' : 'none';
     });
 
-    // ── Toggle weight columns for preland distribution (delegated) ──
+    // ── Toggle flow-level distribution (thompson opts + weight cols) ──
     document.addEventListener('change', function (e) {
-        if (!e.target.classList.contains('flow-preland-dist')) return;
+        if (!e.target.classList.contains('flow-dist')) return;
         var fi = e.target.dataset.fi;
-        var show = e.target.value === 'weighted';
-        document.querySelectorAll('#flow-preland-items-' + fi + ' .flow-weight-col').forEach(function (col) {
-            col.style.display = show ? 'block' : 'none';
+        var val = e.target.value;
+        var opts = document.getElementById('flow-thompson-opts-' + fi);
+        if (opts) opts.style.display = val === 'thompson' ? 'block' : 'none';
+        // Show weight cols only when weighted
+        var sec = document.getElementById('sec-flow-' + fi);
+        if (!sec) return;
+        var showW = val === 'weighted';
+        sec.querySelectorAll('.flow-weight-col').forEach(function (col) {
+            col.style.display = showW ? 'block' : 'none';
         });
     });
 
-    // ── Toggle weight columns for land distribution (delegated) ──
+    // ── Toggle optimize_mode visibility when preland action changes ──
     document.addEventListener('change', function (e) {
-        if (!e.target.classList.contains('flow-land-dist')) return;
+        if (!e.target.classList.contains('flow-preland-action')) return;
         var fi = e.target.dataset.fi;
-        var show = e.target.value === 'weighted';
-        var section = document.getElementById('sec-flow-' + fi);
-        if (!section) return;
-        section.querySelectorAll('.flow-weight-col').forEach(function (col) {
-            if (!col.closest('.flow-preland-folders')) {
-                col.style.display = show ? 'block' : 'none';
-            }
-        });
+        var wrap = document.getElementById('flow-optimize-mode-wrap-' + fi);
+        if (wrap) wrap.style.display = e.target.value === 'folder' ? 'block' : 'none';
     });
 
     // ── Delete path items (delegated) ──
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="" placeholder="preland1" /></div>' +
             '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
             '<input type="number" class="form-control flow-preland-weight" value="" placeholder="%" style="width:70px" /></div>' +
-            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">Delete</a></div>' +
+            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">✕ Delete</a></div>' +
             '</div></div>';
         container.insertAdjacentHTML('beforeend', html);
     });
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="" placeholder="land1" /></div>' +
             '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
             '<input type="number" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>' +
-            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">Delete</a></div>' +
+            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">✕ Delete</a></div>' +
             '</div></div>';
         container.insertAdjacentHTML('beforeend', html);
     });
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="" placeholder="https://..." /></div>' +
             '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
             '<input type="number" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>' +
-            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">Delete</a></div>' +
+            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">✕ Delete</a></div>' +
             '</div></div>';
         container.insertAdjacentHTML('beforeend', html);
     });
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<input type="text" class="form-control flow-name-label" value="' + flowName + '" readonly style="display:inline-block;width:200px;cursor:default;" /> ' +
             '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-up" title="Move Up">&uarr;</a> ' +
             '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-down" title="Move Down">&darr;</a> ' +
-            '<a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">Delete</a>' +
+            '<a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">✕ Delete</a>' +
             '</div>';
         document.getElementById('flows-list').insertAdjacentHTML('beforeend', rowHtml);
 
@@ -149,13 +149,31 @@ document.addEventListener('DOMContentLoaded', function () {
         var secHtml = '<section id="sec-flow-' + fi + '" class="camp-section flow-section" data-flow-index="' + fi + '">' +
             '<h5 class="flow-section-title">' + flowName + '</h5>' +
 
+            '<div class="flow-group"><span class="flow-group-title">Distribution</span>' +
             '<div class="form-group-inner">' +
-            '<label class="login2 pull-left pull-left-pro">Flow Filters:</label>' +
-            '<div class="row"><div id="flow-filters-' + fi + '"></div></div>' +
-            '</div>' +
+            '<select class="form-select flow-dist" data-fi="' + fi + '">' +
+            '<option value="equal" selected>Equal</option><option value="weighted">Weighted</option><option value="thompson">Thompson Sampling</option></select></div>' +
 
+            '<div class="flow-thompson-opts" id="flow-thompson-opts-' + fi + '" style="display:none">' +
+            '<div class="form-group-inner"><label class="login2 pull-left pull-left-pro">Optimize for:</label>' +
+            '<div class="bt-df-checkbox pull-left">' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="Lead" name="flow_' + fi + '_optimize_for" class="flow-optimize-for" data-fi="' + fi + '" /> Lead</label></div></div></div>' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="Purchase" name="flow_' + fi + '_optimize_for" class="flow-optimize-for" data-fi="' + fi + '" /> Purchase</label></div></div></div>' +
+            '</div></div>' +
+            '<div class="form-group-inner flow-optimize-mode-wrap" id="flow-optimize-mode-wrap-' + fi + '" style="display:none">' +
+            '<label class="login2 pull-left pull-left-pro">Optimize mode:</label>' +
+            '<div class="bt-df-checkbox pull-left">' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="funnels" name="flow_' + fi + '_optimize_mode" class="flow-optimize-mode" data-fi="' + fi + '" /> Funnels (preland+land combos)</label></div></div></div>' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="separate" name="flow_' + fi + '_optimize_mode" class="flow-optimize-mode" data-fi="' + fi + '" /> Separate (independent)</label></div></div></div>' +
+            '</div></div></div></div>' +
+
+            '<div class="flow-group"><span class="flow-group-title">Flow Filters</span>' +
             '<div class="form-group-inner">' +
-            '<label class="login2 pull-left pull-left-pro">Prelanding method:</label>' +
+            '<div class="row"><div id="flow-filters-' + fi + '"></div></div>' +
+            '</div></div>' +
+
+            '<div class="flow-group"><span class="flow-group-title">Prelanding method</span>' +
+            '<div class="form-group-inner">' +
             '<div class="bt-df-checkbox pull-left">' +
             '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>' +
             '<input type="radio" checked value="none" name="flow_' + fi + '_preland_action" class="flow-preland-action" data-fi="' + fi + '" /> Don\'t use prelanding' +
@@ -166,15 +184,12 @@ document.addEventListener('DOMContentLoaded', function () {
             '</div></div>' +
 
             '<div class="flow-preland-folders" id="flow-preland-folders-' + fi + '" style="display:none">' +
-            '<div class="form-group-inner"><label class="login2 pull-left pull-left-pro">Distribution:</label>' +
-            '<select class="form-select flow-preland-dist" data-fi="' + fi + '">' +
-            '<option value="equal" selected>Equal</option><option value="weighted">Weighted</option></select></div>' +
             '<div class="flow-preland-items" id="flow-preland-items-' + fi + '"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-preland" data-fi="' + fi + '">Add Prelanding</a>' +
-            '</div>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-preland" data-fi="' + fi + '">+ Add Prelanding</a>' +
+            '</div></div>' +
 
+            '<div class="flow-group"><span class="flow-group-title">Landing method</span>' +
             '<div class="form-group-inner">' +
-            '<label class="login2 pull-left pull-left-pro">Landing method:</label>' +
             '<div class="bt-df-checkbox pull-left">' +
             '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>' +
             '<input type="radio" checked value="folder" name="flow_' + fi + '_land_action" class="flow-land-action" data-fi="' + fi + '" /> Local landing(s) from folder' +
@@ -184,19 +199,14 @@ document.addEventListener('DOMContentLoaded', function () {
             '</label></div></div></div>' +
             '</div></div>' +
 
-            '<div class="form-group-inner">' +
-            '<label class="login2 pull-left pull-left-pro">Distribution:</label>' +
-            '<select class="form-select flow-land-dist" data-fi="' + fi + '">' +
-            '<option value="equal" selected>Equal</option><option value="weighted">Weighted</option></select></div>' +
-
             '<div class="flow-land-folders" id="flow-land-folders-' + fi + '" style="display:block">' +
             '<div class="flow-land-folder-items" id="flow-land-folder-items-' + fi + '"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-folder" data-fi="' + fi + '">Add Landing Folder</a>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-folder" data-fi="' + fi + '">+ Add Landing Folder</a>' +
             '</div>' +
 
             '<div class="flow-land-redirects" id="flow-land-redirects-' + fi + '" style="display:none">' +
             '<div class="flow-land-redirect-items" id="flow-land-redirect-items-' + fi + '"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="' + fi + '">Add Redirect</a>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="' + fi + '">+ Add Redirect</a>' +
             '<div class="form-group-inner" style="margin-top:10px">' +
             '<label class="login2 pull-left pull-left-pro">Redirect type:</label>' +
             '<div class="bt-df-checkbox pull-left">' +
@@ -204,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="301" name="flow_' + fi + '_redirect_type" class="flow-redirect-type" /> 301</label></div></div></div>' +
             '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="303" name="flow_' + fi + '_redirect_type" class="flow-redirect-type" /> 303</label></div></div></div>' +
             '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="307" name="flow_' + fi + '_redirect_type" class="flow-redirect-type" /> 307</label></div></div></div>' +
-            '</div></div></div>' +
+            '</div></div></div></div>' +
 
             '</section>';
 
@@ -339,9 +349,25 @@ window.collectFlowsData = function () {
             if (rtRadio) redirectType = parseInt(rtRadio.value);
         }
 
+        // Flow-level distribution
+        var flowDist = 'equal';
+        var flowDistSel = sec.querySelector('.flow-dist');
+        if (flowDistSel) flowDist = flowDistSel.value;
+
+        var optimizeFor = 'Lead';
+        var ofRadio = sec.querySelector('.flow-optimize-for:checked');
+        if (ofRadio) optimizeFor = ofRadio.value;
+
+        var optimizeMode = 'funnels';
+        var omRadio = sec.querySelector('.flow-optimize-mode:checked');
+        if (omRadio) optimizeMode = omRadio.value;
+
         flows.push({
             name: name,
             filters: filters,
+            distribution: flowDist,
+            optimize_for: optimizeFor,
+            optimize_mode: optimizeMode,
             prelanding: {
                 action: prelandAction,
                 folders: prelandFolders,

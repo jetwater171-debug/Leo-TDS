@@ -159,6 +159,9 @@ class FlowSettings implements JsonSerializable
     public array $filters;
     public PrelandSettings $preland;
     public LandingSettings $land;
+    public string $distribution;
+    public string $optimize_for;
+    public string $optimize_mode;
 
     public static function fromArray($arr): FlowSettings
     {
@@ -167,6 +170,9 @@ class FlowSettings implements JsonSerializable
         $fs->filters = $arr['filters'] ?? [];
         $fs->preland = PrelandSettings::fromArray($arr['prelanding']);
         $fs->land = LandingSettings::fromArray($arr['landing']);
+        $fs->distribution = $arr['distribution'] ?? 'equal';
+        $fs->optimize_for = $arr['optimize_for'] ?? 'Lead';
+        $fs->optimize_mode = $arr['optimize_mode'] ?? 'funnels';
         return $fs;
     }
 
@@ -176,7 +182,10 @@ class FlowSettings implements JsonSerializable
             "name" => $this->name,
             "filters" => $this->filters,
             "prelanding" => $this->preland,
-            "landing" => $this->land
+            "landing" => $this->land,
+            "distribution" => $this->distribution,
+            "optimize_for" => $this->optimize_for,
+            "optimize_mode" => $this->optimize_mode
         ];
     }
 

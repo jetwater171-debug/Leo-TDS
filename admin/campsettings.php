@@ -55,16 +55,18 @@ global $c;
                             </div>
                         </div>
                         <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                            <a href="javascript:void(0)" class="remove-domain-item btn btn-primary">Delete</a>
+                            <a href="javascript:void(0)" class="remove-domain-item btn btn-danger">✕ Delete</a>
                         </div>
                     </div>
                 </div>
                 <?php } ?>
             </div>
-            <a id="add-domain-item" class="btn btn-primary" href="javascript:;">Add Domain</a>
+            <a id="add-domain-item" class="btn btn-primary" href="javascript:;">+ Add Domain</a>
             </section>
 
             <section id="sec-safepage" class="camp-section">
+            <div class="flow-group">
+            <span class="flow-group-title">Method</span>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -135,13 +137,13 @@ global $c;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-white-folder-item btn btn-primary">Delete</a>
+                                <a href="javascript:void(0)" class="remove-white-folder-item btn btn-danger">✕ Delete</a>
                             </div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-white-folder-item" class="btn btn-primary" href="javascript:;">Add Safe Page Folder</a>
+                <a id="add-white-folder-item" class="btn btn-primary" href="javascript:;">+ Add Safe Page Folder</a>
             </div>
             <div id="b_3" style="display:<?= ($c->white->action === 'redirect' ? 'block' : 'none') ?>;">
 
@@ -160,13 +162,13 @@ global $c;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-redirect-item btn btn-primary">Delete</a>
+                                <a href="javascript:void(0)" class="remove-redirect-item btn btn-danger">✕ Delete</a>
                             </div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-redirect-item" class="btn btn-primary" href="javascript:;">Add Redirect</a>
+                <a id="add-redirect-item" class="btn btn-primary" href="javascript:;">+ Add Redirect</a>
 
                 <div class="form-group-inner">
                     <div class="row">
@@ -238,13 +240,13 @@ global $c;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-curl-item btn btn-primary">Delete</a>
+                                <a href="javascript:void(0)" class="remove-curl-item btn btn-danger">✕ Delete</a>
                             </div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-curl-item" class="btn btn-primary" href="javascript:;">Add Curl</a>
+                <a id="add-curl-item" class="btn btn-primary" href="javascript:;">+ Add Curl</a>
             </div>
             <div id="b_5" style="display:<?= $c->white->action === 'error' ? 'block' : 'none' ?>;">
                 <div id="errorcodes_container">
@@ -262,15 +264,18 @@ global $c;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-errorcode-item btn btn-primary">Delete</a>
+                                <a href="javascript:void(0)" class="remove-errorcode-item btn btn-danger">✕ Delete</a>
                             </div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-errorcode-item" class="btn btn-primary" href="javascript:;">Add HTTP Code</a>
+                <a id="add-errorcode-item" class="btn btn-primary" href="javascript:;">+ Add HTTP Code</a>
+            </div>
             </div>
 
+            <div class="flow-group">
+            <span class="flow-group-title">Settings</span>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -332,13 +337,13 @@ global $c;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-domain-specific-item btn btn-primary">Delete</a>
+                                <a href="javascript:void(0)" class="remove-domain-specific-item btn btn-danger">✕ Delete</a>
                             </div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-domain-specific-item" class="btn btn-primary" href="javascript:;">Add Domain-Specific Safe Page</a>
+                <a id="add-domain-specific-item" class="btn btn-primary" href="javascript:;">+ Add Domain-Specific Safe Page</a>
             </div>
 
             <div class="form-group-inner">
@@ -492,15 +497,18 @@ global $c;
                     </div>
                 </div>
             </div>
+            </div>
 
+            <div class="flow-group">
+            <span class="flow-group-title">Filters</span>
             <div class="form-group-inner">
-                <h5>Safe Page Filters</h5>
                 <p>
                 Traffic matching these filters will be shown the <strong>safe page</strong>. Everyone else goes to the black flows.
                 </p>
                 <div class="row">
                     <div id="filtersbuilder"></div>
                 </div>
+            </div>
             </div>
             </section>
 
@@ -513,11 +521,11 @@ global $c;
                         <input type="text" class="form-control flow-name-label" value="<?= htmlspecialchars($flow->name) ?>" readonly style="display:inline-block;width:200px;cursor:default;" />
                         <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-up" title="Move Up">&uarr;</a>
                         <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-down" title="Move Down">&darr;</a>
-                        <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">Delete</a>
+                        <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">✕ Delete</a>
                     </div>
                 <?php } ?>
                 </div>
-                <a id="add-flow-btn" class="btn btn-primary" href="javascript:void(0)" style="margin-top:15px;display:inline-block;">Add Flow</a>
+                <a id="add-flow-btn" class="btn btn-primary" href="javascript:void(0)" style="margin-top:15px;display:inline-block;">+ Add Flow</a>
             </div>
             <hr/>
             <div class="form-group-inner">
@@ -579,15 +587,53 @@ global $c;
             <section id="sec-flow-<?= $fi ?>" class="camp-section flow-section" data-flow-index="<?= $fi ?>">
             <h5 class="flow-section-title"><?= htmlspecialchars($flow->name) ?></h5>
 
+            <div class="flow-group">
+            <span class="flow-group-title">Distribution</span>
             <div class="form-group-inner">
-                <label class="login2 pull-left pull-left-pro">Flow Filters:</label>
+                <select class="form-select flow-dist" data-fi="<?= $fi ?>">
+                    <option value="equal" <?= $flow->distribution === 'equal' ? 'selected' : '' ?>>Equal</option>
+                    <option value="weighted" <?= $flow->distribution === 'weighted' ? 'selected' : '' ?>>Weighted</option>
+                    <option value="thompson" <?= $flow->distribution === 'thompson' ? 'selected' : '' ?>>Thompson Sampling</option>
+                </select>
+            </div>
+            <div class="flow-thompson-opts" id="flow-thompson-opts-<?= $fi ?>" style="display:<?= $flow->distribution === 'thompson' ? 'block' : 'none' ?>">
+                <div class="form-group-inner">
+                    <label class="login2 pull-left pull-left-pro">Optimize for:</label>
+                    <div class="bt-df-checkbox pull-left">
+                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                            <input type="radio" <?= $flow->optimize_for === 'Lead' ? 'checked' : '' ?> value="Lead" name="flow_<?= $fi ?>_optimize_for" class="flow-optimize-for" data-fi="<?= $fi ?>" /> Lead
+                        </label></div></div></div>
+                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                            <input type="radio" <?= $flow->optimize_for === 'Purchase' ? 'checked' : '' ?> value="Purchase" name="flow_<?= $fi ?>_optimize_for" class="flow-optimize-for" data-fi="<?= $fi ?>" /> Purchase
+                        </label></div></div></div>
+                    </div>
+                </div>
+                <div class="form-group-inner flow-optimize-mode-wrap" id="flow-optimize-mode-wrap-<?= $fi ?>" style="display:<?= $flow->hasPrelanding() ? 'block' : 'none' ?>">
+                    <label class="login2 pull-left pull-left-pro">Optimize mode:</label>
+                    <div class="bt-df-checkbox pull-left">
+                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                            <input type="radio" <?= $flow->optimize_mode === 'funnels' ? 'checked' : '' ?> value="funnels" name="flow_<?= $fi ?>_optimize_mode" class="flow-optimize-mode" data-fi="<?= $fi ?>" /> Funnels (preland+land combos)
+                        </label></div></div></div>
+                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                            <input type="radio" <?= $flow->optimize_mode === 'separate' ? 'checked' : '' ?> value="separate" name="flow_<?= $fi ?>_optimize_mode" class="flow-optimize-mode" data-fi="<?= $fi ?>" /> Separate (independent)
+                        </label></div></div></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div class="flow-group">
+            <span class="flow-group-title">Flow Filters</span>
+            <div class="form-group-inner">
                 <div class="row">
                     <div id="flow-filters-<?= $fi ?>"></div>
                 </div>
             </div>
+            </div>
 
+            <div class="flow-group">
+            <span class="flow-group-title">Prelanding method</span>
             <div class="form-group-inner">
-                <label class="login2 pull-left pull-left-pro">Prelanding method:</label>
                 <div class="bt-df-checkbox pull-left">
                     <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
                         <input type="radio" <?= $flow->preland->action === 'none' ? 'checked' : '' ?> value="none" name="flow_<?= $fi ?>_preland_action" class="flow-preland-action" data-fi="<?= $fi ?>" /> Don't use prelanding
@@ -598,32 +644,27 @@ global $c;
                 </div>
             </div>
             <div class="flow-preland-folders" id="flow-preland-folders-<?= $fi ?>" style="display:<?= $flow->preland->action === 'folder' ? 'block' : 'none' ?>">
-                <div class="form-group-inner">
-                    <label class="login2 pull-left pull-left-pro">Distribution:</label>
-                    <select class="form-select flow-preland-dist" data-fi="<?= $fi ?>">
-                        <option value="equal" <?= $flow->preland->distribution === 'equal' ? 'selected' : '' ?>>Equal</option>
-                        <option value="weighted" <?= $flow->preland->distribution === 'weighted' ? 'selected' : '' ?>>Weighted</option>
-                    </select>
-                </div>
                 <div class="flow-preland-items" id="flow-preland-items-<?= $fi ?>">
                 <?php foreach ($flow->preland->folderNames as $pi => $pf) { ?>
                     <div class="form-group-inner flow-path-item">
                         <div class="row">
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Prelanding folder:</label></div>
                             <div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="<?= htmlspecialchars($pf) ?>" placeholder="preland1" /></div>
-                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->preland->distribution === 'weighted' ? 'block' : 'none' ?>">
+                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" class="form-control flow-preland-weight" value="<?= $flow->preland->weights[$pi] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">Delete</a></div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">✕ Delete</a></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-preland" data-fi="<?= $fi ?>">Add Prelanding</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-preland" data-fi="<?= $fi ?>">+ Add Prelanding</a>
+            </div>
             </div>
 
+            <div class="flow-group">
+            <span class="flow-group-title">Landing method</span>
             <div class="form-group-inner">
-                <label class="login2 pull-left pull-left-pro">Landing method:</label>
                 <div class="bt-df-checkbox pull-left">
                     <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
                         <input type="radio" <?= $flow->land->action === 'folder' ? 'checked' : '' ?> value="folder" name="flow_<?= $fi ?>_land_action" class="flow-land-action" data-fi="<?= $fi ?>" /> Local landing(s) from folder
@@ -633,13 +674,6 @@ global $c;
                     </label></div></div></div>
                 </div>
             </div>
-            <div class="form-group-inner">
-                <label class="login2 pull-left pull-left-pro">Distribution:</label>
-                <select class="form-select flow-land-dist" data-fi="<?= $fi ?>">
-                    <option value="equal" <?= $flow->land->distribution === 'equal' ? 'selected' : '' ?>>Equal</option>
-                    <option value="weighted" <?= $flow->land->distribution === 'weighted' ? 'selected' : '' ?>>Weighted</option>
-                </select>
-            </div>
             <div class="flow-land-folders" id="flow-land-folders-<?= $fi ?>" style="display:<?= $flow->land->action === 'folder' ? 'block' : 'none' ?>">
                 <div class="flow-land-folder-items" id="flow-land-folder-items-<?= $fi ?>">
                 <?php foreach ($flow->land->folderNames as $li => $lf) { ?>
@@ -647,15 +681,15 @@ global $c;
                         <div class="row">
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Landing folder:</label></div>
                             <div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="<?= htmlspecialchars($lf) ?>" placeholder="land1" /></div>
-                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->land->distribution === 'weighted' ? 'block' : 'none' ?>">
+                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" class="form-control flow-land-weight" value="<?= $flow->land->weights[$li] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">Delete</a></div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">✕ Delete</a></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-folder" data-fi="<?= $fi ?>">Add Landing Folder</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-folder" data-fi="<?= $fi ?>">+ Add Landing Folder</a>
             </div>
             <div class="flow-land-redirects" id="flow-land-redirects-<?= $fi ?>" style="display:<?= $flow->land->action === 'redirect' ? 'block' : 'none' ?>">
                 <div class="flow-land-redirect-items" id="flow-land-redirect-items-<?= $fi ?>">
@@ -664,15 +698,15 @@ global $c;
                         <div class="row">
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>
                             <div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="<?= htmlspecialchars($ru) ?>" placeholder="https://..." /></div>
-                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->land->distribution === 'weighted' ? 'block' : 'none' ?>">
+                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" class="form-control flow-land-weight" value="<?= $flow->land->weights[$ri] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">Delete</a></div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">✕ Delete</a></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="<?= $fi ?>">Add Redirect</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="<?= $fi ?>">+ Add Redirect</a>
                 <div class="form-group-inner" style="margin-top:10px">
                     <label class="login2 pull-left pull-left-pro">Redirect type:</label>
                     <div class="bt-df-checkbox pull-left">
@@ -684,10 +718,13 @@ global $c;
                     </div>
                 </div>
             </div>
+            </div>
             </section>
             <?php } ?>
 
             <section id="sec-scripts" class="camp-section">
+            <div class="flow-group">
+            <span class="flow-group-title">Backfix</span>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -749,6 +786,7 @@ global $c;
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
             <div class="form-group-inner">
                 <div class="row">
@@ -897,6 +935,8 @@ global $c;
             </section>
 
             <section id="sec-postbacks" class="camp-section">
+            <div class="flow-group">
+            <span class="flow-group-title">Postback</span>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
@@ -972,7 +1012,10 @@ global $c;
                     </div>
                 </div>
             </div>
+            </div>
 
+            <div class="flow-group">
+            <span class="flow-group-title">S2S</span>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-5 col-md-12 col-sm-12 col-xs-12">
@@ -997,13 +1040,13 @@ global $c;
                                 </label>
                                 <br /><br />
                             </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5">
                                 <div class="input-group">
                                     <input type="text" class="form-control" placeholder="https://s2s-postback.com" value="<?= $s2sUrl ?>" name="postback.s2s[<?= $i ?>][url]" />
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a class="remove-s2s-item btn btn-primary">Delete</a>
+                                <a class="remove-s2s-item btn btn-danger">✕ Delete</a>
                             </div>
                         </div>
                         <div class="row">
@@ -1044,7 +1087,8 @@ global $c;
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-s2s-item" class="btn btn-primary">Add</a>
+                <a id="add-s2s-item" class="btn btn-primary">+ Add</a>
+            </div>
             </div>
             </section>
 
