@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const secondFrameName = "SecondFrame";
 
   trace(
-    "Back Button Fix v0.4.1 by Yellow Web",
+    "Back Button Fix v0.5.2 by Yellow Web",
     "font-size:25px;color:yellow;font-weight:bold",
   );
 
@@ -32,53 +32,75 @@ document.addEventListener("DOMContentLoaded", function() {
   trace("Anchors fix started...");
   backInFrame(backLink);
 
+  // Carousel views: 0=landing, 1=first(backLink), 2=second(secondLink)
+  // Going back cycles: landing -> backLink -> secondLink -> landing -> ...
+  // Going forward reverses: ... -> secondLink -> backLink -> landing
+  const DEPTH = 50;
+
   function backInFrame() {
+    function init() {
+      createFrame(frameName, backLink);
+      var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 1); };
+      idle(function() { createFrame(secondFrameName, secondLink); });
+      // Push states with pre-computed view for each level
+      // Top of stack (last pushed) = landing (current page, view 0)
+      // One back = backLink (view 1), two back = secondLink (view 2), etc.
+      // We push deepest first, then work up to landing on top
+      for (var i = DEPTH; i >= 1; i--) {
+        var view = i % 3; // 1=backLink, 2=secondLink, 0=landing
+        window.history.pushState({ bf: true, view: view }, "", window.location);
+      }
+      // Final state on top = landing (where user is now)
+      window.history.pushState({ bf: true, view: 0 }, "", window.location);
+      trace(`Pushed ${DEPTH + 1} states. User is at top (landing).`);
+    }
+
     if (!isIos()) {
       trace("Not IOs, cheching gesture!");
       checkUserGesture(function() {
-        pushState();
-        trace("Pushed state after gesture.");
-        createFrame(frameName, backLink);
+        init();
+        trace("Initialized after gesture.");
       });
     } else {
       trace("IOs found!");
-      pushState();
-      trace("Pushed state.");
-      createFrame(frameName, backLink);
+      init();
+      trace("Initialized.");
     }
 
     window.onpopstate = function(t) {
-      trace(`Popped state!`);
-      t.preventDefault();
-      if (!isIos() && !!!t.state) {
-        trace("OnPopState: Not IOs and no state!");
+      if (!t.state || !t.state.bf) {
+        trace("OnPopState: not our state!");
         return;
       }
-      trace(`Popped state: ${JSON.stringify(t.state)}`);
-      switch (t.state.cpa) {
-        case 1:
-          trace("Time to show landing!");
-          if (redirect) {
-            window.location.href = backLink;
-          } else {
-            showFrame(frameName);
-            createFrame(secondFrameName, secondLink);
-          }
-          break;
-        case 0:
-          trace("Time to show showcase!");
-          showFrame(secondFrameName);
-          break;
-        default:
-          break;
+
+      trace(`Popped state: view=${t.state.view}`);
+
+      if (redirect) {
+        window.location.href = backLink;
+        return;
       }
+
+      showView(t.state.view);
     };
   }
 
-  function pushState() {
-    for (var t = 0; t < 3; t++) {
-      let s = { cpa: t };
-      window.history.pushState(s, "", window.location);
+  function showView(viewIndex) {
+    if (viewIndex === 0) {
+      // Show landing (original page)
+      trace("Showing landing page.");
+      var f1 = document.getElementById(frameName);
+      var f2 = document.getElementById(secondFrameName);
+      if (f1) f1.style.display = "none";
+      if (f2) f2.style.display = "none";
+      document.querySelectorAll("body > *").forEach(function(e) {
+        if (e.id !== frameName && e.id !== secondFrameName) {
+          e.style.display = "";
+        }
+      });
+      document.body.style.overflow = "";
+    } else {
+      var nameToShow = viewIndex === 1 ? frameName : secondFrameName;
+      showFrame(nameToShow);
     }
   }
 
@@ -106,8 +128,6 @@ document.addEventListener("DOMContentLoaded", function() {
       frame.style.backgroundColor = "#fff";
       document.body.append(frame);
       frame.src = url;
-      frameWindow = frame.contentWindow;
-      frameWindow.console.log = function() { };
       trace(`Created frame ${name} for ${url}!`);
     }
   }
@@ -117,14 +137,14 @@ document.addEventListener("DOMContentLoaded", function() {
     nodeFrame.style.display = "block";
     document.body.style.overflow = "hidden";
     document.querySelectorAll(`body > *:not(#${name})`).forEach(function(e) {
-      e.setAttribute("style", "display:none;");
+      e.style.display = "none";
     });
     trace(`Frame ${name} displayed!`);
   }
 
   function checkUserGesture(callback) {
+    var audio = document.createElement("audio");
     var st = setInterval(function() {
-      var audio = document.createElement("audio");
       var playPromise = audio.play();
       if (playPromise instanceof Promise) {
         if (!audio.paused) {
@@ -145,6 +165,8 @@ document.addEventListener("DOMContentLoaded", function() {
     setInterval(function() {
       const anchors = document.querySelectorAll('a[href*="#"]');
       for (let anchor of anchors) {
+        if (anchor.dataset.bfFixed) continue;
+        anchor.dataset.bfFixed = "1";
         anchor.removeAttribute("onclick");
         anchor.addEventListener("click", function(e) {
           e.preventDefault();
