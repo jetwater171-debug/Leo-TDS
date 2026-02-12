@@ -32,7 +32,7 @@ function load_content_with_include($url): string
 }
 
 //Load content of black landing from another folder
-function load_prelanding(Campaign $c, int $flowIndex, string $url, int $landIndex): string
+function load_prelanding(Campaign $c, string $url): string
 {
     $fullpath = get_abs_from_rel($url);
 
@@ -52,8 +52,7 @@ function load_prelanding(Campaign $c, int $flowIndex, string $url, int $landInde
 
     $cloaker = get_cloaker_path();
     $querystr = $_SERVER['QUERY_STRING'] ?? '';
-    $querystr = !empty($querystr) ? '&' . $querystr : '';
-    $replacement = $cloaker . 'landing.php?l=' . $landIndex . '&f=' . $flowIndex . "&campId=" . $c->campaignId . $querystr;
+    $replacement = $cloaker . 'landing.php' . (!empty($querystr) ? '?' . $querystr : '');
 
 
     //if we will be replacing the prelanding with the landing, then the landing should be opened in a new window
@@ -79,7 +78,7 @@ function load_prelanding(Campaign $c, int $flowIndex, string $url, int $landInde
 }
 
 //Load content of black landing from another folder
-function load_landing(Campaign $c, int $flowIndex, string $url)
+function load_landing(Campaign $c, bool $hasPrelanding, string $url)
 {
     $fullpath = get_abs_from_rel($url);
 
@@ -119,7 +118,7 @@ function load_landing(Campaign $c, int $flowIndex, string $url)
 
 
     //adding backfix ONLY if we don't have a prelanding, cause prelanding will have it
-    if (!$c->black->flows[$flowIndex]->hasPrelanding()) {
+    if (!$hasPrelanding) {
         if ($c->scripts->backfix) {
             $url = $mp->replace_url_macros($c->scripts->backfixAddress);
             $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress);

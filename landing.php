@@ -14,48 +14,51 @@ if (empty($subid)) {
     die('NO SUBID FOUND!');
 }
 
-$campId = $_GET['campId'] ?? null;
-if (is_null($campId)) {
-    die('NO CAMPAIGN ID FOUND!');
+global $db;
+$click = $db->get_clicks_by_subid($subid, true);
+if (empty($click)) {
+    die('NO CLICK FOUND FOR THIS SUBID!');
 }
 
-global $db;
+$campId = $click['campaign_id'];
 $settings = $db->get_campaign_settings($campId);
 $c = new Campaign($campId, $settings);
 
-$f = $_GET['f'] ?? null;
-if (is_null($f)) {
-    die('NO FLOW INDEX FOUND!');
+// Find flow by name from click record
+$flow = null;
+$flowIndex = null;
+foreach ($c->black->flows as $i => $f) {
+    if ($f->name === $click['flow']) {
+        $flow = $f;
+        $flowIndex = $i;
+        break;
+    }
+}
+if ($flow === null) {
+    die('FLOW NOT FOUND!');
 }
 
-if (count($c->black->flows) < $f + 1) {
-    die('FLOW INDEX IS OUT OF BOUNDS!');
-}
-
-$l = $_GET['l'] ?? null;
-if (is_null($l)) {
-    die('NO LANDING INDEX FOUND!');
-}
-
-$flow = $c->black->flows[$f];
 $ls = $flow->land;
+$landName = $click['land'];
 
-$abtest = new AbTest($c);
+
 switch ($ls->action) {
     case 'folder':
-        if (count($ls->folderNames) < $l + 1) {
-            die('FOLDER LANDING INDEX IS OUT OF BOUNDS!');
-        }
         $db->add_lpctr($subid);
-        $landing = $ls->folderNames[$l];
-        echo load_landing($c, $f, $landing);
+        echo load_landing($c, $flow->hasPrelanding(), $landName);
         break;
     case 'redirect':
-        if (count($ls->redirectUrls) < $l + 1) {
-            die('REDIRECT LANDING INDEX IS OUT OF BOUNDS!');
+        $redirectUrl = null;
+        foreach ($ls->redirectUrls as $url) {
+            if ($url === $landName) {
+                $redirectUrl = $url;
+                break;
+            }
+        }
+        if ($redirectUrl === null) {
+            die('LANDING NOT FOUND!');
         }
         $db->add_lpctr($subid);
-        $redirectUrl = $ls->redirectUrls[$l];
         redirect($redirectUrl, $ls->redirectType, true);
         break;
 }
