@@ -12,12 +12,12 @@ class Tds
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
         if ($dbCamp === false) {
-            $action = traficback(Cloaker::get_click_params());
+            $action = traficback(FiltrationCore::get_click_params());
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
-            $clkr = new Cloaker($c->filters);
+            $clkr = new FiltrationCore();
 
-            if ($clkr->is_bad_click()) {
+            if ($clkr->click_matches_filters($c->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
@@ -25,7 +25,12 @@ class Tds
                 if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                 } else {
-                    $action = black($c, $clkr->click_params);
+                    $flow = self::pick_flow($clkr, $c->black->flows);
+                    if ($flow === null) {
+                        $action = traficback($clkr->click_params);
+                    } else {
+                        $action = black($c, $flow, $clkr->click_params);
+                    }
                 }
             }
         }
@@ -37,12 +42,12 @@ class Tds
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
         if ($dbCamp === false) {
-            $action = traficback(Cloaker::get_click_params($prefill));
+            $action = traficback(FiltrationCore::get_click_params($prefill));
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
-            $clkr = new Cloaker($c->filters, $prefill);
+            $clkr = new FiltrationCore($prefill);
 
-            if ($clkr->is_bad_click()) {
+            if ($clkr->click_matches_filters($c->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
@@ -51,11 +56,16 @@ class Tds
                     $action = jscheck($c);
                     $action->action = 'html_content';
                 } else {
-                    $action = black($c, $clkr->click_params);
-                    if ($c->black->jsconnectAction === 'iframe') {
-                        $action->action = 'html_iframe';
-                    }else{
-                        $action->action = 'html_content';
+                    $flow = self::pick_flow($clkr, $c->black->flows);
+                    if ($flow === null) {
+                        $action = traficback($clkr->click_params);
+                    } else {
+                        $action = black($c, $flow, $clkr->click_params);
+                        if ($c->black->jsconnectAction === 'iframe') {
+                            $action->action = 'html_iframe';
+                        }else{
+                            $action->action = 'html_content';
+                        }
                     }
                 }
             }
@@ -67,35 +77,37 @@ class Tds
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
-        if ($dbCamp === false){ //campaign already deleted or domain changed? lol
-            if (DebugMethods::on()) 
+        if ($dbCamp === false) { //campaign already deleted or domain changed? lol
+            if (DebugMethods::on()) {
                 $action = new JsAction("traficback", "js", "console.log('Debug: No campaign found for this domain!');");
-            else
+            }
+            else {
                 $action = new JsAction("traficback", "error", "");
+            }
             return $action;
         }
-        
-        if (isset($_GET['reason'])) //This means that the user didn't pass JS checks
-        {
-            $added = $db->add_white_click(Cloaker::get_click_params(), $_GET['reason'], $dbCamp['id']);
+
+        //This means that the user didn't pass JS checks
+        if (isset($_GET['reason'])) {
+            $added = $db->add_white_click(FiltrationCore::get_click_params(), $_GET['reason'], $dbCamp['id']);
             if (DebugMethods::on()) {
                 $msg = ($added ? "console.log('Debug: White click logged.');" : "console.log('Debug: Error adding white click!');");
                 $action = new JsAction("white", "js", $msg);
-            }
-            else
+            } else {
                 $action = new JsAction("white", "error", "");
-        } 
-        else 
-        {
+            }
+        } else {
             $jscheck_start_time = session_read('jscheck_pending');
             $current_time = time();
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
-            $max_execution_time = $c->white->jsChecks->timeout / 1000; // Convert from milliseconds to seconds
-            $allowed_time = $jscheck_start_time + $max_execution_time + 5; // Add 5 second buffer
-            
+            // Convert from milliseconds to seconds
+            $max_execution_time = $c->white->jsChecks->timeout / 1000;
+            // Add 5 second buffer
+            $allowed_time = $jscheck_start_time + $max_execution_time + 5;
+
             if ($current_time > $allowed_time) {
                 // Attempt to pass JS check after timeout
-                $db->add_white_click(Cloaker::get_click_params(), 'jscheck_scam_timeout', $dbCamp['id']);
+                $db->add_white_click(FiltrationCore::get_click_params(), 'jscheck_scam_timeout', $dbCamp['id']);
                 session_remove('jscheck_pending');
                 if (DebugMethods::on()) {
                     $action = new JsAction("white", "js", "console.log('Debug: JS check scam - timeout exceeded');");
@@ -108,29 +120,36 @@ class Tds
             // All security checks passed - remove pending flag and allow black
             session_remove('jscheck_pending');
             session_write('jscheck_passed', true);
-            $action = black($c, Cloaker::get_click_params());
-            $action = JsAction::FromCloakerAction($action);
-            if ($c->black->jsconnectAction === 'iframe') {
-                $action->action = 'html_iframe';
-            }else{
-                $action->action = 'html_content';
+            $clkr = new FiltrationCore();
+            $flow = self::pick_flow($clkr, $c->black->flows);
+            if ($flow === null) {
+                $action = traficback($clkr->click_params);
+                $action = JsAction::FromCloakerAction($action);
+            } else {
+                $action = black($c, $flow, $clkr->click_params);
+                $action = JsAction::FromCloakerAction($action);
+                if ($c->black->jsconnectAction === 'iframe') {
+                    $action->action = 'html_iframe';
+                } else {
+                    $action->action = 'html_content';
+                }
             }
         }
 
         return $action;
     }
 
-    public static function getPhpAction($apikey,array $prefill) : PhpAction
+    public static function getPhpAction($apikey, array $prefill): PhpAction
     {
         global $db;
         $dbCamp = $db->get_campaign_by_apikey($apikey);
-        if ($dbCamp === false) {
-            $action = traficback(Cloaker::get_click_params($prefill));
+        if (empty($dbCamp)) {
+            $action = traficback(FiltrationCore::get_click_params($prefill));
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
-            $clkr = new Cloaker($c->filters, $prefill);
+            $clkr = new FiltrationCore($prefill);
 
-            if ($clkr->is_bad_click()) {
+            if ($clkr->click_matches_filters($c->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
@@ -138,10 +157,25 @@ class Tds
                 if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                 } else {
-                    $action = black($c, $clkr->click_params);
+                    $flow = self::pick_flow($clkr, $c->black->flows);
+                    if ($flow === null) {
+                        $action = traficback($clkr->click_params);
+                    } else {
+                        $action = black($c, $flow, $clkr->click_params);
+                    }
                 }
             }
         }
         return PhpAction::FromCloakerAction($action);
+    }
+
+    public static function pick_flow(FiltrationCore $clkr, array $flows): ?FlowSettings
+    {
+        foreach ($flows as $flow) {
+            if ($clkr->click_matches_filters($flow->filters)) {
+                return $flow;
+            }
+        }
+        return null;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/debug.php';
 DebugMethods::start("YWBMainCycle");
 
@@ -9,13 +10,13 @@ if ($_SERVER['SCRIPT_NAME'] !== $_SERVER['PHP_SELF']) {
 }
 //we always need a slash at the end of the url, otherwise links will not work properly
 $url = $_SERVER['REQUEST_URI'];
-if ($url==='/admin'){
+if (str_ends_with($url, '/admin')) {
     header("Location: " . $url . "/");
     exit();
 }
 
 //handle robots.txt requests
-if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] == '/robots.txt') {
+if (isset($_SERVER['REQUEST_URI']) && str_ends_with($_SERVER['REQUEST_URI'], '/robots.txt')) {
     header('Content-Type: text/plain');
     echo "User-agent: *\nDisallow: /\n";
     exit();
@@ -26,11 +27,10 @@ require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/redirect.php';
 
 $action = Tds::getAction();
-if ($action->action!=='redirect'){
+if ($action->action !== 'redirect') {
     DebugMethods::stop("YWBMainCycle");
     $action->perform();
-}
-else{
+} else {
     $action->perform();
     DebugMethods::stop("YWBMainCycle");
 }

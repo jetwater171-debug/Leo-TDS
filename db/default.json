@@ -65,24 +65,31 @@
     }
   },
   "black": {
-    "prelanding": {
-      "action": "none",
-      "folders": [
-        "preland"
-      ]
-    },
-    "landing": {
-      "action": "redirect",
-      "folders": [ "land" ],
-      "redirect": {
-        "urls": [
-          "https://www.rolltrk.com/DHSF7PS/2QM39NQ/"
-        ],
-        "type": 302
-      },
-      "customthankyou": false
-    },
-    "jsconnect": "redirect"
+    "jsconnect": "redirect",
+    "flows": [
+      {
+        "name": "Flow 1",
+        "filters": {},
+        "prelanding": {
+          "action": "none",
+          "folders": ["preland"],
+          "distribution": "equal",
+          "weights": []
+        },
+        "landing": {
+          "action": "redirect",
+          "folders": ["land"],
+          "redirect": {
+            "urls": [
+              "https://www.rolltrk.com/DHSF7PS/2QM39NQ/"
+            ],
+            "type": 302
+          },
+          "distribution": "equal",
+          "weights": []
+        }
+      }
+    ]
   },
   "scripts": {
     "backfix": {

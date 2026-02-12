@@ -41,6 +41,17 @@ switch ($action) {
                 $arrFilters=json_decode($value,true);
                 $s['filters'] = $arrFilters;
             }
+            else if ($key==="flows"){ //flows are stored as json
+                $arrFlows=json_decode($value,true);
+                if (is_array($arrFlows)) {
+                    foreach ($arrFlows as &$flow) {
+                        normalize_flow_weights($flow, 'prelanding');
+                        normalize_flow_weights($flow, 'landing');
+                    }
+                    unset($flow);
+                    $s['black']['flows'] = $arrFlows;
+                }
+            }
             else
                 setArrayValue($s,$key,$value);
         }
@@ -63,6 +74,21 @@ function send_camp_result($msg,$error=false): void
     http_response_code(200);
     $json = json_encode($res);
     echo $json;
+}
+
+function normalize_flow_weights(array &$flow, string $section): void {
+    if (($flow[$section]['distribution'] ?? 'equal') !== 'weighted') return;
+    $weights = $flow[$section]['weights'] ?? [];
+    if (empty($weights)) return;
+    $total = array_sum($weights);
+    if ($total <= 0) {
+        $count = count($weights);
+        $flow[$section]['weights'] = array_fill(0, $count, round(100 / $count, 2));
+        return;
+    }
+    if ($total != 100) {
+        $flow[$section]['weights'] = array_map(fn($w) => round($w / $total * 100, 2), $weights);
+    }
 }
 
 function setArrayValue(&$array, $underscoreString, $newValue) {

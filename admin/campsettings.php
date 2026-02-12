@@ -17,8 +17,10 @@ global $c;
                 <ul>
                     <li><a href="#sec-domains" class="active">Domains</a></li>
                     <li><a href="#sec-safepage">Safe Page</a></li>
-                    <li><a href="#sec-moneypage">Money Page</a></li>
-                    <li><a href="#sec-filters">Filters</a></li>
+                    <li><a href="#sec-flows">Flows</a></li>
+                    <?php foreach ($c->black->flows as $fi => $flow) { ?>
+                    <li class="flow-nav-item" data-flow-index="<?= $fi ?>"><a href="#sec-flow-<?= $fi ?>">&nbsp;&nbsp;<?= htmlspecialchars($flow->name) ?></a></li>
+                    <?php } ?>
                     <li><a href="#sec-scripts">Scripts</a></li>
                     <li><a href="#sec-statistics">Statistics</a></li>
                     <li><a href="#sec-postbacks">Postbacks</a></li>
@@ -490,256 +492,59 @@ global $c;
                     </div>
                 </div>
             </div>
+
+            <div class="form-group-inner">
+                <h5>Safe Page Filters</h5>
+                <p>
+                Traffic matching these filters will be shown the <strong>safe page</strong>. Everyone else goes to the black flows.
+                </p>
+                <div class="row">
+                    <div id="filtersbuilder"></div>
+                </div>
+            </div>
             </section>
 
-            <section id="sec-moneypage" class="camp-section">
+            <section id="sec-flows" class="camp-section">
             <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">Choose
-                            prelanding(s) loading method: </label>
+                <p>Flows are processed top-to-bottom. First flow whose filters match the visitor gets the traffic. Empty filters = catch-all.</p>
+                <div id="flows-list">
+                <?php foreach ($c->black->flows as $fi => $flow) { ?>
+                    <div class="flow-list-row" data-flow-index="<?= $fi ?>">
+                        <input type="text" class="form-control flow-name-input" value="<?= htmlspecialchars($flow->name) ?>" style="display:inline-block;width:200px;" />
+                        <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-up" title="Move Up">&uarr;</a>
+                        <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-down" title="Move Down">&darr;</a>
+                        <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">Delete</a>
                     </div>
-                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->black->preland->action === 'none' ? 'checked' : '' ?> value="none" name="black.prelanding.action" onclick="(document.getElementById('b_8').style.display = 'none')" />
-                                            Don't use prelanding
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->black->preland->action === 'folder' ? 'checked' : '' ?> value="folder" name="black.prelanding.action" onclick="(document.getElementById('b_8').style.display = 'block')" />
-                                            Local prelanding(s) from folder
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <?php } ?>
                 </div>
+                <a id="add-flow-btn" class="btn btn-primary" href="javascript:void(0)" style="margin-top:15px;display:inline-block;">Add Flow</a>
             </div>
-
-
-            <div id="b_8" style="display:<?= $c->black->preland->action === 'folder' ? 'block' : 'none' ?>;">
-                <div id="prelandings_container">
-                    <?php for ($j = 0; $j < count($c->black->preland->folderNames); $j++) { ?>
-                    <div class="form-group-inner prelanding-item">
-                        <div class="row">
-                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                                <label class="login2 pull-left pull-left-pro">
-                                    Prelanding folder:
-                                </label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                                <div class="input-group custom-go-button">
-                                    <input type="text" class="form-control" placeholder="preland1" name="black.prelanding.folders[<?= $j ?>]" value="<?= $c->black->preland->folderNames[$j] ?>" />
-                                </div>
-                            </div>
-                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-prelanding-item btn btn-primary">Delete</a>
-                            </div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                </div>
-                <a id="add-prelanding-item" class="btn btn-primary" href="javascript:;">Add Prelanding</a>
-            </div>
+            <hr/>
             <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">Choose landing(s)
-                            loading method:</label>
-                    </div>
-                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->black->land->action === 'folder' ? 'checked' : '' ?> value="folder" name="black.landing.action" onclick="(document.getElementById('b_landings_redirect').style.display = 'none'); (document.getElementById('b_landings_folder').style.display = 'block')" />
-                                            Local landing(s) from folder
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->black->land->action === 'redirect' ? 'checked' : '' ?> value="redirect" name="black.landing.action" onclick="(document.getElementById('b_landings_redirect').style.display = 'block'); (document.getElementById('b_landings_folder').style.display = 'none')" />
-                                            Redirect(s)
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="b_landings_folder" style="display:<?= $c->black->land->action === 'folder' ? 'block' : 'none' ?>;">
-                <div id="landing_folders_container">
-                        <?php for ($j = 0; $j < count($c->black->land->folderNames); $j++) { 
-                                $lfn = $c->black->land->folderNames[$j];
-                        ?>
-                        <div class="form-group-inner landing-folder-item">
-                            <div class="row">
-                                <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                                    <label class="login2 pull-left pull-left-pro">
-                                        Landing folder:
-                                    </label>
-                                </div>
-                                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                                    <div class="input-group custom-go-button">
-                                        <input type="text" class="form-control" placeholder="land1" name="black.landing.folders[<?= $j ?>]" value="<?= $lfn ?>" />
-                                    </div>
-                                </div>
-                                <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                    <a href="javascript:void(0)" class="remove-landing-folder-item btn btn-primary">Delete</a>
-                                </div>
-                            </div>
-                        </div>
-                        <?php } ?>
-                </div>
-                <a id="add-landing-folder-item" class="btn btn-primary" href="javascript:;">Add Landing</a>
-            </div>
-            <div id="b_landings_redirect" style="display:<?= $c->black->land->action === 'redirect' ? 'block' : 'none' ?>;">
-                <div id="landing_redirects_container">
-                    <?php for ($j = 0; $j < count($c->black->land->redirectUrls); $j++) { 
-                            $lfn = $c->black->land->redirectUrls[$j];
-                    ?>
-                    <div class="form-group-inner landing-redirect-item">
-                        <div class="row">
-                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                                <label class="login2 pull-left pull-left-pro">
-                                    Landing folder:
-                                </label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                                <div class="input-group custom-go-button">
-                                    <input type="text" class="form-control" placeholder="land1" name="black.landing.redirect.urls[<?= $j ?>]" value="<?= $lfn ?>" />
-                                </div>
-                            </div>
-                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-landing-redirect-item btn btn-primary">Delete</a>
-                            </div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                </div>
-                <a id="add-landing-redirect-item" class="btn btn-primary" href="javascript:;">Add Redirect</a>
-
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Redirect
-                                type:</label>
-                        </div>
-                        <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                            <div class="bt-df-checkbox pull-left">
-
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->black->land->redirectType === 301 ? 'checked' : '' ?> value="301" name="black.landing.redirect.type" />
-                                                301
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->black->land->redirectType === 302 ? 'checked' : '' ?> value="302" name="black.landing.redirect.type" />
-                                                302
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->black->land->redirectType === 303 ? 'checked' : '' ?> value="303" name="black.landing.redirect.type" />
-                                                303
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->black->land->redirectType === 307 ? 'checked' : '' ?> value="307" name="black.landing.redirect.type" />
-                                                307
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <?php
-            $use_js_redirect = ($c->black->preland->action === 'none' && $c->black->land->action === 'redirect');
-            ?>
-            <div class="form-group-inner" id="black_jsconnect" style="display:<?=$use_js_redirect?'none':'block'?>">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="You can connect any website to the cloaker using <script src='https://yourwebsite.com/js/index.php'></script>" />
-                            Javascript Connect Action: 
+                            <img src="img/info.ico" title="You can connect any website to the cloaker using &lt;script src='https://yourwebsite.com/js/index.php'&gt;&lt;/script&gt;" />
+                            Javascript Connect Action:
                         </label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
                         <div class="bt-df-checkbox pull-left">
-
-                            <?php if ($use_js_redirect) { ?>
                             <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" checked value="redirect" name="black.jsconnect" />
-                                            Redirect
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php } else { ?>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->black->jsconnectAction === 'replace' ? 'checked' : '' ?> value="replace" name="black.jsconnect" />
-                                            Content replace
-                                            <img src="img/info.ico" title="The original website's content will be totally replaced by the money page html" />
-                                        </label>
-                                    </div>
-                                </div>
+                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                    <input type="radio" <?= $c->black->jsconnectAction === 'replace' ? 'checked' : '' ?> value="replace" name="black_jsconnect" /> Content replace
+                                </label></div></div>
                             </div>
                             <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->black->jsconnectAction === 'iframe' ? 'checked' : '' ?> value="iframe" name="black.jsconnect" />
-                                            IFrame
-                                            <img src="img/info.ico" title="Money page will be displayed using an iframe element, shown over the original page" />
-                                        </label>
-                                    </div>
-                                </div>
+                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                    <input type="radio" <?= $c->black->jsconnectAction === 'iframe' ? 'checked' : '' ?> value="iframe" name="black_jsconnect" /> IFrame
+                                </label></div></div>
                             </div>
-                            <?php } ?>
+                            <div class="row">
+                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                    <input type="radio" <?= $c->black->jsconnectAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="black_jsconnect" /> Redirect
+                                </label></div></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -754,25 +559,15 @@ global $c;
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
                         <div class="bt-df-checkbox pull-left">
-
                             <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->saveUserFlow === false ? 'checked' : '' ?> value="false" name="saveuserflow" /> No
-                                        </label>
-                                    </div>
-                                </div>
+                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                    <input type="radio" <?= $c->saveUserFlow === false ? 'checked' : '' ?> value="false" name="saveuserflow" /> No
+                                </label></div></div>
                             </div>
                             <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->saveUserFlow === true ? 'checked' : '' ?> value="true" name="saveuserflow" />
-                                            Yes
-                                        </label>
-                                    </div>
-                                </div>
+                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                    <input type="radio" <?= $c->saveUserFlow === true ? 'checked' : '' ?> value="true" name="saveuserflow" /> Yes
+                                </label></div></div>
                             </div>
                         </div>
                     </div>
@@ -780,16 +575,117 @@ global $c;
             </div>
             </section>
 
-            <section id="sec-filters" class="camp-section">
+            <?php foreach ($c->black->flows as $fi => $flow) { ?>
+            <section id="sec-flow-<?= $fi ?>" class="camp-section flow-section" data-flow-index="<?= $fi ?>">
+            <h5 class="flow-section-title"><?= htmlspecialchars($flow->name) ?></h5>
+
             <div class="form-group-inner">
-                <p>
-                Here you define: which traffic will be ALLOWED to see the money pages.
-                </p>
+                <label class="login2 pull-left pull-left-pro">Flow Filters:</label>
                 <div class="row">
-                    <div id="filtersbuilder"></div>
+                    <div id="flow-filters-<?= $fi ?>"></div>
+                </div>
+            </div>
+
+            <div class="form-group-inner">
+                <label class="login2 pull-left pull-left-pro">Prelanding method:</label>
+                <div class="bt-df-checkbox pull-left">
+                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                        <input type="radio" <?= $flow->preland->action === 'none' ? 'checked' : '' ?> value="none" name="flow_<?= $fi ?>_preland_action" class="flow-preland-action" data-fi="<?= $fi ?>" /> Don't use prelanding
+                    </label></div></div></div>
+                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                        <input type="radio" <?= $flow->preland->action === 'folder' ? 'checked' : '' ?> value="folder" name="flow_<?= $fi ?>_preland_action" class="flow-preland-action" data-fi="<?= $fi ?>" /> Local prelanding(s) from folder
+                    </label></div></div></div>
+                </div>
+            </div>
+            <div class="flow-preland-folders" id="flow-preland-folders-<?= $fi ?>" style="display:<?= $flow->preland->action === 'folder' ? 'block' : 'none' ?>">
+                <div class="form-group-inner">
+                    <label class="login2 pull-left pull-left-pro">Distribution:</label>
+                    <select class="form-select flow-preland-dist" data-fi="<?= $fi ?>">
+                        <option value="equal" <?= $flow->preland->distribution === 'equal' ? 'selected' : '' ?>>Equal</option>
+                        <option value="weighted" <?= $flow->preland->distribution === 'weighted' ? 'selected' : '' ?>>Weighted</option>
+                    </select>
+                </div>
+                <div class="flow-preland-items" id="flow-preland-items-<?= $fi ?>">
+                <?php foreach ($flow->preland->folderNames as $pi => $pf) { ?>
+                    <div class="form-group-inner flow-path-item">
+                        <div class="row">
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Prelanding folder:</label></div>
+                            <div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="<?= htmlspecialchars($pf) ?>" placeholder="preland1" /></div>
+                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->preland->distribution === 'weighted' ? 'block' : 'none' ?>">
+                                <input type="number" class="form-control flow-preland-weight" value="<?= $flow->preland->weights[$pi] ?? '' ?>" placeholder="%" style="width:70px" />
+                            </div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">Delete</a></div>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-preland" data-fi="<?= $fi ?>">Add Prelanding</a>
+            </div>
+
+            <div class="form-group-inner">
+                <label class="login2 pull-left pull-left-pro">Landing method:</label>
+                <div class="bt-df-checkbox pull-left">
+                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                        <input type="radio" <?= $flow->land->action === 'folder' ? 'checked' : '' ?> value="folder" name="flow_<?= $fi ?>_land_action" class="flow-land-action" data-fi="<?= $fi ?>" /> Local landing(s) from folder
+                    </label></div></div></div>
+                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                        <input type="radio" <?= $flow->land->action === 'redirect' ? 'checked' : '' ?> value="redirect" name="flow_<?= $fi ?>_land_action" class="flow-land-action" data-fi="<?= $fi ?>" /> Redirect(s)
+                    </label></div></div></div>
+                </div>
+            </div>
+            <div class="form-group-inner">
+                <label class="login2 pull-left pull-left-pro">Distribution:</label>
+                <select class="form-select flow-land-dist" data-fi="<?= $fi ?>">
+                    <option value="equal" <?= $flow->land->distribution === 'equal' ? 'selected' : '' ?>>Equal</option>
+                    <option value="weighted" <?= $flow->land->distribution === 'weighted' ? 'selected' : '' ?>>Weighted</option>
+                </select>
+            </div>
+            <div class="flow-land-folders" id="flow-land-folders-<?= $fi ?>" style="display:<?= $flow->land->action === 'folder' ? 'block' : 'none' ?>">
+                <div class="flow-land-folder-items" id="flow-land-folder-items-<?= $fi ?>">
+                <?php foreach ($flow->land->folderNames as $li => $lf) { ?>
+                    <div class="form-group-inner flow-path-item">
+                        <div class="row">
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Landing folder:</label></div>
+                            <div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="<?= htmlspecialchars($lf) ?>" placeholder="land1" /></div>
+                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->land->distribution === 'weighted' ? 'block' : 'none' ?>">
+                                <input type="number" class="form-control flow-land-weight" value="<?= $flow->land->weights[$li] ?? '' ?>" placeholder="%" style="width:70px" />
+                            </div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">Delete</a></div>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-folder" data-fi="<?= $fi ?>">Add Landing Folder</a>
+            </div>
+            <div class="flow-land-redirects" id="flow-land-redirects-<?= $fi ?>" style="display:<?= $flow->land->action === 'redirect' ? 'block' : 'none' ?>">
+                <div class="flow-land-redirect-items" id="flow-land-redirect-items-<?= $fi ?>">
+                <?php foreach ($flow->land->redirectUrls as $ri => $ru) { ?>
+                    <div class="form-group-inner flow-path-item">
+                        <div class="row">
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>
+                            <div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="<?= htmlspecialchars($ru) ?>" placeholder="https://..." /></div>
+                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->land->distribution === 'weighted' ? 'block' : 'none' ?>">
+                                <input type="number" class="form-control flow-land-weight" value="<?= $flow->land->weights[$ri] ?? '' ?>" placeholder="%" style="width:70px" />
+                            </div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">Delete</a></div>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="<?= $fi ?>">Add Redirect</a>
+                <div class="form-group-inner" style="margin-top:10px">
+                    <label class="login2 pull-left pull-left-pro">Redirect type:</label>
+                    <div class="bt-df-checkbox pull-left">
+                        <?php foreach ([301,302,303,307] as $rt) { ?>
+                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                            <input type="radio" <?= $flow->land->redirectType === $rt ? 'checked' : '' ?> value="<?= $rt ?>" name="flow_<?= $fi ?>_redirect_type" class="flow-redirect-type" /> <?= $rt ?>
+                        </label></div></div></div>
+                        <?php } ?>
+                    </div>
                 </div>
             </div>
             </section>
+            <?php } ?>
 
             <section id="sec-scripts" class="camp-section">
             <div class="form-group-inner">
@@ -1237,32 +1133,6 @@ global $c;
             removeConfirm: false
         });
 
-        $('#add-prelanding-item').cloneData({
-            mainContainerId: 'prelandings_container',
-            cloneContainer: 'prelanding-item',
-            removeButtonClass: 'remove-prelanding-item',
-            maxLimit: 10,
-            minLimit: 1,
-            removeConfirm: false
-        });
-
-        $('#add-landing-folder-item').cloneData({
-            mainContainerId: 'landing_folders_container',
-            cloneContainer: 'landing-folder-item',
-            removeButtonClass: 'remove-landing-folder-item',
-            maxLimit: 10,
-            minLimit: 1,
-            removeConfirm: false
-        });
-
-        $('#add-landing-redirect-item').cloneData({
-            mainContainerId: 'landing_redirects_container',
-            cloneContainer: 'landing-redirect-item',
-            removeButtonClass: 'remove-landing-redirect-item',
-            maxLimit: 10,
-            minLimit: 1,
-            removeConfirm: false
-        });
         
         $('#add-sub-item').cloneData({
             mainContainerId: 'subs_container',
@@ -1305,14 +1175,16 @@ global $c;
                 }
 
                 let rules = $('#filtersbuilder').queryBuilder('getRules');
+                let flowsJson = window.collectFlowsData ? window.collectFlowsData() : '[]';
                 let formData = new FormData(document.getElementById("campsettings"));
                 let filteredFormData = new FormData();
                 for (let [key, value] of formData.entries()) {
-                    if (!key.startsWith("filtersbuilder")) {
+                    if (!key.startsWith("filtersbuilder") && !key.startsWith("flow_")) {
                         filteredFormData.append(key, value);
                     }
                 }
                 filteredFormData.append("filters", JSON.stringify(rules));
+                filteredFormData.append("flows", flowsJson);
                 let settingsBody = new URLSearchParams(filteredFormData.entries()).toString();
 
                 let res = await fetch(`campeditor.php?action=save&campId=${campId}`, {
@@ -1345,7 +1217,19 @@ global $c;
             ?>
         });
 
+        <?php foreach ($c->black->flows as $fi => $flow) { ?>
+        var flow_rules_<?= $fi ?> = <?= json_encode($flow->filters) ?>;
+        $('#flow-filters-<?= $fi ?>').queryBuilder({
+            operators: $.fn.queryBuilder.constructor.DEFAULTS.operators.concat(paramOperators),
+            filters: tdsFilters,
+            <?php if (!empty($flow->filters) && isset($flow->filters['rules'])) { ?>
+            rules: flow_rules_<?= $fi ?>
+            <?php } ?>
+        });
+        <?php } ?>
+
     </script>
+    <script src="js/flows.js"></script>
     <script src="js/campsettings-nav.js"></script>
 </body>
 

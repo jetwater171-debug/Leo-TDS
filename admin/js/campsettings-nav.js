@@ -1,31 +1,28 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const sections = document.querySelectorAll('.camp-section');
-    const navLinks = document.querySelectorAll('.camp-sidebar a');
 
-    if (!sections.length || !navLinks.length) return;
-
-    function showSection(targetId) {
-        sections.forEach(function (s) {
+    window.showSection = function (targetId) {
+        document.querySelectorAll('.camp-section').forEach(function (s) {
             s.classList.toggle('active', s.id === targetId);
         });
-        navLinks.forEach(function (link) {
+        document.querySelectorAll('.camp-sidebar a').forEach(function (link) {
             link.classList.toggle('active', link.getAttribute('href') === '#' + targetId);
         });
-    }
+    };
 
-    navLinks.forEach(function (link) {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-            var targetId = this.getAttribute('href').substring(1);
-            showSection(targetId);
-            history.replaceState(null, '', '#' + targetId);
-        });
+    document.querySelector('.camp-sidebar').addEventListener('click', function (e) {
+        var link = e.target.closest('a');
+        if (!link) return;
+        e.preventDefault();
+        var targetId = link.getAttribute('href').substring(1);
+        showSection(targetId);
+        history.replaceState(null, '', '#' + targetId);
     });
 
     var hash = location.hash.substring(1);
     if (hash && document.getElementById(hash)) {
         showSection(hash);
     } else {
-        showSection(sections[0].id);
+        var first = document.querySelector('.camp-section');
+        if (first) showSection(first.id);
     }
 });

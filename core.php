@@ -1,4 +1,5 @@
 <?php
+
 //Language detection
 require_once __DIR__ . '/bases/language.php';
 //Device/Model/Browser/Platform detection
@@ -30,21 +31,19 @@ use DeviceDetector\DeviceDetector;
 use DeviceDetector\Cache\DoctrineBridge;
 use DeviceDetector\Parser\Device\AbstractDeviceParser;
 
-class Cloaker
+class FiltrationCore
 {
-    private array $filters;
     public string $block_reason = "";
     public array $click_params = [];
 
-    public function __construct(array $filters=[], array $prefill=[])
+    public function __construct(array $prefill = [])
     {
         DebugMethods::start("YWBCoreConstruct");
-        $this->filters = $filters;
         $this->click_params = self::get_click_params($prefill);
         DebugMethods::stop("YWBCoreConstruct");
     }
 
-    public static function get_click_params(array $prefill=[]): array
+    public static function get_click_params(array $prefill = []): array
     {
         ClientHints::requestClientHints();
         $a = [];
@@ -52,8 +51,8 @@ class Cloaker
         $a['referer'] = $prefill['tds_ref'] ?? $_SERVER['HTTP_REFERER'] ?? '';
         $lang = $prefill['tds_lang'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
         $a['lang'] = LanguageDetector::detect($lang);
-        
-        $clientHints = ClientHints::factory($prefill['tds_client_hints'] ?? $_SERVER); 
+
+        $clientHints = ClientHints::factory($prefill['tds_client_hints'] ?? $_SERVER);
         $dd = new DeviceDetector($a['ua'], $clientHints);
 
         DebugMethods::start("YWBCoreDeviceDetector");
@@ -64,26 +63,26 @@ class Cloaker
         $a['client'] = $clientInfo['name'];
         $a['clientver'] = $clientInfo['version'];
         DebugMethods::stop("YWBCoreDeviceDetector");
-        
+
         $osInfo = $dd->getOs();
         $a['os'] = $osInfo['name'];
         $a['osver'] = $osInfo['version'];
         $a['device'] = $dd->getDeviceName();
         $a['brand'] = $dd->getBrandName();
         $a['model'] = $dd->getModel();
-        
+
         DebugMethods::start("YWBCoreMaxMind");
-        $a['ip'] = getip($prefill['tds_ip']??$_SERVER);
+        $a['ip'] = getip($prefill['tds_ip'] ?? $_SERVER);
         $a['country'] = getcountry($a['ip']);
         $a['isp'] = getisp($a['ip']);
         DebugMethods::stop("YWBCoreMaxMind");
-        
+
         $a['url'] = $prefill['tds_url'] ?? $_SERVER['REQUEST_URI'];
         //host - is where from the traffic comes
         $a['host'] = $prefill['tds_host'] ?? $_SERVER['HTTP_HOST'];
         //domain is where the traffic goes
-        $a['domain'] = $_SERVER['HTTP_HOST']; 
-        parse_str($prefill['tds_qs'] ?? $_SERVER['QUERY_STRING']??'', $a['qs']);
+        $a['domain'] = $_SERVER['HTTP_HOST'];
+        parse_str($prefill['tds_qs'] ?? $_SERVER['QUERY_STRING'] ?? '', $a['qs']);
         return $a;
     }
 
@@ -91,14 +90,17 @@ class Cloaker
     {
         for ($i = 0; $i < count($filters); $i++) {
             $f = $filters[$i];
-            if (!empty($f['condition'])) //this is a filter group
+            if (!empty($f['condition'])) {//this is a filter group
                 $fRes = $this->match_filters($f['condition'] === 'AND', $f['rules']);
-            else
+            } else {
                 $fRes = $this->match_filter($f);
-            if ($all && !$fRes)
+            }
+            if ($all && !$fRes) {
                 return false;
-            if (!$all && $fRes)
+            }
+            if (!$all && $fRes) {
                 return true;
+            }
         }
         return $all; //if we are here, then for AND all are true and for OR all are false
     }
@@ -110,44 +112,61 @@ class Cloaker
         $curParamName = $filter['id'];
 
         $standardParams = [
-            'os', 'osver', 'device', 'brand', 'model', 'client', 'clientver', 
-            'country', 'language', 'useragent', 'isp', 'referer', 'domain', 'host'
+            'os',
+            'osver',
+            'device',
+            'brand',
+            'model',
+            'client',
+            'clientver',
+            'country',
+            'language',
+            'useragent',
+            'isp',
+            'referer',
+            'domain',
+            'host'
         ];
         if (in_array($curParamName, $standardParams)) {
             $paramValue = $this->click_params[$curParamName];
             $check = $this->operator($val, $filter['operator'], $paramValue);
-            if ($check) return true;
-        }
-        else{
+            if ($check) {
+                return true;
+            }
+        } else {
             switch ($curParamName) {
                 case 'urlparam':
                     $pName = $val[0];
                     $pValues = $val[1];
                     $clickQS = $this->click_params['qs'];
-                    if (!isset($clickQS[$pName])) 
-                    {
-                        if ($filter['operator'] === 'param_not_in')
+                    if (!isset($clickQS[$pName])) {
+                        if ($filter['operator'] === 'param_not_in'){
                             return true;
-                    }
-                    else
-                    {
+                        }
+                    } else {
                         $check = $this->operator($pValues, $filter['operator'], $clickQS[$pName]);
-                        if ($check) return true;
+                        if ($check) {
+                            return true;
+                        }
                     }
                     break;
                 case 'vpntor':
                     $vpnDetected = $this->is_proxy_or_vpn($this->click_params['ip']);
-                    if ($val === 0 && $vpnDetected)
+                    if ($val === 0 && $vpnDetected) {
                         return true;
-                    if ($val === 1 && !$vpnDetected)
+                    }
+                    if ($val === 1 && !$vpnDetected) {
                         return true;
+                    }
                     break;
                 case 'ipbase':
                     $inBase = $this->is_ip_in_base($this->click_params['ip'], $val);
-                    if ($filter['operator'] === 'in' && $inBase)
+                    if ($filter['operator'] === 'in' && $inBase) {
                         return true;
-                    if ($filter['operator'] === 'not_in' && !$inBase)
+                    }
+                    if ($filter['operator'] === 'not_in' && !$inBase) {
                         return true;
+                    }
                     break;
                 default:
                     die("No operator defined for '$curParamName' check!");
@@ -156,7 +175,7 @@ class Cloaker
         $this->block_reason = $curParamName;
         return false;
     }
-    
+
     private function operator(string $val, string $operator, string $paramValue): bool
     {
         $check = true;
@@ -182,22 +201,25 @@ class Cloaker
                         break;
                     }
                 }
-                if (!$contains)
+                if (!$contains) {
                     $check = false;
+                }
                 break;
             case 'not_contains':
                 $values = explode(',', $val);
                 $contains = false;
                 foreach ($values as $value) {
-                    if (empty($value))
+                    if (empty($value)) {
                         continue;
+                    }
                     if (stripos($paramValue, $value) !== false) {
                         $contains = true;
                         break;
                     }
                 }
-                if ($contains)
+                if ($contains) {
                     $check = false;
+                }
                 break;
             case 'less_or_equal':
                 $check = version_compare($paramValue, $val, '<=');
@@ -227,13 +249,16 @@ class Cloaker
         return false;
     }
 
-    public function is_bad_click(): bool
+    public function click_matches_filters(array $filters): bool
     {
         try {
             DebugMethods::start("YWBCoreCheck");
-            if (!array_key_exists('rules', $this->filters))
-                return false;
-            return !$this->match_filters($this->filters['condition'] === 'AND', $this->filters['rules']);
+            if (empty($filters) || !array_key_exists('rules', $filters)) {
+                return true;
+            }
+            
+            $allShouldMatch = $filters['condition'] === 'AND';
+            return $this->match_filters($allShouldMatch, $filters['rules']);
         } finally {
             DebugMethods::stop("YWBCoreCheck");
         }
@@ -251,12 +276,16 @@ class Cloaker
             if (!empty($xip[0])) {
                 $xip = $xip[0];
             }
-            if ($xip!==$ip) return true;
+            if ($xip !== $ip) {
+                return true;
+            }
         }
 
         //perform checks using 3rd party services, SLOW
         $blackbox = $this->is_bad_by_blackbox($ip);
-        if ($blackbox !== null) return $blackbox;
+        if ($blackbox !== null) {
+            return $blackbox;
+        }
         $ipintel = $this->is_bad_by_ipintel($ip);
         return ($ipintel === null ? false : $ipintel);
     }
@@ -289,7 +318,7 @@ class Cloaker
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         curl_setopt($ch, CURLOPT_URL, "http://check.getipintel.net/check.php?ip=$ip&contact=$contactEmail&flags=m");
-        
+
         $response = curl_exec($ch);
         $error = curl_error($ch);
         $errno = curl_errno($ch);
@@ -319,11 +348,10 @@ class Cloaker
     private function is_ip_in_base($ip, $baseFileName): bool
     {
         $base_full_path = __DIR__ . "/bases/" . $baseFileName;
-        if (!file_exists($base_full_path))
+        if (!file_exists($base_full_path)) {
             return false;
+        }
         $cidr = file($base_full_path, FILE_IGNORE_NEW_LINES);
         return IpUtils::checkIp($ip, $cidr);
     }
-
-    
 }
