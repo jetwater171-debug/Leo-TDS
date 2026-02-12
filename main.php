@@ -115,13 +115,14 @@ function white(Campaign $c): CloakerAction
     }
 }
 
-function black(Campaign $c, FlowSettings $flow, array $clickparams): CloakerAction
+function black(Campaign $c, int $flowIndex, array $clickparams): CloakerAction
 {
     global $db;
 
     $cursubid = set_subid();
     set_px();
 
+    $flow = $c->black->flows[$flowIndex];
     $bl = $flow->land;
     $landings = match ($bl->action) {
         'redirect' => $bl->redirectUrls,
@@ -142,7 +143,7 @@ function black(Campaign $c, FlowSettings $flow, array $clickparams): CloakerActi
                 'folder' => new CloakerAction(
                     'black',
                     'html',
-                    load_landing($c, $landing)
+                    load_landing($c, $flowIndex, $landing)
                 ),
                 'redirect' => new CloakerAction(
                     'black',
@@ -162,10 +163,10 @@ function black(Campaign $c, FlowSettings $flow, array $clickparams): CloakerActi
             $prelanding = $res[0];
             $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $bl->distribution, $bl->weights);
             $landing = $res[0];
-            $t = $res[1];
+            $landIndex = $res[1];
 
             $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $flow->name, $c->campaignId);
-            $action = new CloakerAction('black', 'html', load_prelanding($c, $prelanding, $t));
+            $action = new CloakerAction('black', 'html', load_prelanding($c, $flowIndex, $prelanding, $landIndex));
             break;
         default:
             $action = new CloakerAction('black', 'die', "No such prelanding action found: " . $bp->action);

@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/db/db.php';
 require_once __DIR__ . '/campaign.php';
 require_once __DIR__ . '/core.php';
@@ -7,7 +8,7 @@ require_once __DIR__ . '/cookies.php';
 
 class Tds
 {
-    public static function getAction() : CloakerAction
+    public static function getAction(): CloakerAction
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
@@ -25,11 +26,11 @@ class Tds
                 if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                 } else {
-                    $flow = self::pick_flow($clkr, $c->black->flows);
-                    if ($flow === null) {
+                    $flowIndex = self::pick_flow_index($clkr, $c->black->flows);
+                    if ($flowIndex === null) {
                         $action = traficback($clkr->click_params);
                     } else {
-                        $action = black($c, $flow, $clkr->click_params);
+                        $action = black($c, $flowIndex, $clkr->click_params);
                     }
                 }
             }
@@ -37,7 +38,7 @@ class Tds
         return $action;
     }
 
-    public static function getJsAction(array $prefill) : JsAction
+    public static function getJsAction(array $prefill): JsAction
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
@@ -56,14 +57,14 @@ class Tds
                     $action = jscheck($c);
                     $action->action = 'html_content';
                 } else {
-                    $flow = self::pick_flow($clkr, $c->black->flows);
-                    if ($flow === null) {
+                    $flowIndex = self::pick_flow_index($clkr, $c->black->flows);
+                    if ($flowIndex === null) {
                         $action = traficback($clkr->click_params);
                     } else {
-                        $action = black($c, $flow, $clkr->click_params);
+                        $action = black($c, $flowIndex, $clkr->click_params);
                         if ($c->black->jsconnectAction === 'iframe') {
                             $action->action = 'html_iframe';
-                        }else{
+                        } else {
                             $action->action = 'html_content';
                         }
                     }
@@ -73,15 +74,14 @@ class Tds
         return JsAction::FromCloakerAction($action);
     }
 
-    public static function processJsCheck() : JsAction
+    public static function processJsCheck(): JsAction
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
         if ($dbCamp === false) { //campaign already deleted or domain changed? lol
             if (DebugMethods::on()) {
                 $action = new JsAction("traficback", "js", "console.log('Debug: No campaign found for this domain!');");
-            }
-            else {
+            } else {
                 $action = new JsAction("traficback", "error", "");
             }
             return $action;
@@ -121,12 +121,12 @@ class Tds
             session_remove('jscheck_pending');
             session_write('jscheck_passed', true);
             $clkr = new FiltrationCore();
-            $flow = self::pick_flow($clkr, $c->black->flows);
-            if ($flow === null) {
+            $flowIndex = self::pick_flow_index($clkr, $c->black->flows);
+            if ($flowIndex === null) {
                 $action = traficback($clkr->click_params);
                 $action = JsAction::FromCloakerAction($action);
             } else {
-                $action = black($c, $flow, $clkr->click_params);
+                $action = black($c, $flowIndex, $clkr->click_params);
                 $action = JsAction::FromCloakerAction($action);
                 if ($c->black->jsconnectAction === 'iframe') {
                     $action->action = 'html_iframe';
@@ -157,11 +157,11 @@ class Tds
                 if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                 } else {
-                    $flow = self::pick_flow($clkr, $c->black->flows);
-                    if ($flow === null) {
+                    $flowIndex = self::pick_flow_index($clkr, $c->black->flows);
+                    if ($flowIndex === null) {
                         $action = traficback($clkr->click_params);
                     } else {
-                        $action = black($c, $flow, $clkr->click_params);
+                        $action = black($c, $flowIndex, $clkr->click_params);
                     }
                 }
             }
@@ -169,11 +169,11 @@ class Tds
         return PhpAction::FromCloakerAction($action);
     }
 
-    public static function pick_flow(FiltrationCore $clkr, array $flows): ?FlowSettings
+    public static function pick_flow_index(FiltrationCore $clkr, array $flows): ?int
     {
-        foreach ($flows as $flow) {
-            if ($clkr->click_matches_filters($flow->filters)) {
-                return $flow;
+        for ($i = 0; $i < count($flows); $i++) {
+            if ($clkr->click_matches_filters($flows[$i]->filters)) {
+                return $i;
             }
         }
         return null;

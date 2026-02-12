@@ -69,7 +69,7 @@ var tdsFilters = [
 
     },
     {
-        id: 'language',
+        id: 'lang',
         label: 'Language',
         input: 'text',
         type: 'string',

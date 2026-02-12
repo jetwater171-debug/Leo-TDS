@@ -120,7 +120,7 @@ class FiltrationCore
             'client',
             'clientver',
             'country',
-            'language',
+            'lang',
             'useragent',
             'isp',
             'referer',

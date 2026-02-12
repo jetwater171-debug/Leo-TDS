@@ -11,13 +11,6 @@ class AbTest
         $this->campaign = $campaign;
     }
 
-    public function select_item_by_index(array $items, int $index): string
-    {
-        if (!isset($items[$index]))
-            $index = rand(0, count($items) - 1);
-        return $items[$index];
-    }
-
     public function select_folder(array $folders, string $folder_type): array
     {
         return $this->select_item($folders, $folder_type, true);

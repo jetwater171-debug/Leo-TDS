@@ -179,6 +179,11 @@ class FlowSettings implements JsonSerializable
             "landing" => $this->land
         ];
     }
+
+    public function hasPrelanding(): bool
+    {
+        return $this->preland->action !== 'none';
+    }
 }
 
 class PrelandSettings implements JsonSerializable
