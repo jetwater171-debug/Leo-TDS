@@ -110,13 +110,25 @@ document.addEventListener('DOMContentLoaded', function () {
     var flowCounter = document.querySelectorAll('.flow-list-row').length;
 
     document.getElementById('add-flow-btn').addEventListener('click', function () {
+        var flowName = prompt('Enter flow name (cannot be changed later):');
+        if (!flowName || !flowName.trim()) return;
+        flowName = flowName.trim();
+
+        // Validate uniqueness
+        var existing = document.querySelectorAll('.flow-name-label');
+        for (var i = 0; i < existing.length; i++) {
+            if (existing[i].value === flowName) {
+                alert('Flow name "' + flowName + '" already exists. Choose a different name.');
+                return;
+            }
+        }
+
         var fi = 'new_' + flowCounter;
         flowCounter++;
-        var flowName = 'Flow ' + (document.querySelectorAll('.flow-list-row').length + 1);
 
         // 1. Add list row
         var rowHtml = '<div class="flow-list-row" data-flow-index="' + fi + '">' +
-            '<input type="text" class="form-control flow-name-input" value="' + flowName + '" style="display:inline-block;width:200px;" /> ' +
+            '<input type="text" class="form-control flow-name-label" value="' + flowName + '" readonly style="display:inline-block;width:200px;cursor:default;" /> ' +
             '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-up" title="Move Up">&uarr;</a> ' +
             '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-down" title="Move Down">&darr;</a> ' +
             '<a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">Delete</a>' +
@@ -254,16 +266,6 @@ document.addEventListener('DOMContentLoaded', function () {
         row.remove();
     });
 
-    // ── Flow name sync to sidebar ──
-    document.addEventListener('input', function (e) {
-        if (!e.target.classList.contains('flow-name-input')) return;
-        var row = e.target.closest('.flow-list-row');
-        var fi = row.dataset.flowIndex;
-        var nav = document.querySelector('.flow-nav-item[data-flow-index="' + fi + '"] a');
-        if (nav) nav.textContent = '\u00a0\u00a0' + e.target.value;
-        var title = document.querySelector('#sec-flow-' + fi + ' .flow-section-title');
-        if (title) title.textContent = e.target.value;
-    });
 
 
 });
@@ -277,7 +279,7 @@ window.collectFlowsData = function () {
         var sec = document.getElementById('sec-flow-' + fi);
         if (!sec) return;
 
-        var name = row.querySelector('.flow-name-input').value || 'Flow';
+        var name = row.querySelector('.flow-name-label').value || 'Flow';
 
         // Flow filters from QueryBuilder
         var fb = $('#flow-filters-' + fi);

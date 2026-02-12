@@ -510,7 +510,7 @@ global $c;
                 <div id="flows-list">
                 <?php foreach ($c->black->flows as $fi => $flow) { ?>
                     <div class="flow-list-row" data-flow-index="<?= $fi ?>">
-                        <input type="text" class="form-control flow-name-input" value="<?= htmlspecialchars($flow->name) ?>" style="display:inline-block;width:200px;" />
+                        <input type="text" class="form-control flow-name-label" value="<?= htmlspecialchars($flow->name) ?>" readonly style="display:inline-block;width:200px;cursor:default;" />
                         <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-up" title="Move Up">&uarr;</a>
                         <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-down" title="Move Down">&darr;</a>
                         <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">Delete</a>
@@ -1205,13 +1205,13 @@ global $c;
     </script>
     <script src="js/filters.js"></script>
     <script>
-        var rules_basic = <?=json_encode($c->filters)?>;
+        var rules_basic = <?=json_encode($c->white->filters)?>;
 
         $('#filtersbuilder').queryBuilder({
             operators: $.fn.queryBuilder.constructor.DEFAULTS.operators.concat(paramOperators),
             filters: tdsFilters,
             <?php
-            if (!empty($c->filters)) {
+            if (!empty($c->white->filters)) {
                 echo 'rules: rules_basic';
             }
             ?>

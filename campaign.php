@@ -7,7 +7,6 @@ class Campaign implements JsonSerializable
 {
     public int $campaignId;
     public array $domains;
-    public array $filters;
     public bool $saveUserFlow;
     public string $apiKey;
 
@@ -22,7 +21,6 @@ class Campaign implements JsonSerializable
         $this->campaignId = $campId;
 
         $this->domains = $s['domains'];
-        $this->filters = $s['filters'] ?? [];
         $this->saveUserFlow = $s['saveuserflow'];
         $this->apiKey = $s['apikey'];
 
@@ -38,7 +36,6 @@ class Campaign implements JsonSerializable
     {
         return [
             "domains" => $this->domains,
-            "filters" => $this->filters,
             "saveuserflow" => $this->saveUserFlow,
             "apikey" => $this->apiKey,
             "white" => $this->white,
@@ -52,6 +49,7 @@ class Campaign implements JsonSerializable
 
 class WhiteSettings implements JsonSerializable
 {
+    public array $filters;
     public string $action;
     public array $folderNames;
     public array $redirectUrls;
@@ -65,6 +63,7 @@ class WhiteSettings implements JsonSerializable
     public static function fromArray(array $s): WhiteSettings
     {
         $ws = new WhiteSettings();
+        $ws->filters = $s['filters'] ?? [];
         $ws->action = $s['action'];
         $ws->folderNames = $s['folders'];
         $ws->redirectUrls = $s['redirect']['urls'];
@@ -82,9 +81,10 @@ class WhiteSettings implements JsonSerializable
         return $ws;
     }
 
-    function jsonSerialize(): array
+    public function jsonSerialize(): array
     {
         return [
+            "filters" => $this->filters,
             "action" => $this->action,
             "folders" => $this->folderNames,
             "redirect" => [

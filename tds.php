@@ -17,7 +17,7 @@ class Tds
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             $clkr = new FiltrationCore();
 
-            if ($clkr->click_matches_filters($c->filters)) {
+            if ($clkr->click_matches_filters($c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
@@ -47,7 +47,7 @@ class Tds
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             $clkr = new FiltrationCore($prefill);
 
-            if ($clkr->click_matches_filters($c->filters)) {
+            if ($clkr->click_matches_filters($c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
@@ -149,7 +149,7 @@ class Tds
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             $clkr = new FiltrationCore($prefill);
 
-            if ($clkr->click_matches_filters($c->filters)) {
+            if ($clkr->click_matches_filters($c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {

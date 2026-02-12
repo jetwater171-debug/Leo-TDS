@@ -227,7 +227,7 @@ class Db
                     "strftime('%Y-%m-%d', datetime(time, 'unixepoch', '{$offsetFormatted}')) AS date";
                 $groupByParts[] = "date";
                 $orderByParts[] = "date";
-            } elseif (in_array($field, ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'preland', 'land'])) {
+            } elseif (in_array($field, ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'preland', 'land', 'flow'])) {
                 $selectParts[] = $field;
                 $groupByParts[] = $field;
                 $orderByParts[] = $field;
@@ -408,16 +408,17 @@ class Db
         return $this->add_click($query, $click);
     }
 
-    public function add_black_click($subid, $data, $preland, $land, $campId): bool
+    public function add_black_click($subid, $data, $preland, $land, $flow, $campId): bool
     {
         $click = $this->prepare_click_data($data, $campId);
         $click['subid'] = $subid;
         $click['preland'] = empty($preland) ? 'unknown' : $preland;
         $click['land'] = empty($land) ? 'unknown' : $land;
+        $click['flow'] = empty($flow) ? 'unknown' : $flow;
         $click['lpclick'] = 0;
         $click['status'] = null;
 
-        $query = "INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, subid, preland, land, params, cost, lpclick, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :subid, :preland, :land, :params, :cpc, 0, NULL)";
+        $query = "INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, subid, preland, land, flow, params, cost, lpclick, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :subid, :preland, :land, :flow, :params, :cpc, 0, NULL)";
 
         return $this->add_click($query, $click);
     }

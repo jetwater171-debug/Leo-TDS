@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS clicks (
 	subid TEXT NOT NULL,
 	preland TEXT,
 	land TEXT,
+	flow TEXT,
 	params TEXT,
 	leaddata TEXT,
 	lpclick BOOLEAN,

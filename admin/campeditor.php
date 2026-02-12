@@ -39,7 +39,7 @@ switch ($action) {
         foreach($_POST as $key=>$value){
             if ($key==="filters"){ //special case cause we store filters in json format
                 $arrFilters=json_decode($value,true);
-                $s['filters'] = $arrFilters;
+                $s['white']['filters'] = $arrFilters;
             }
             else if ($key==="flows"){ //flows are stored as json
                 $arrFlows=json_decode($value,true);

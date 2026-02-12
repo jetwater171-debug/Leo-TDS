@@ -37,6 +37,7 @@ class AvailableColumns
         "params",
         "preland",
         "land",
+        "flow",
         "lpclick",
         "status",
         "cost",
@@ -61,6 +62,7 @@ class AvailableColumns
         "params",
         "preland",
         "land",
+        "flow",
         "lpclick",
         "status",
         "payout",
@@ -96,7 +98,8 @@ class AvailableColumns
         "client",
         "clientver",
         "preland",
-        "land"
+        "land",
+        "flow"
     ];
 
     static $statsColumns = [
@@ -247,6 +250,13 @@ class TableColumns
                 "editor" => "input",
                 "headerFilter" => false,
             ],
+            "flow"=>[
+                "title" => "Flow",
+                "field" => "flow",
+                "headerTooltip" => "Traffic flow",
+                "editor" => "input",
+                "headerFilter" => false,
+            ],
             "reason"=>[
                 "title" => "Reason",
                 "headerTooltip" => "Why click was blocked",
@@ -304,6 +314,12 @@ class TableColumns
             "title" => "Land",
             "headerTooltip" => "Chosen landing",
             "field" => "land",
+            "headerFilter" => "input",
+        ],
+        'flow' => [
+            "title" => "Flow",
+            "headerTooltip" => "Traffic flow",
+            "field" => "flow",
             "headerFilter" => "input",
         ],
         'country' => [

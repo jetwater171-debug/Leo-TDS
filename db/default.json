@@ -6,20 +6,6 @@
   ],
   "apikey": "test",
   "saveuserflow": false,
-  "filters": {
-    "condition": "AND",
-    "rules": [
-      {
-        "id": "country",
-        "field": "country",
-        "type": "string",
-        "input": "text",
-        "operator": "in",
-        "value": "RU,BG,SG"
-      }
-    ],
-    "valid": true
-  },
   "white": {
     "action": "error",
     "folders": [
@@ -62,6 +48,20 @@
         "min": "-3",
         "max": "4"
       }
+    },
+    "filters": {
+      "condition": "AND",
+      "rules": [
+        {
+          "id": "country",
+          "field": "country",
+          "type": "string",
+          "input": "text",
+          "operator": "in",
+          "value": "RU,BG,SG"
+        }
+      ],
+      "valid": true
     }
   },
   "black": {
@@ -72,13 +72,17 @@
         "filters": {},
         "prelanding": {
           "action": "none",
-          "folders": ["preland"],
+          "folders": [
+            "preland"
+          ],
           "distribution": "equal",
           "weights": []
         },
         "landing": {
           "action": "redirect",
-          "folders": ["land"],
+          "folders": [
+            "land"
+          ],
           "redirect": {
             "urls": [
               "https://www.rolltrk.com/DHSF7PS/2QM39NQ/"
@@ -237,6 +241,10 @@
         "width": -1
       },
       {
+        "field": "flow",
+        "width": -1
+      },
+      {
         "field": "lpclick",
         "width": -1
       },
@@ -253,7 +261,7 @@
         "width": -1
       }
     ],
-    "leads":[
+    "leads": [
       {
         "field": "subid",
         "width": -1
@@ -319,6 +327,10 @@
         "width": -1
       },
       {
+        "field": "flow",
+        "width": -1
+      },
+      {
         "field": "lpclick",
         "width": -1
       },
@@ -335,21 +347,59 @@
       {
         "name": "Date",
         "columns": [
-          {"field": "date", "width":-1},
-          {"field": "clicks", "width":-1},
-          {"field": "uniques", "width":-1},
-          {"field": "uniques_ratio", "width":-1},
-          {"field": "conversion", "width":-1},
-          {"field": "cra", "width":-1},
-          {"field": "epc", "width":-1},
-          {"field": "cpc", "width":-1},
-          {"field": "revenue", "width":-1},
-          {"field": "costs", "width":-1},
-          {"field": "profit", "width":-1},
-          {"field": "roi", "width":-1}
+          {
+            "field": "date",
+            "width": -1
+          },
+          {
+            "field": "clicks",
+            "width": -1
+          },
+          {
+            "field": "uniques",
+            "width": -1
+          },
+          {
+            "field": "uniques_ratio",
+            "width": -1
+          },
+          {
+            "field": "conversion",
+            "width": -1
+          },
+          {
+            "field": "cra",
+            "width": -1
+          },
+          {
+            "field": "epc",
+            "width": -1
+          },
+          {
+            "field": "cpc",
+            "width": -1
+          },
+          {
+            "field": "revenue",
+            "width": -1
+          },
+          {
+            "field": "costs",
+            "width": -1
+          },
+          {
+            "field": "profit",
+            "width": -1
+          },
+          {
+            "field": "roi",
+            "width": -1
+          }
         ],
-        "groupby": [ "date" ]
-      } 
+        "groupby": [
+          "date"
+        ]
+      }
     ]
   },
   "postback": {

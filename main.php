@@ -136,7 +136,7 @@ function black(Campaign $c, FlowSettings $flow, array $clickparams): CloakerActi
         case 'none': //no prelanding
             $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $bl->distribution, $bl->weights);
             $landing = $res[0];
-            $db->add_black_click($cursubid, $clickparams, '', $landing, $c->campaignId);
+            $db->add_black_click($cursubid, $clickparams, '', $landing, $flow->name, $c->campaignId);
 
             $action = match ($bl->action) {
                 'folder' => new CloakerAction(
@@ -164,7 +164,7 @@ function black(Campaign $c, FlowSettings $flow, array $clickparams): CloakerActi
             $landing = $res[0];
             $t = $res[1];
 
-            $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $c->campaignId);
+            $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $flow->name, $c->campaignId);
             $action = new CloakerAction('black', 'html', load_prelanding($c, $prelanding, $t));
             break;
         default:
