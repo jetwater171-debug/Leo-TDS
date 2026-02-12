@@ -77,18 +77,33 @@ function send_camp_result($msg,$error=false): void
 }
 
 function normalize_flow_weights(array &$flow, string $section): void {
-    if (($flow[$section]['distribution'] ?? 'equal') !== 'weighted') return;
+    if (($flow['distribution'] ?? 'equal') !== 'weighted') return;
     $weights = $flow[$section]['weights'] ?? [];
     if (empty($weights)) return;
     $total = array_sum($weights);
+    $count = count($weights);
     if ($total <= 0) {
-        $count = count($weights);
-        $flow[$section]['weights'] = array_fill(0, $count, round(100 / $count, 2));
+        $base = intdiv(100, $count);
+        $remainder = 100 - $base * $count;
+        $result = array_fill(0, $count, $base);
+        for ($i = 0; $i < $remainder; $i++) $result[$i]++;
+        $flow[$section]['weights'] = $result;
         return;
     }
-    if ($total != 100) {
-        $flow[$section]['weights'] = array_map(fn($w) => round($w / $total * 100, 2), $weights);
+    $exact = array_map(fn($w) => $w / $total * 100, $weights);
+    $floored = array_map('floor', $exact);
+    $remainders = [];
+    for ($i = 0; $i < $count; $i++) {
+        $remainders[$i] = $exact[$i] - $floored[$i];
     }
+    $diff = 100 - (int)array_sum($floored);
+    arsort($remainders);
+    foreach (array_keys($remainders) as $idx) {
+        if ($diff <= 0) break;
+        $floored[$idx]++;
+        $diff--;
+    }
+    $flow[$section]['weights'] = array_map('intval', $floored);
 }
 
 function setArrayValue(&$array, $underscoreString, $newValue) {

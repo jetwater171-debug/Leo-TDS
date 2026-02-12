@@ -1,3 +1,67 @@
+// ── Helper: get flow distribution value for a given flow index ──
+function getFlowDist(fi) {
+    var sel = document.querySelector('.flow-dist[data-fi="' + fi + '"]');
+    return sel ? sel.value : 'equal';
+}
+
+// ── Helper: check if weights look like equal distribution (differ by at most 1) ──
+function looksEqualDistributed(weights) {
+    if (weights.length === 0) return true;
+    var min = Math.min.apply(null, weights);
+    var max = Math.max.apply(null, weights);
+    return (max - min) <= 1 && weights.reduce(function(a, b) { return a + b; }, 0) === 100;
+}
+
+// ── Helper: distribute 100 equally among count items (largest remainder) ──
+function equalWeights(count) {
+    if (count <= 0) return [];
+    var base = Math.floor(100 / count);
+    var remainder = 100 - base * count;
+    var result = [];
+    for (var i = 0; i < count; i++) {
+        result.push(base + (i < remainder ? 1 : 0));
+    }
+    return result;
+}
+
+// ── Helper: redistribute weights for a set of weight inputs after add/remove ──
+function redistributeWeights(weightInputs) {
+    var count = weightInputs.length;
+    if (count === 0) return;
+    // Read current weights
+    var current = [];
+    for (var i = 0; i < count; i++) {
+        current.push(parseInt(weightInputs[i].value, 10) || 0);
+    }
+    // Check if all existing weights (excluding last which is the new empty one) look equal
+    var existing = current.slice(0, count - 1);
+    var shouldRedistribute = existing.length === 0 || looksEqualDistributed(existing);
+    if (shouldRedistribute) {
+        var newWeights = equalWeights(count);
+        for (var j = 0; j < count; j++) {
+            weightInputs[j].value = newWeights[j];
+        }
+    }
+}
+
+// ── Helper: redistribute weights after an item is removed ──
+function redistributeWeightsAfterDelete(weightInputs, removedWeight) {
+    var count = weightInputs.length;
+    if (count === 0) return;
+    var current = [];
+    for (var i = 0; i < count; i++) {
+        current.push(parseInt(weightInputs[i].value, 10) || 0);
+    }
+    // If remaining weights + removed weight looked equal, redistribute
+    var withRemoved = current.concat([removedWeight]);
+    if (looksEqualDistributed(withRemoved)) {
+        var newWeights = equalWeights(count);
+        for (var j = 0; j < count; j++) {
+            weightInputs[j].value = newWeights[j];
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     // ── Toggle preland folders visibility (delegated) ──
@@ -48,7 +112,23 @@ document.addEventListener('DOMContentLoaded', function () {
             e.target.classList.contains('flow-remove-land-folder') ||
             e.target.classList.contains('flow-remove-land-redirect')) {
             var item = e.target.closest('.flow-path-item');
-            if (item) item.remove();
+            if (!item) return;
+            var sec = item.closest('.flow-section');
+            var fi = sec ? sec.dataset.flowIndex : '';
+            var isWeighted = getFlowDist(fi) === 'weighted';
+            // Read removed weight before removing
+            var removedWeightInp = item.querySelector('input[type="number"]');
+            var removedWeight = removedWeightInp ? (parseInt(removedWeightInp.value, 10) || 0) : 0;
+            // Determine which selector to use for remaining weights
+            var weightClass = '';
+            if (e.target.classList.contains('flow-remove-preland')) weightClass = '.flow-preland-weight';
+            else if (e.target.classList.contains('flow-remove-land-folder')) weightClass = '.flow-land-weight';
+            else if (e.target.classList.contains('flow-remove-land-redirect')) weightClass = '.flow-land-weight';
+            item.remove();
+            if (isWeighted && weightClass && sec) {
+                var remaining = sec.querySelectorAll(weightClass);
+                redistributeWeightsAfterDelete(remaining, removedWeight);
+            }
         }
     });
 
@@ -58,16 +138,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!btn) return;
         var fi = btn.dataset.fi;
         var container = document.getElementById('flow-preland-items-' + fi);
-        var dist = document.querySelector('.flow-preland-dist[data-fi="' + fi + '"]');
-        var showWeight = dist && dist.value === 'weighted';
+        var showWeight = getFlowDist(fi) === 'weighted';
         var html = '<div class="form-group-inner flow-path-item"><div class="row">' +
             '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Prelanding folder:</label></div>' +
             '<div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="" placeholder="preland1" /></div>' +
             '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
-            '<input type="number" class="form-control flow-preland-weight" value="" placeholder="%" style="width:70px" /></div>' +
+            '<input type="number" step="1" class="form-control flow-preland-weight" value="" placeholder="%" style="width:70px" /></div>' +
             '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">✕ Delete</a></div>' +
             '</div></div>';
         container.insertAdjacentHTML('beforeend', html);
+        if (showWeight) {
+            redistributeWeights(container.querySelectorAll('.flow-preland-weight'));
+        }
     });
 
     // ── Add land folder (delegated) ──
@@ -76,16 +158,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!btn) return;
         var fi = btn.dataset.fi;
         var container = document.getElementById('flow-land-folder-items-' + fi);
-        var dist = document.querySelector('.flow-land-dist[data-fi="' + fi + '"]');
-        var showWeight = dist && dist.value === 'weighted';
+        var showWeight = getFlowDist(fi) === 'weighted';
         var html = '<div class="form-group-inner flow-path-item"><div class="row">' +
             '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Landing folder:</label></div>' +
             '<div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="" placeholder="land1" /></div>' +
             '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
-            '<input type="number" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>' +
+            '<input type="number" step="1" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>' +
             '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">✕ Delete</a></div>' +
             '</div></div>';
         container.insertAdjacentHTML('beforeend', html);
+        if (showWeight) {
+            redistributeWeights(container.querySelectorAll('.flow-land-weight'));
+        }
     });
 
     // ── Add land redirect (delegated) ──
@@ -94,16 +178,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!btn) return;
         var fi = btn.dataset.fi;
         var container = document.getElementById('flow-land-redirect-items-' + fi);
-        var dist = document.querySelector('.flow-land-dist[data-fi="' + fi + '"]');
-        var showWeight = dist && dist.value === 'weighted';
+        var showWeight = getFlowDist(fi) === 'weighted';
         var html = '<div class="form-group-inner flow-path-item"><div class="row">' +
             '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>' +
             '<div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="" placeholder="https://..." /></div>' +
             '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
-            '<input type="number" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>' +
+            '<input type="number" step="1" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>' +
             '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">✕ Delete</a></div>' +
             '</div></div>';
         container.insertAdjacentHTML('beforeend', html);
+        if (showWeight) {
+            redistributeWeights(container.querySelectorAll('.flow-land-weight'));
+        }
     });
 
     // ── Add Flow ──
@@ -311,7 +397,7 @@ window.collectFlowsData = function () {
             if (inp.value.trim()) {
                 prelandFolders.push(inp.value.trim());
                 var weightInp = inp.closest('.flow-path-item').querySelector('.flow-preland-weight');
-                prelandWeights.push(parseFloat(weightInp ? weightInp.value : 0) || 0);
+                prelandWeights.push(parseInt(weightInp ? weightInp.value : 0, 10) || 0);
             }
         });
 
@@ -334,7 +420,7 @@ window.collectFlowsData = function () {
                 if (inp.value.trim()) {
                     landFolders.push(inp.value.trim());
                     var w = inp.closest('.flow-path-item').querySelector('.flow-land-weight');
-                    landWeights.push(parseFloat(w ? w.value : 0) || 0);
+                    landWeights.push(parseInt(w ? w.value : 0, 10) || 0);
                 }
             });
         } else {
@@ -342,7 +428,7 @@ window.collectFlowsData = function () {
                 if (inp.value.trim()) {
                     landRedirectUrls.push(inp.value.trim());
                     var w = inp.closest('.flow-path-item').querySelector('.flow-land-weight');
-                    landWeights.push(parseFloat(w ? w.value : 0) || 0);
+                    landWeights.push(parseInt(w ? w.value : 0, 10) || 0);
                 }
             });
             var rtRadio = sec.querySelector('input.flow-redirect-type:checked');

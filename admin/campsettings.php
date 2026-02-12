@@ -651,7 +651,7 @@ global $c;
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Prelanding folder:</label></div>
                             <div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="<?= htmlspecialchars($pf) ?>" placeholder="preland1" /></div>
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
-                                <input type="number" class="form-control flow-preland-weight" value="<?= $flow->preland->weights[$pi] ?? '' ?>" placeholder="%" style="width:70px" />
+                                <input type="number" step="1" class="form-control flow-preland-weight" value="<?= $flow->preland->weights[$pi] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
                             <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">✕ Delete</a></div>
                         </div>
@@ -682,7 +682,7 @@ global $c;
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Landing folder:</label></div>
                             <div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="<?= htmlspecialchars($lf) ?>" placeholder="land1" /></div>
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
-                                <input type="number" class="form-control flow-land-weight" value="<?= $flow->land->weights[$li] ?? '' ?>" placeholder="%" style="width:70px" />
+                                <input type="number" step="1" class="form-control flow-land-weight" value="<?= $flow->land->weights[$li] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
                             <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">✕ Delete</a></div>
                         </div>
@@ -699,7 +699,7 @@ global $c;
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>
                             <div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="<?= htmlspecialchars($ru) ?>" placeholder="https://..." /></div>
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
-                                <input type="number" class="form-control flow-land-weight" value="<?= $flow->land->weights[$ri] ?? '' ?>" placeholder="%" style="width:70px" />
+                                <input type="number" step="1" class="form-control flow-land-weight" value="<?= $flow->land->weights[$ri] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
                             <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">✕ Delete</a></div>
                         </div>
