@@ -48,7 +48,7 @@ switch ($ls->action) {
         }
         $db->add_lpctr($subid);
         $landing = $ls->folderNames[$l];
-        echo load_landing($c, $flow, $landing);
+        echo load_landing($c, $f, $landing);
         break;
     case 'redirect':
         if (count($ls->redirectUrls) < $l + 1) {
