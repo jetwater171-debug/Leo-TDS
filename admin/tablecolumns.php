@@ -4,13 +4,29 @@ require_once __DIR__ . '/clmns.php';
 
 class Tabulator
 {
-    public static function get_stats_columns(array $columns, ?string $groupByClmnTitle = null): string
+    public static function get_stats_columns(array $columns, ?string $groupByClmnTitle = null, array $groupByFields = []): string
     {
         $columnSettings = TableColumns::$statsClmns;
         $tabulatorColumns = [];
 
+        // Prepend the group column with proper title from the first groupby field
+        if (!empty($groupByFields)) {
+            $firstGroupBy = $groupByFields[0];
+            $groupCol = $columnSettings['group'];
+            // Use the title from the groupby field definition if available
+            if (array_key_exists($firstGroupBy, $columnSettings) && isset($columnSettings[$firstGroupBy]['title'])) {
+                $groupCol['title'] = $columnSettings[$firstGroupBy]['title'];
+            } else {
+                $groupCol['title'] = ucfirst($firstGroupBy);
+            }
+            $tabulatorColumns[] = $groupCol;
+        }
+
         for ($i = 0; $i < count($columns); $i++) {
             $field = $columns[$i]['field'];
+            // Skip columns that are already represented by groupby
+            if (in_array($field, $groupByFields))
+                continue;
             $width = $columns[$i]['width'] ?? -1;
             if (array_key_exists($field, $columnSettings)) {
                 $tabulatorColumns[] = $columnSettings[$field];
@@ -22,10 +38,7 @@ class Tabulator
             $tabulatorColumns[count($tabulatorColumns) - 1]["width"] = $width;
         }
 
-        if (!is_null($groupByClmnTitle) && count($tabulatorColumns) > 0)
-            $tabulatorColumns[0]["title"] = "g$groupByClmnTitle";
-
-        $clmnsJson = json_encode($tabulatorColumns);
+        $clmnsJson = json_encode($tabulatorColumns, JSON_UNESCAPED_SLASHES);
         $clmnsJson = str_replace('"FSTART', '', $clmnsJson);
         $clmnsJson = str_replace('FEND"', '', $clmnsJson);
         return $clmnsJson;
@@ -82,7 +95,7 @@ class Tabulator
                 continue;
             $tabulatorColumns[count($tabulatorColumns) - 1]["width"] = $width;
         }
-        $clmnsJson = json_encode($tabulatorColumns);
+        $clmnsJson = json_encode($tabulatorColumns, JSON_UNESCAPED_SLASHES);
         $clmnsJson = str_replace('"FSTART', '', $clmnsJson);
         $clmnsJson = str_replace('FEND"', '', $clmnsJson);
         return $clmnsJson;

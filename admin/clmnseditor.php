@@ -245,7 +245,8 @@ function save_stats_table(int $campId, string $tableName,array $tableConfig): bo
     $table = [
         'name' => $tableConfig['name'], 
         'columns' => get_new_columns([], $allColumnNames),
-        'groupby' => $tableConfig['groupby']
+        'groupby' => $tableConfig['groupby'],
+        'filters' => $tableConfig['filters'] ?? []
     ];
 
     // Update or add the table

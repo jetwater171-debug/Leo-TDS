@@ -195,13 +195,21 @@ class Db
         return $selectParts;
     }
 
+    private const FILTERABLE_FIELDS = [
+        'country', 'lang', 'os', 'osver', 'brand', 'model', 'device',
+        'isp', 'client', 'clientver', 'preland', 'land', 'flow', 'status'
+    ];
+
+    private const FILTER_OPERATORS = ['=', '!=', 'in', 'not_in', 'is_null', 'is_not_null'];
+
     public function get_statistics(
         array $selectedFields,
         array $groupByFields,
         int $campId,
         string $startDate,
         string $endDate,
-        string $timezone
+        string $timezone,
+        array $filters = []
     ): array {
         $baseQuery =
             "SELECT %s FROM clicks c WHERE campaign_id = :campid AND time BETWEEN :startDate AND :endDate";
@@ -210,6 +218,64 @@ class Db
         $orderByParts = [];
 
         $selectParts = $this->get_stats_select_parts($selectedFields);
+
+        // Build filter WHERE clauses
+        $filterWhere = '';
+        $filterBinds = [];
+        if (!empty($filters) && isset($filters['rules']) && is_array($filters['rules'])) {
+            $filterParts = [];
+            foreach ($filters['rules'] as $i => $rule) {
+                $field = $rule['field'] ?? '';
+                $op = $rule['operator'] ?? '';
+                $value = $rule['value'] ?? '';
+
+                if (!in_array($field, self::FILTERABLE_FIELDS) || !in_array($op, self::FILTER_OPERATORS)) {
+                    continue;
+                }
+
+                $paramName = ":filter_{$i}";
+                switch ($op) {
+                    case '=':
+                        $filterParts[] = "$field = $paramName";
+                        $filterBinds[$paramName] = $value;
+                        break;
+                    case '!=':
+                        $filterParts[] = "$field != $paramName";
+                        $filterBinds[$paramName] = $value;
+                        break;
+                    case 'in':
+                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                        $placeholders = [];
+                        foreach ($vals as $vi => $v) {
+                            $p = ":filter_{$i}_{$vi}";
+                            $placeholders[] = $p;
+                            $filterBinds[$p] = $v;
+                        }
+                        $filterParts[] = "$field IN (" . implode(',', $placeholders) . ")";
+                        break;
+                    case 'not_in':
+                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                        $placeholders = [];
+                        foreach ($vals as $vi => $v) {
+                            $p = ":filter_{$i}_{$vi}";
+                            $placeholders[] = $p;
+                            $filterBinds[$p] = $v;
+                        }
+                        $filterParts[] = "$field NOT IN (" . implode(',', $placeholders) . ")";
+                        break;
+                    case 'is_null':
+                        $filterParts[] = "$field IS NULL";
+                        break;
+                    case 'is_not_null':
+                        $filterParts[] = "$field IS NOT NULL";
+                        break;
+                }
+            }
+            $condition = ($filters['condition'] ?? 'AND') === 'OR' ? ' OR ' : ' AND ';
+            if (!empty($filterParts)) {
+                $filterWhere = ' AND (' . implode($condition, $filterParts) . ')';
+            }
+        }
 
         // Process group by fields
         foreach ($groupByFields as $field) {
@@ -244,7 +310,7 @@ class Db
         $selectClause = implode(', ', $selectParts);
         $groupByClause = !empty($groupByParts) ? "GROUP BY " . implode(', ', $groupByParts) : '';
         $orderByClause = !empty($orderByParts) ? "ORDER BY " . implode(', ', $orderByParts) : '';
-        $sqlQuery = sprintf($baseQuery, $selectClause) . " " . $groupByClause . " " . $orderByClause;
+        $sqlQuery = sprintf($baseQuery, $selectClause) . $filterWhere . " " . $groupByClause . " " . $orderByClause;
 
         $db = $this->open_db(true);
         $stmt = $db->prepare($sqlQuery);
@@ -258,6 +324,9 @@ class Db
         $stmt->bindValue(':campid', $campId, SQLITE3_INTEGER);
         $stmt->bindValue(':startDate', $startDate, SQLITE3_INTEGER);
         $stmt->bindValue(':endDate', $endDate, SQLITE3_INTEGER);
+        foreach ($filterBinds as $param => $val) {
+            $stmt->bindValue($param, $val, SQLITE3_TEXT);
+        }
         $result = $stmt->execute();
 
         if ($result === false) {
@@ -282,6 +351,10 @@ class Db
     private function build_tree(array $rows, array $groupByFields, array $selectedFields, int $level = 0): array
     {
         if (empty($groupByFields) || $level >= count($groupByFields)) {
+            // No grouping: recalculate derived metrics to fix SQL NULLs from division by zero
+            if ($level === 0 && !empty($rows)) {
+                return [$this->calculate_totals($rows, $selectedFields)];
+            }
             return $rows;
         }
 
@@ -335,25 +408,42 @@ class Db
             }
         }
 
-        // Calculate derived fields
+        // Recalculate derived (non-additive) fields from summed base metrics
+        // Percentage metrics: round to 4 decimals (frontend trims to 2)
         if (in_array('uniques_ratio', $selectedFields))
-            $totals['uniques_ratio'] = $totals['clicks'] === 0 ? 0 : $totals['uniques'] * 1.0 / $totals['clicks'] * 100;
+            $totals['uniques_ratio'] = $totals['clicks'] === 0 ? 0 : round($totals['uniques'] * 100.0 / $totals['clicks'], 4);
         if (in_array('lpctr', $selectedFields))
-            $totals['lpctr'] = $totals['clicks'] === 0 ? 0 : $totals['lpclicks'] * 1.0 / $totals['clicks'] * 100.0;
+            $totals['lpctr'] = $totals['clicks'] === 0 ? 0 : round($totals['lpclicks'] * 100.0 / $totals['clicks'], 4);
         if (in_array('cra', $selectedFields))
-            $totals['cra'] = $totals['clicks'] === 0 ? 0 : $totals['conversion'] * 1.0 / $totals['clicks'] * 100.0;
+            $totals['cra'] = $totals['clicks'] === 0 ? 0 : round($totals['conversion'] * 100.0 / $totals['clicks'], 4);
         if (in_array('crs', $selectedFields))
-            $totals['crs'] = $totals['clicks'] === 0 ? 0 : $totals['purchase'] * 1.0 / $totals['clicks'] * 100.0;
-        if (in_array('appt', $selectedFields))
-            $totals['appt'] = $totals['conversion'] - $totals['trash'] === 0 ? 0 : $totals['purchase'] * 1.0 / ($totals['conversion'] - $totals['trash']) * 100.0;
+            $totals['crs'] = $totals['clicks'] === 0 ? 0 : round($totals['purchase'] * 100.0 / $totals['clicks'], 4);
+        if (in_array('appt', $selectedFields)) {
+            $denom = $totals['conversion'] - $totals['trash'];
+            $totals['appt'] = $denom === 0 ? 0 : round($totals['purchase'] * 100.0 / $denom, 4);
+        }
         if (in_array('app', $selectedFields))
-            $totals['app'] = $totals['conversion'] === 0 ? 0 : $totals['purchase'] * 1.0 / $totals['conversion'] * 100.0;
-        if (in_array('cpc', $selectedFields))
-            $totals['cpc'] = $totals['clicks'] === 0 ? 0 : $totals['costs'] * 1.0 / $totals['clicks'];
+            $totals['app'] = $totals['conversion'] === 0 ? 0 : round($totals['purchase'] * 100.0 / $totals['conversion'], 4);
+        if (in_array('roi', $selectedFields))
+            $totals['roi'] = $totals['costs'] === 0 ? 0 : round(($totals['revenue'] - $totals['costs']) * 100.0 / $totals['costs'], 4);
+
+        // Money-per-unit metrics: round to 6 decimals (frontend trims to 2-5)
         if (in_array('epc', $selectedFields))
-            $totals['epc'] = $totals['clicks'] === 0 ? 0 : $totals['revenue'] * 1.0 / $totals['clicks'];
-        if (in_array('epuc', $selectedFields))
-            $totals['epuc'] = $totals['uniques'] === 0 ? 0 : $totals['revenue'] * 1.0 / $totals['uniques'] * 100;
+            $totals['epc'] = $totals['clicks'] === 0 ? 0 : round($totals['revenue'] * 1.0 / $totals['clicks'], 6);
+        if (in_array('uepc', $selectedFields))
+            $totals['uepc'] = $totals['uniques'] === 0 ? 0 : round($totals['revenue'] * 1.0 / $totals['uniques'], 6);
+        if (in_array('cpc', $selectedFields))
+            $totals['cpc'] = $totals['clicks'] === 0 ? 0 : round($totals['costs'] * 1.0 / $totals['clicks'], 6);
+        if (in_array('ucpc', $selectedFields))
+            $totals['ucpc'] = $totals['uniques'] === 0 ? 0 : round($totals['costs'] * 1.0 / $totals['uniques'], 6);
+        if (in_array('ec', $selectedFields))
+            $totals['ec'] = $totals['conversion'] === 0 ? 0 : round($totals['revenue'] * 1.0 / $totals['conversion'], 6);
+        if (in_array('cpa', $selectedFields))
+            $totals['cpa'] = $totals['conversion'] === 0 ? 0 : round($totals['costs'] * 1.0 / $totals['conversion'], 6);
+
+        // Composite additive metrics: recalculate from base to avoid stale SQL values
+        if (in_array('profit', $selectedFields))
+            $totals['profit'] = round($totals['revenue'] - $totals['costs'], 6);
 
         return $totals;
     }

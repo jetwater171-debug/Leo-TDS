@@ -1,198 +1,183 @@
 // Stats Table Editor functionality
-function initializeStatsTableEditor(availableColumns, selectedMetrics, availableDimensions, selectedDimensions, tableName, saveUrl) {
+const FILTER_FIELDS = ['country','lang','os','osver','brand','model','device','isp','client','clientver','preland','land','flow','status'];
+const FILTER_OPERATORS = [
+    { value: '=', label: '=' },
+    { value: '!=', label: '!=' },
+    { value: 'in', label: 'in' },
+    { value: 'not_in', label: 'not in' },
+    { value: 'is_null', label: 'is null' },
+    { value: 'is_not_null', label: 'is not null' },
+];
+
+const qs = (sel, ctx = document) => ctx.querySelector(sel);
+const qsa = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+
+function initializeStatsTableEditor(availableColumns, selectedMetrics, availableDimensions, selectedDimensions, tableName, saveUrl, existingFilters) {
     const MAX_GROUPBY_SELECTIONS = 3;
-    
+
     // Initialize Sortable.js for both lists
     initializeSortable('metricsColumns', 'metrics');
     initializeSortable('dimensionsColumns', 'dimensions');
 
     // Set table name if provided
     const tableNameInput = document.getElementById('tableName');
-    if (tableName) {
-        tableNameInput.value = tableName;
-    }
+    if (tableName) tableNameInput.value = tableName;
 
-    // Add metrics columns
+    // Add columns
     addColumnsToList('metricsColumns', selectedMetrics, availableColumns);
-
-    // Add dimensions columns
     addColumnsToList('dimensionsColumns', selectedDimensions, availableDimensions);
+
+    // Initialize filters
+    initializeFilters(existingFilters);
 
     // Setup metrics select/deselect buttons
     setupSelectButtons('selectAllMetrics', 'deselectAllMetrics', 'metricsColumns');
 
-    // Attach metrics checkbox change handler
-    $('#metricsColumns input[type="checkbox"]').on('change', function() {
-        updateSaveButtonState();
+    // Metrics checkbox change → update save button
+    document.getElementById('metricsColumns').addEventListener('change', (e) => {
+        if (e.target.matches('input[type="checkbox"]')) updateSaveButtonState();
     });
 
-    // Special handler for dimensions checkboxes
-    $('#dimensionsColumns input[type="checkbox"]').on('change', function() {
-        const $allDimensionCheckboxes = $('#dimensionsColumns input[type="checkbox"]');
-        const selectedCount = $allDimensionCheckboxes.filter(':checked').length;
+    // Dimensions checkbox change → enforce max selections + update save button
+    document.getElementById('dimensionsColumns').addEventListener('change', (e) => {
+        if (!e.target.matches('input[type="checkbox"]')) return;
 
-        // If we have 3 selected items, disable all unselected checkboxes
-        $allDimensionCheckboxes.not(':checked').prop('disabled', selectedCount >= MAX_GROUPBY_SELECTIONS);
+        const allBoxes = qsa('#dimensionsColumns input[type="checkbox"]');
+        const selectedCount = allBoxes.filter(cb => cb.checked).length;
 
-        // If we have less than 3 selected items, enable all checkboxes
-        if (selectedCount < MAX_GROUPBY_SELECTIONS) {
-            $allDimensionCheckboxes.prop('disabled', false);
+        for (const cb of allBoxes) {
+            cb.disabled = !cb.checked && selectedCount >= MAX_GROUPBY_SELECTIONS;
         }
 
         updateSaveButtonState();
     });
 
-    // Add table name input handler
-    $('#tableName').on('input', function() {
-        updateSaveButtonState();
-    });
+    // Table name input → update save button
+    tableNameInput.addEventListener('input', () => updateSaveButtonState());
 
     // Initial button state
     updateSaveButtonState();
 
-    // Setup save handler
-    $('#saveTableBtn').click(async () => {
+    // Save handler
+    document.getElementById('saveTableBtn').addEventListener('click', async () => {
         const name = tableNameInput.value.trim();
-        if (!name) {
-            alert('Please enter a table name');
-            return;
-        }
+        if (!name) { alert('Please enter a table name'); return; }
 
         const columns = getSelectedItems('metricsColumns');
-        if (columns.length === 0) {
-            alert('Please select at least one metric column');
-            return;
-        }
+        if (!columns.length) { alert('Please select at least one metric column'); return; }
 
         const groupby = getSelectedItems('dimensionsColumns');
-        if (groupby.length === 0) {
-            alert('Please select at least one dimension for grouping');
-            return;
-        }
-
+        if (!groupby.length) { alert('Please select at least one dimension for grouping'); return; }
         if (groupby.length > MAX_GROUPBY_SELECTIONS) {
             alert(`You can select at most ${MAX_GROUPBY_SELECTIONS} dimensions for grouping`);
             return;
         }
 
+        const filters = collectFilters();
+
         try {
-            const response = await fetch(saveUrl, {
+            const res = await fetch(saveUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: name,
-                    columns: columns,
-                    groupby: groupby
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, columns, groupby, filters }),
             });
+            if (!res.ok) throw new Error('Network response was not ok');
 
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            const data = await response.json();
-            if (!data.error) {
-                window.location.reload();
-            } else {
-                throw new Error(data.msg);
-            }
-        } catch (error) {
-            alert('Error saving table: ' + error.message);
+            const data = await res.json();
+            if (data.error) throw new Error(data.msg);
+            window.location.reload();
+        } catch (err) {
+            alert('Error saving table: ' + err.message);
         }
     });
 
-    // Setup cancel handler
-    $('#cancelTableBtn').click(() => {
-        $.modal.close();
+    // Cancel handler — jquery-modal is still used for the modal itself
+    document.getElementById('cancelTableBtn').addEventListener('click', () => {
+        jQuery.modal.close();
     });
 }
 
-function deleteStatsTable(tableName, deleteUrl) {
-    if (!confirm(`Are you sure you want to delete table "${tableName}"?`)) {
-        return;
-    }
+async function deleteStatsTable(tableName, deleteUrl) {
+    if (!confirm(`Are you sure you want to delete table "${tableName}"?`)) return;
 
-    fetch(deleteUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            name: tableName
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (!data.error) {
-            const url = new URL(window.location.href);
-            if (url.searchParams.has('table')) {
-                url.searchParams.delete('table');
-                window.location.href = url.toString();
-            } else {
-                window.location.reload();
-            }
+    try {
+        const res = await fetch(deleteUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: tableName }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.msg);
+
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('table')) {
+            url.searchParams.delete('table');
+            window.location.href = url.toString();
         } else {
-            throw new Error(data.msg);
+            window.location.reload();
         }
-    })
-    .catch(error => {
-        alert('Error deleting table: ' + error.message);
-    });
+    } catch (err) {
+        alert('Error deleting table: ' + err.message);
+    }
 }
 
-// Helper functions
+// ── Helper functions ──
+
 function addColumnsToList(containerId, selectedItems, columns) {
-    const $list = $('#' + containerId);
-    $list.empty();
-    
-    columns.forEach(column => {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    for (const column of columns) {
         const field = typeof column === 'string' ? column : column.field;
-        const title = typeof column === 'string' ? formatColumnName(column) : (column.title || formatColumnName(column.field));
-        const isSelected = selectedItems.some(item => 
+        const title = typeof column === 'string'
+            ? formatColumnName(column)
+            : (column.title || formatColumnName(column.field));
+        const isSelected = selectedItems.some(item =>
             (typeof item === 'string' ? item : item.field) === field
         );
-        
-        const $item = $(`
-            <div class="column-item" data-field="${field}">
-                <span class="drag-handle">☰</span>
-                <input type="checkbox" ${isSelected ? 'checked' : ''}>
-                <span>${title}</span>
-            </div>
-        `);
-        $list.append($item);
-    });
 
-    // Attach checkbox change handlers
-    $(`#${containerId} input[type="checkbox"]`).on('change', function() {
-        updateSaveButtonState();
-    });
+        const div = document.createElement('div');
+        div.className = 'column-item';
+        div.dataset.field = field;
+        div.innerHTML = `
+            <span class="drag-handle">☰</span>
+            <input type="checkbox" ${isSelected ? 'checked' : ''}>
+            <span>${title}</span>
+        `;
+        container.appendChild(div);
+    }
 }
 
 function setupSelectButtons(selectAllId, deselectAllId, containerId) {
-    $('#' + selectAllId).click(() => {
-        $('#' + containerId + ' input[type="checkbox"]').not(':disabled').prop('checked', true).trigger('change');
+    document.getElementById(selectAllId).addEventListener('click', () => {
+        for (const cb of qsa(`#${containerId} input[type="checkbox"]`)) {
+            if (!cb.disabled) {
+                cb.checked = true;
+                cb.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
     });
 
-    $('#' + deselectAllId).click(() => {
-        $('#' + containerId + ' input[type="checkbox"]').prop('checked', false).trigger('change');
+    document.getElementById(deselectAllId).addEventListener('click', () => {
+        for (const cb of qsa(`#${containerId} input[type="checkbox"]`)) {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     });
 }
 
 function getSelectedItems(containerId) {
-    return $('#' + containerId + ' .column-item')
-        .filter((_, item) => $(item).find('input').is(':checked'))
-        .map((_, item) => $(item).data('field'))
-        .get();
+    return qsa(`#${containerId} .column-item`)
+        .filter(el => el.querySelector('input').checked)
+        .map(el => el.dataset.field);
 }
 
 function updateSaveButtonState() {
-    const metricsSelected = $('#metricsColumns input[type="checkbox"]:checked').length > 0;
-    const dimensionsSelected = $('#dimensionsColumns input[type="checkbox"]:checked').length > 0;
-    const tableName = $('#tableName').val().trim();
+    const metricsSelected = qsa('#metricsColumns input[type="checkbox"]').some(cb => cb.checked);
+    const dimensionsSelected = qsa('#dimensionsColumns input[type="checkbox"]').some(cb => cb.checked);
+    const name = document.getElementById('tableName').value.trim();
 
-    $('#saveTableBtn').prop('disabled', !metricsSelected || !dimensionsSelected || !tableName);
+    document.getElementById('saveTableBtn').disabled = !metricsSelected || !dimensionsSelected || !name;
 }
 
 function formatColumnName(field) {
@@ -202,6 +187,95 @@ function formatColumnName(field) {
 function initializeSortable(containerId, group) {
     new Sortable(document.getElementById(containerId), {
         animation: 150,
-        group: group
+        group,
     });
+}
+
+// ── Filter management ──
+
+function initializeFilters(existingFilters) {
+    const rows = document.getElementById('filterRows');
+    rows.innerHTML = '';
+
+    const conditionSelect = document.getElementById('filterCondition');
+    conditionSelect.value = existingFilters?.condition || 'AND';
+
+    if (existingFilters?.rules?.length) {
+        for (const rule of existingFilters.rules) {
+            addFilterRowToDOM(rule.field, rule.operator, rule.value);
+        }
+    }
+
+    // Delegated click — survives DOM relocation by jquery-modal
+    document.removeEventListener('click', handleAddFilterClick);
+    document.addEventListener('click', handleAddFilterClick);
+}
+
+function handleAddFilterClick(e) {
+    if (e.target.closest('#addFilterRow')) {
+        addFilterRowToDOM('', '=', '');
+    }
+}
+
+function addFilterRowToDOM(field, operator, value) {
+    const fieldOptions = FILTER_FIELDS
+        .map(f => `<option value="${f}"${f === field ? ' selected' : ''}>${f}</option>`)
+        .join('');
+
+    const opOptions = FILTER_OPERATORS
+        .map(o => `<option value="${o.value}"${o.value === operator ? ' selected' : ''}>${o.label}</option>`)
+        .join('');
+
+    const needsValue = operator !== 'is_null' && operator !== 'is_not_null';
+    let displayValue = value ?? '';
+    if (Array.isArray(displayValue)) displayValue = displayValue.join(', ');
+
+    const row = document.createElement('div');
+    row.className = 'filter-row';
+    row.innerHTML = `
+        <select class="form-control filter-field">${fieldOptions}</select>
+        <select class="form-control filter-op">${opOptions}</select>
+        <input type="text" class="form-control filter-value" ${needsValue ? '' : 'style="display:none;"'} placeholder="value" value="${displayValue}">
+        <button class="btn btn-sm btn-outline-danger filter-remove" title="Remove">&times;</button>
+    `;
+
+    row.querySelector('.filter-op').addEventListener('change', (e) => {
+        const valInput = row.querySelector('.filter-value');
+        const isNullOp = e.target.value === 'is_null' || e.target.value === 'is_not_null';
+        valInput.style.display = isNullOp ? 'none' : '';
+        if (isNullOp) valInput.value = '';
+    });
+
+    row.querySelector('.filter-remove').addEventListener('click', () => row.remove());
+
+    document.getElementById('filterRows').appendChild(row);
+}
+
+function collectFilters() {
+    const rows = qsa('#filterRows .filter-row');
+    const rules = [];
+
+    for (const row of rows) {
+        const field = row.querySelector('.filter-field').value;
+        const op = row.querySelector('.filter-op').value;
+        let value = row.querySelector('.filter-value').value.trim();
+
+        if (!field) continue;
+
+        if (op === 'is_null' || op === 'is_not_null') {
+            rules.push({ field, operator: op, value: null });
+        } else if (value) {
+            if (op === 'in' || op === 'not_in') {
+                value = value.split(',').map(v => v.trim()).filter(Boolean);
+            }
+            rules.push({ field, operator: op, value });
+        }
+    }
+
+    if (!rules.length) return {};
+
+    return {
+        condition: document.getElementById('filterCondition').value || 'AND',
+        rules,
+    };
 }

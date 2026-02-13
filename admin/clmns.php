@@ -358,18 +358,25 @@ class TableColumns
             "title" => "Clicks",
             "headerTooltip" => "Number of visitors",
             "field" => "clicks",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'uniques' => [
             "title" => "Uniques",
             "headerTooltip" => "Number of unique visitors",
             "field" => "uniques",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'uniques_ratio' => [
             "title" => "U/C",
             "headerTooltip" => "Unique visitors / visitors",
             "field" => "uniques_ratio",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 76,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -378,6 +385,7 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var u=0,c=0;d.forEach(function(r){u+=r.uniques||0;c+=r.clicks||0;});return c===0?0:Math.round(u/c*10000)/100;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -391,42 +399,57 @@ class TableColumns
             "title" => "CV",
             "headerTooltip" => "Conversions",
             "field" => "conversion",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'purchase' => [
             "title" => "P",
             "headerTooltip" => "Purchases",
             "field" => "purchase",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'hold' => [
             "title" => "H",
             "headerTooltip" => "Holds",
             "field" => "hold",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'reject' => [
             "title" => "R",
             "headerTooltip" => "Rejects",
             "field" => "reject",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'trash' => [
             "title" => "T",
             "headerTooltip" => "Trashes",
             "field" => "trash",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'lpclicks' => [
             "title" => "LPClicks",
             "headerTooltip" => "Landing page visitors",
             "field" => "lpclicks",
+            "sorter" => "number",
+            "hozAlign" => "right",
             "bottomCalc" => "sum"
         ],
         'lpctr' => [
             "title" => "LPCTR",
             "headerTooltip" => "Landing page visitors percentage",
             "field" => "lpctr",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 76,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -435,6 +458,7 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var lp=0,c=0;d.forEach(function(r){lp+=r.lpclicks||0;c+=r.clicks||0;});return c===0?0:Math.round(lp/c*10000)/100;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -448,6 +472,9 @@ class TableColumns
             "title" => "CRa",
             "headerTooltip" => "Total conversion rate",
             "field" => "cra",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 76,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -456,6 +483,7 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var cv=0,c=0;d.forEach(function(r){cv+=r.conversion||0;c+=r.clicks||0;});return c===0?0:Math.round(cv/c*10000)/100;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -469,6 +497,9 @@ class TableColumns
             "title" => "CRs",
             "headerTooltip" => "Conversion into Sales rate",
             "field" => "crs",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 76,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -477,6 +508,7 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var p=0,c=0;d.forEach(function(r){p+=r.purchase||0;c+=r.clicks||0;});return c===0?0:Math.round(p/c*10000)/100;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -490,6 +522,9 @@ class TableColumns
             "title" => "App(t)",
             "headerTooltip" => "Approve rate without Trash conversions",
             "field" => "appt",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 76,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -498,6 +533,7 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var p=0,cv=0,t=0;d.forEach(function(r){p+=r.purchase||0;cv+=r.conversion||0;t+=r.trash||0;});var dn=cv-t;return dn===0?0:Math.round(p/dn*10000)/100;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -511,6 +547,9 @@ class TableColumns
             "title" => "App",
             "headerTooltip" => "Approve rate",
             "field" => "app",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 76,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -519,6 +558,7 @@ class TableColumns
                 "symbolAfter" => true,
                 "precision" => 2,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var p=0,cv=0;d.forEach(function(r){p+=r.purchase||0;cv+=r.conversion||0;});return cv===0?0:Math.round(p/cv*10000)/100;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -532,12 +572,16 @@ class TableColumns
             "title" => "CPC",
             "headerTooltip" => "Cost per click",
             "field" => "cpc",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 85,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var co=0,c=0;d.forEach(function(r){co+=r.costs||0;c+=r.clicks||0;});return c===0?0:Math.round(co/c*100000)/100000;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -549,12 +593,16 @@ class TableColumns
             "title" => "CPuC",
             "headerTooltip" => "Cost per unique click",
             "field" => "ucpc",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 85,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var co=0,u=0;d.forEach(function(r){co+=r.costs||0;u+=r.uniques||0;});return u===0?0:Math.round(co/u*100000)/100000;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -566,12 +614,16 @@ class TableColumns
             "title" => "CPA",
             "headerTooltip" => "Cost per action (conversion)",
             "field" => "cpa",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 85,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var co=0,cv=0;d.forEach(function(r){co+=r.costs||0;cv+=r.conversion||0;});return cv===0?0:Math.round(co/cv*100000)/100000;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -583,12 +635,16 @@ class TableColumns
             "title" => "EC",
             "headerTooltip" => "Earnings per conversion",
             "field" => "ec",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 85,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var rv=0,cv=0;d.forEach(function(r){rv+=r.revenue||0;cv+=r.conversion||0;});return cv===0?0:Math.round(rv/cv*100000)/100000;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -600,6 +656,9 @@ class TableColumns
             "title" => "Costs",
             "headerTooltip" => "Traffic costs",
             "field" => "costs",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 90,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -615,12 +674,16 @@ class TableColumns
             "title" => "EPC",
             "headerTooltip" => "Earnings Per Click",
             "field" => "epc",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 85,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var rv=0,c=0;d.forEach(function(r){rv+=r.revenue||0;c+=r.clicks||0;});return c===0?0:Math.round(rv/c*100000)/100000;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -632,12 +695,16 @@ class TableColumns
             "title" => "EPuC",
             "headerTooltip" => "Earnings Per Unique Click",
             "field" => "uepc",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 85,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
                 "thousand" => ",",
                 "precision" => 5,
             ],
+            "bottomCalc" => "FSTARTfunction(v,d){var rv=0,u=0;d.forEach(function(r){rv+=r.revenue||0;u+=r.uniques||0;});return u===0?0:Math.round(rv/u*100000)/100000;}FEND",
             "bottomCalcFormatter" => "money",
             "bottomCalcFormatterParams" => [
                 "decimal" => ".",
@@ -649,6 +716,9 @@ class TableColumns
             "title" => "Rev.",
             "headerTooltip" => "Revenue",
             "field" => "revenue",
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 90,
             "formatter" => "money",
             "formatterParams" => [
                 "decimal" => ".",
@@ -664,33 +734,26 @@ class TableColumns
             "title" => "Profit",
             "headerTooltip" => "Profit",
             "field" => "profit",
-            "formatter" => "money",
-            "formatterParams" => [
-                "decimal" => ".",
-                "thousand" => ",",
-                "precision" => 2,
-            ],
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 90,
+            "formatter" => "FSTARTfunction(cell){var v=parseFloat(cell.getValue())||0;var c=v>0?'#4caf50':v<0?'#f44336':'inherit';return '<span style=color:'+c+'>'+v.toFixed(2)+'</span>';}FEND",
             "bottomCalc" => "sum",
             "bottomCalcParams" => [
                 "precision" => 2,
-            ]
+            ],
+            "bottomCalcFormatter" => "FSTARTfunction(cell){var v=parseFloat(cell.getValue())||0;var c=v>0?'#4caf50':v<0?'#f44336':'inherit';return '<span style=color:'+c+'>'+v.toFixed(2)+'</span>';}FEND",
         ],
         'roi' => [
             "title" => "ROI",
             "headerTooltip" => "Return On Investment",
             "field" => "roi",
-            "formatter" => "money",
-            "formatterParams" => [
-                "decimal" => ".",
-                "thousand" => ",",
-                "precision" => 2,
-            ],
-            "bottomCalcFormatter" => "money",
-            "bottomCalcFormatterParams" => [
-                "decimal" => ".",
-                "thousand" => ",",
-                "precision" => 2,
-            ],
+            "sorter" => "number",
+            "hozAlign" => "right",
+            "width" => 76,
+            "formatter" => "FSTARTfunction(cell){var v=parseFloat(cell.getValue());if(isNaN(v))return '';var c=v>0?'#4caf50':v<0?'#f44336':'inherit';return '<span style=color:'+c+'>'+v.toFixed(2)+'%</span>';}FEND",
+            "bottomCalc" => "FSTARTfunction(v,d){var rv=0,co=0;d.forEach(function(r){rv+=r.revenue||0;co+=r.costs||0;});return co===0?0:Math.round((rv-co)/co*10000)/100;}FEND",
+            "bottomCalcFormatter" => "FSTARTfunction(cell){var v=parseFloat(cell.getValue())||0;var c=v>0?'#4caf50':v<0?'#f44336':'inherit';return '<span style=color:'+c+'>'+v.toFixed(2)+'%</span>';}FEND",
         ],
     ];
 }

@@ -12,17 +12,19 @@ $curTableIndex = $_GET['table']?? 0;
 $ss = $c->statistics;
 if (count($ss->tables)>0){
     $tSettings = $ss->tables[$curTableIndex];
+    $tFilters = isset($tSettings->filters) ? (array)$tSettings->filters : [];
     $dataset = $db->get_statistics(
         array_column($tSettings->columns, 'field'),
         $tSettings->groupby,
         $campId,
         $timeRange[0],
         $timeRange[1],
-        $ss->timezone
+        $ss->timezone,
+        $tFilters
     );
     $dJson = json_encode($dataset);
     $tName = $tSettings->name;
-    $tColumns = Tabulator::get_stats_columns($tSettings->columns, $tName);
+    $tColumns = Tabulator::get_stats_columns($tSettings->columns, $tName, $tSettings->groupby);
 }
 ?>
 <!doctype html>
@@ -143,13 +145,15 @@ if (count($ss->tables)>0){
             let selectedClmns = <?= json_encode($tSettings->columns) ?>;
             let selectedDimensions = <?= json_encode($tSettings->groupby) ?>;
             
+            let existingFilters = <?= json_encode(isset($tSettings->filters) ? $tSettings->filters : new stdClass()) ?>;
             initializeStatsTableEditor(
                 availableClmns,
                 selectedClmns,
                 availableDimensions,
                 selectedDimensions,
                 "<?=$tName?>",
-                `clmnseditor.php?action=savestats&name=<?=$tName?>&campid=<?=$campId?>`
+                `clmnseditor.php?action=savestats&name=<?=$tName?>&campid=<?=$campId?>`,
+                existingFilters
             );
 
             $('#statsTableModal').modal({
@@ -172,7 +176,8 @@ if (count($ss->tables)>0){
                 availableDimensions,
                 [], // no selected group by
                 'New', // no table name
-                'clmnseditor.php?action=savestats&campid=<?=$campId?>'
+                'clmnseditor.php?action=savestats&campid=<?=$campId?>',
+                {}
             );
             $('#statsTableModal').modal({
                 modalClass: 'ywbmodal',

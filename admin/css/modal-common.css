@@ -9,6 +9,8 @@
     padding: 0 !important;
     border-radius: 12px !important;
     margin: 0 !important;
+    width: 95vw !important;
+    max-width: 1300px !important;
     max-height: 90vh !important;
     z-index: 999999 !important;
     overflow: hidden !important; /* Ensure inner content doesn't break rounded corners */
@@ -44,7 +46,8 @@
     padding: 16px;
     background: #151b2d;
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
 }
 
@@ -91,8 +94,47 @@
 }
 
 .columns-flex-container .columns-section {
+    flex: 0 0 200px;
+    overflow: hidden;
+}
+
+.columns-flex-container .filters-section {
+    flex: 2;
+    min-width: 0;
+}
+
+.filters-section .columns-container {
+    height: 40vh;
+}
+
+/* Filter rows */
+.filter-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    background: #1a2235;
+    border-radius: 6px;
+    border: 1px solid #2a3245;
+}
+
+.filter-row .filter-field {
     flex: 1;
-    min-width: 0; /* Prevent flex items from overflowing */
+    min-width: 0;
+}
+
+.filter-row .filter-op {
+    flex: 0 0 90px;
+}
+
+.filter-row .filter-value {
+    flex: 1;
+    min-width: 0;
+}
+
+.filter-row .filter-remove {
+    flex: 0 0 auto;
 }
 
 /* Buttons */
@@ -187,7 +229,8 @@
 }
 
 .jquery-modal .modal {
-    max-width: none !important;
+    max-width: 1300px !important;
+    width: 95vw !important;
     padding: 0 !important;
 }
 
@@ -198,4 +241,26 @@
 /* Make sure modal is hidden by default and only shown when needed */
 .modal {
     display: none;
+}
+
+.btn-outline-danger {
+    background: transparent;
+    border: 1px solid #e53e3e;
+    color: #e53e3e;
+}
+
+.btn-outline-danger:hover {
+    background: #e53e3e;
+    color: white;
+}
+
+.btn-outline-primary {
+    background: transparent;
+    border: 1px solid #0084ff;
+    color: #0084ff;
+}
+
+.btn-outline-primary:hover {
+    background: #0084ff;
+    color: white;
 }
