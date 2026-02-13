@@ -101,8 +101,7 @@
   "scripts": {
     "backfix": {
       "use": false,
-      "url": "",
-      "second": ""
+      "urls": []
     },
     "prelandingreplace": {
       "use": false,

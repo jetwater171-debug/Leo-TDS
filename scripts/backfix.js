@@ -2,18 +2,20 @@ const scriptTag = document.currentScript;
 const redirect = scriptTag.hasAttribute("data-redirect")
   ? scriptTag.getAttribute("data-redirect") == "true"
   : false;
-const backLink = scriptTag.getAttribute("data-backlink");
-const secondLink = scriptTag.getAttribute("data-secondlink") ?? backLink;
+const links = JSON.parse(scriptTag.getAttribute("data-links") || "[]");
 const traceEnabled = scriptTag.hasAttribute("data-traceenabled")
   ? scriptTag.getAttribute("data-traceenabled") == "true"
   : false;
 
 document.addEventListener("DOMContentLoaded", function() {
-  const frameName = "LandFrame";
-  const secondFrameName = "SecondFrame";
+  var frameNames = [];
+  for (var i = 0; i < links.length; i++) {
+    frameNames.push("BfFrame_" + i);
+  }
+  var viewCount = links.length + 1; // landing(0) + N links
 
   trace(
-    "Back Button Fix v0.5.2 by Yellow Web",
+    "Back Button Fix v0.6.0 by Yellow Web",
     "font-size:25px;color:yellow;font-weight:bold",
   );
 
@@ -25,34 +27,39 @@ document.addEventListener("DOMContentLoaded", function() {
     trace("We are in frame!");
     //return;
   }
-  trace(`Back link is: ${backLink}`);
+  trace(`Links: ${JSON.stringify(links)}`);
   trace(`Mode is: ${redirect ? "Redirect" : "Iframe"}`);
-  if (!redirect) trace(`Second link is: ${secondLink}`);
+  if (links.length === 0) {
+    trace("No links provided, backfix disabled.");
+    return;
+  }
   removeAnchors();
   trace("Anchors fix started...");
-  backInFrame(backLink);
+  backInFrame();
 
-  // Carousel views: 0=landing, 1=first(backLink), 2=second(secondLink)
-  // Going back cycles: landing -> backLink -> secondLink -> landing -> ...
-  // Going forward reverses: ... -> secondLink -> backLink -> landing
+  // Carousel views: 0=landing, 1..N=links[0..N-1]
+  // Going back cycles: landing -> link1 -> link2 -> ... -> linkN -> landing -> ...
+  // Going forward reverses the cycle
   const DEPTH = 50;
 
   function backInFrame() {
     function init() {
-      createFrame(frameName, backLink);
+      // Create first iframe immediately, rest lazily
+      createFrame(frameNames[0], links[0]);
       var idle = window.requestIdleCallback || function(cb) { setTimeout(cb, 1); };
-      idle(function() { createFrame(secondFrameName, secondLink); });
+      for (var j = 1; j < links.length; j++) {
+        (function(idx) {
+          idle(function() { createFrame(frameNames[idx], links[idx]); });
+        })(j);
+      }
       // Push states with pre-computed view for each level
-      // Top of stack (last pushed) = landing (current page, view 0)
-      // One back = backLink (view 1), two back = secondLink (view 2), etc.
-      // We push deepest first, then work up to landing on top
       for (var i = DEPTH; i >= 1; i--) {
-        var view = i % 3; // 1=backLink, 2=secondLink, 0=landing
+        var view = i % viewCount;
         window.history.pushState({ bf: true, view: view }, "", window.location);
       }
       // Final state on top = landing (where user is now)
       window.history.pushState({ bf: true, view: 0 }, "", window.location);
-      trace(`Pushed ${DEPTH + 1} states. User is at top (landing).`);
+      trace(`Pushed ${DEPTH + 1} states for ${viewCount} views.`);
     }
 
     if (!isIos()) {
@@ -76,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function() {
       trace(`Popped state: view=${t.state.view}`);
 
       if (redirect) {
-        window.location.href = backLink;
+        window.location.href = links[0];
         return;
       }
 
@@ -88,19 +95,18 @@ document.addEventListener("DOMContentLoaded", function() {
     if (viewIndex === 0) {
       // Show landing (original page)
       trace("Showing landing page.");
-      var f1 = document.getElementById(frameName);
-      var f2 = document.getElementById(secondFrameName);
-      if (f1) f1.style.display = "none";
-      if (f2) f2.style.display = "none";
+      frameNames.forEach(function(fn) {
+        var f = document.getElementById(fn);
+        if (f) f.style.display = "none";
+      });
       document.querySelectorAll("body > *").forEach(function(e) {
-        if (e.id !== frameName && e.id !== secondFrameName) {
+        if (frameNames.indexOf(e.id) === -1) {
           e.style.display = "";
         }
       });
       document.body.style.overflow = "";
     } else {
-      var nameToShow = viewIndex === 1 ? frameName : secondFrameName;
-      showFrame(nameToShow);
+      showFrame(frameNames[viewIndex - 1]);
     }
   }
 
@@ -109,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function() {
       trace("Creating prerender for redirect.");
       let prerender = document.createElement("link");
       prerender.rel = "prerender";
-      prerender.href = backLink;
+      prerender.href = url;
       document.head.appendChild(prerender);
     } else {
       var nodeFrame = document.getElementById(name);

@@ -760,32 +760,30 @@ global $c;
                 </div>
             </div>
             <div id="b_backfix" style="display:<?= $c->scripts->backfix? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro"> 
-                                <img src="img/info.ico" title="When the user clicks Back the first time he'll be shown this url." />
-                                Backfix First URL:</label>
-                        </div>
-                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                            <div class="input-group custom-go-button">
-                                <input type="text" name="scripts.backfix.url" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->backfixAddress?>" />
+                <div id="backfix_urls_container">
+                    <?php
+                    $bfCount = max(count($c->scripts->backfixUrls), 1);
+                    for ($i = 0; $i < $bfCount; $i++) {
+                            $bu = $c->scripts->backfixUrls[$i] ?? '';
+                    ?>
+                    <div class="form-group-inner backfix-url-item">
+                        <div class="row">
+                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                                <label class="login2 pull-left pull-left-pro">Backfix URL:</label>
+                            </div>
+                            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}" value="<?= $bu ?>" name="scripts.backfix.urls[<?= $i ?>]" />
+                                </div>
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                                <a href="javascript:void(0)" class="remove-backfix-url-item btn btn-danger">✕ Delete</a>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro"> 
-                                <img src="img/info.ico" title="When the user clicks Back the second time he'll be shown this url." />
-                                Backfix Second URL:</label>
-                        </div>
-                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                            <div class="input-group custom-go-button">
-                                <input type="text" name="scripts.backfix.second" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->backfixSecondAddress?>" />
-                            </div>
-                        </div>
-                    </div>
+                    <?php } ?>
                 </div>
+                <a id="add-backfix-url-item" class="btn btn-primary" href="javascript:;">+ Add Backfix URL</a>
             </div>
             </div>
             <div class="form-group-inner">
@@ -1174,6 +1172,15 @@ global $c;
             removeButtonClass: 'remove-domain-specific-item',
             maxLimit: 10,
             minLimit: 1,
+            removeConfirm: false
+        });
+
+        $('#add-backfix-url-item').cloneData({
+            mainContainerId: 'backfix_urls_container',
+            cloneContainer: 'backfix-url-item',
+            removeButtonClass: 'remove-backfix-url-item',
+            maxLimit: 10,
+            minLimit: 0,
             removeConfirm: false
         });
 

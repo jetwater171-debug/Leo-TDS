@@ -297,8 +297,7 @@ class JsChecks implements JsonSerializable
 class ScriptsSettings implements JsonSerializable
 {
     public bool $backfix;
-    public string $backfixAddress;
-    public string $backfixSecondAddress;
+    public array $backfixUrls;
     public bool $replacePrelanding;
     public string $replacePrelandingAddress;
     public bool $replaceLanding;
@@ -309,8 +308,7 @@ class ScriptsSettings implements JsonSerializable
     {
         $ss = new ScriptsSettings();
         $ss->backfix = $arr['backfix']['use'] ?? false;
-        $ss->backfixAddress = $arr['backfix']['url'] ?? '';
-        $ss->backfixSecondAddress = $arr['backfix']['second'] ?? '';
+        $ss->backfixUrls = $arr['backfix']['urls'] ?? [];
         $ss->replacePrelanding = $arr['prelandingreplace']['use'] ?? false;
         $ss->replacePrelandingAddress = $arr['prelandingreplace']['url'] ?? '';
         $ss->replaceLanding = $arr['landingreplace']['use'] ?? false;
@@ -325,8 +323,7 @@ class ScriptsSettings implements JsonSerializable
             "scripts" => [
                 "backfix" => [
                     "use" => $this->backfix,
-                    "url" => $this->backfixAddress,
-                    "second" => $this->backfixSecondAddress
+                    "urls" => $this->backfixUrls
                 ],
                 "replacePrelanding" => [
                     "use" => $this->replacePrelanding,

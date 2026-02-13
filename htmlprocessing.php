@@ -66,9 +66,8 @@ function load_prelanding(Campaign $c, string $url): string
     $html = preg_replace('/\{offer\}/', $replacement, $html);
 
     if ($c->scripts->backfix) {
-        $url = $mp->replace_url_macros($c->scripts->backfixAddress);
-        $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress);
-        $html = add_backfix($html, $url, $second);
+        $urls = array_map(fn($u) => $mp->replace_url_macros($u), $c->scripts->backfixUrls);
+        $html = add_backfix($html, $urls);
     }
 
     if ($c->scripts->imagesLazyLoad) {
@@ -120,9 +119,8 @@ function load_landing(Campaign $c, bool $hasPrelanding, string $url)
     //adding backfix ONLY if we don't have a prelanding, cause prelanding will have it
     if (!$hasPrelanding) {
         if ($c->scripts->backfix) {
-            $url = $mp->replace_url_macros($c->scripts->backfixAddress);
-            $second = $mp->replace_url_macros($c->scripts->backfixSecondAddress);
-            $html = add_backfix($html, $url, $second);
+            $urls = array_map(fn($u) => $mp->replace_url_macros($u), $c->scripts->backfixUrls);
+            $html = add_backfix($html, $urls);
         }
     }
 
@@ -241,14 +239,14 @@ function load_white_curl(string $url): string
     return $html;
 }
 
-function add_backfix(string $html, $url, $second): string
+function add_backfix(string $html, array $urls): string
 {
     $debug = DebugMethods::On() ? 'true' : 'false';
     $path = get_cloaker_path(true, false);
+    $linksJson = htmlspecialchars(json_encode(array_values($urls)), ENT_QUOTES);
     $jsCode = <<<EOT
     <script src='{$path}/scripts/backfix.php' 
-        data-backlink='{$url}' 
-        data-secondlink='{$second}'
+        data-links='{$linksJson}'
         data-traceenabled='{$debug}'
         data-redirect='false'
         data-isoff='false'>
