@@ -301,7 +301,9 @@ class TableColumns
             "field" => "group",
             "headerTooltip" => "Group By",
             "headerFilter" => false,
-            "editor" => "input",
+            "editor" => false,
+            "minWidth" => 120,
+            "cellClick"=>"FSTARTfunction(e,cell){var row=cell.getRow();if(row.getTreeChildren().length){row.treeToggle();}}FEND",
             "bottomCalc"=>"FSTARTfunction(values, data, calcParams){return 'TOTAL';}FEND",
         ],
         'preland' => [

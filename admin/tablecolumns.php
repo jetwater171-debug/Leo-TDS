@@ -9,23 +9,17 @@ class Tabulator
         $columnSettings = TableColumns::$statsClmns;
         $tabulatorColumns = [];
 
-        // Prepend the group column with proper title from the first groupby field
+        // Prepend the group column titled "Groups" — it holds the tree hierarchy
         if (!empty($groupByFields)) {
-            $firstGroupBy = $groupByFields[0];
             $groupCol = $columnSettings['group'];
-            // Use the title from the groupby field definition if available
-            if (array_key_exists($firstGroupBy, $columnSettings) && isset($columnSettings[$firstGroupBy]['title'])) {
-                $groupCol['title'] = $columnSettings[$firstGroupBy]['title'];
-            } else {
-                $groupCol['title'] = ucfirst($firstGroupBy);
-            }
+            $groupCol['title'] = 'Groups';
             $tabulatorColumns[] = $groupCol;
         }
 
         for ($i = 0; $i < count($columns); $i++) {
             $field = $columns[$i]['field'];
-            // Skip columns that are already represented by groupby
-            if (in_array($field, $groupByFields))
+            // Skip the group column (already prepended) and groupby dimension columns
+            if ($field === 'group' || in_array($field, $groupByFields))
                 continue;
             $width = $columns[$i]['width'] ?? -1;
             if (array_key_exists($field, $columnSettings)) {

@@ -209,7 +209,8 @@ class Db
         string $startDate,
         string $endDate,
         string $timezone,
-        array $filters = []
+        array $filters = [],
+        array $orderby = []
     ): array {
         $baseQuery =
             "SELECT %s FROM clicks c WHERE campaign_id = :campid AND time BETWEEN :startDate AND :endDate";
@@ -344,11 +345,11 @@ class Db
         $db->close();
 
         // Build the tree structure
-        $tree = $this->build_tree($rows, $groupByFields, $selectedFields);
+        $tree = $this->build_tree($rows, $groupByFields, $selectedFields, 0, $orderby);
         return $tree;
     }
 
-    private function build_tree(array $rows, array $groupByFields, array $selectedFields, int $level = 0): array
+    private function build_tree(array $rows, array $groupByFields, array $selectedFields, int $level = 0, array $orderby = []): array
     {
         if (empty($groupByFields) || $level >= count($groupByFields)) {
             // No grouping: recalculate derived metrics to fix SQL NULLs from division by zero
@@ -382,7 +383,7 @@ class Db
                 $totals['group'] = $groupValue;
                 $tree[] = $totals;
             } else {
-                $children = $this->build_tree($groupRows, $groupByFields, $selectedFields, $level + 1);
+                $children = $this->build_tree($groupRows, $groupByFields, $selectedFields, $level + 1, $orderby);
                 $totals = $this->calculate_totals($groupRows, $selectedFields);
                 $node = array_merge(
                     array_diff_key($totals, array_flip($groupByFields)),
@@ -391,6 +392,21 @@ class Db
                 );
                 $tree[] = $node;
             }
+        }
+
+        if (!empty($orderby)) {
+            usort($tree, function ($a, $b) use ($orderby) {
+                foreach ($orderby as $rule) {
+                    $field = $rule['field'] ?? '';
+                    $dir = $rule['dir'] ?? 'asc';
+                    $va = $a[$field] ?? 0;
+                    $vb = $b[$field] ?? 0;
+                    $cmp = $va <=> $vb;
+                    if ($dir === 'desc') $cmp = -$cmp;
+                    if ($cmp !== 0) return $cmp;
+                }
+                return 0;
+            });
         }
 
         return $tree;

@@ -12,7 +12,9 @@ const FILTER_OPERATORS = [
 const qs = (sel, ctx = document) => ctx.querySelector(sel);
 const qsa = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
-function initializeStatsTableEditor(availableColumns, selectedMetrics, availableDimensions, selectedDimensions, tableName, saveUrl, existingFilters) {
+const MAX_ORDERBY_RULES = 3;
+
+function initializeStatsTableEditor(availableColumns, selectedMetrics, availableDimensions, selectedDimensions, tableName, saveUrl, existingFilters, existingOrderby) {
     const MAX_GROUPBY_SELECTIONS = 3;
 
     // Initialize Sortable.js for both lists
@@ -23,8 +25,8 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
     const tableNameInput = document.getElementById('tableName');
     if (tableName) tableNameInput.value = tableName;
 
-    // Add columns
-    addColumnsToList('metricsColumns', selectedMetrics, availableColumns);
+    // Add columns (metrics get sort toggles)
+    addColumnsToList('metricsColumns', selectedMetrics, availableColumns, existingOrderby);
     addColumnsToList('dimensionsColumns', selectedDimensions, availableDimensions);
 
     // Initialize filters
@@ -33,9 +35,17 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
     // Setup metrics select/deselect buttons
     setupSelectButtons('selectAllMetrics', 'deselectAllMetrics', 'metricsColumns');
 
-    // Metrics checkbox change → update save button
+    // Metrics checkbox change → update save button + reset sort toggle if unchecked
     document.getElementById('metricsColumns').addEventListener('change', (e) => {
-        if (e.target.matches('input[type="checkbox"]')) updateSaveButtonState();
+        if (e.target.matches('input[type="checkbox"]')) {
+            updateSaveButtonState();
+            if (!e.target.checked) {
+                const item = e.target.closest('.column-item');
+                const btn = item?.querySelector('.sort-toggle');
+                if (btn) setSortToggleState(btn, 'none');
+            }
+            updateSortToggleAvailability();
+        }
     });
 
     // Dimensions checkbox change → enforce max selections + update save button
@@ -74,12 +84,13 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
         }
 
         const filters = collectFilters();
+        const orderby = collectOrderby();
 
         try {
             const res = await fetch(saveUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, columns, groupby, filters }),
+                body: JSON.stringify({ name, columns, groupby, filters, orderby }),
             });
             if (!res.ok) throw new Error('Network response was not ok');
 
@@ -123,9 +134,10 @@ async function deleteStatsTable(tableName, deleteUrl) {
 
 // ── Helper functions ──
 
-function addColumnsToList(containerId, selectedItems, columns) {
+function addColumnsToList(containerId, selectedItems, columns, orderbyRules) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
+    const isMetrics = containerId === 'metricsColumns';
 
     for (const column of columns) {
         const field = typeof column === 'string' ? column : column.field;
@@ -139,13 +151,37 @@ function addColumnsToList(containerId, selectedItems, columns) {
         const div = document.createElement('div');
         div.className = 'column-item';
         div.dataset.field = field;
+
+        let sortToggleHtml = '';
+        if (isMetrics) {
+            const rule = orderbyRules?.find(r => r.field === field);
+            const state = rule ? rule.dir : 'none';
+            const activeClass = state !== 'none' ? ' sort-active' : '';
+            sortToggleHtml = `<button type="button" class="sort-toggle${activeClass}" data-sort="${state}" title="Sort">${getSortToggleIcon(state)}</button>`;
+        }
+
         div.innerHTML = `
             <span class="drag-handle">☰</span>
             <input type="checkbox" ${isSelected ? 'checked' : ''}>
-            <span>${title}</span>
+            <span class="column-label">${title}</span>
+            ${sortToggleHtml}
         `;
+
+        if (isMetrics) {
+            const btn = div.querySelector('.sort-toggle');
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const cb = div.querySelector('input[type="checkbox"]');
+                if (!cb.checked) return;
+                cycleSortToggle(btn);
+            });
+        }
+
         container.appendChild(div);
     }
+
+    if (isMetrics) updateSortToggleAvailability();
 }
 
 function setupSelectButtons(selectAllId, deselectAllId, containerId) {
@@ -249,6 +285,55 @@ function addFilterRowToDOM(field, operator, value) {
     row.querySelector('.filter-remove').addEventListener('click', () => row.remove());
 
     document.getElementById('filterRows').appendChild(row);
+}
+
+// ── Sort toggle (3-state) on metric columns ──
+
+function getSortToggleIcon(state) {
+    if (state === 'desc') return '▼';
+    if (state === 'asc') return '▲';
+    return '▼';
+}
+
+function setSortToggleState(btn, state) {
+    btn.dataset.sort = state;
+    btn.textContent = getSortToggleIcon(state);
+    btn.className = 'sort-toggle' + (state !== 'none' ? ' sort-active' : '');
+}
+
+function cycleSortToggle(btn) {
+    const current = btn.dataset.sort || 'none';
+    if (current === 'none') {
+        const activeCount = qsa('#metricsColumns .sort-toggle.sort-active').length;
+        if (activeCount >= MAX_ORDERBY_RULES) return;
+        setSortToggleState(btn, 'desc');
+    } else if (current === 'desc') {
+        setSortToggleState(btn, 'asc');
+    } else {
+        setSortToggleState(btn, 'none');
+    }
+    updateSortToggleAvailability();
+}
+
+function updateSortToggleAvailability() {
+    const activeCount = qsa('#metricsColumns .sort-toggle.sort-active').length;
+    for (const btn of qsa('#metricsColumns .sort-toggle')) {
+        const item = btn.closest('.column-item');
+        const cb = item.querySelector('input[type="checkbox"]');
+        const isActive = btn.classList.contains('sort-active');
+        btn.style.visibility = cb.checked ? 'visible' : 'hidden';
+        btn.style.opacity = (!isActive && activeCount >= MAX_ORDERBY_RULES) ? '0.3' : '';
+        btn.style.cursor = (!isActive && activeCount >= MAX_ORDERBY_RULES) ? 'not-allowed' : 'pointer';
+    }
+}
+
+function collectOrderby() {
+    const rules = [];
+    for (const btn of qsa('#metricsColumns .sort-toggle.sort-active')) {
+        const item = btn.closest('.column-item');
+        rules.push({ field: item.dataset.field, dir: btn.dataset.sort });
+    }
+    return rules;
 }
 
 function collectFilters() {

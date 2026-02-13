@@ -13,6 +13,7 @@ $ss = $c->statistics;
 if (count($ss->tables)>0){
     $tSettings = $ss->tables[$curTableIndex];
     $tFilters = isset($tSettings->filters) ? (array)$tSettings->filters : [];
+    $tOrderby = isset($tSettings->orderby) ? $tSettings->orderby : [];
     $dataset = $db->get_statistics(
         array_column($tSettings->columns, 'field'),
         $tSettings->groupby,
@@ -20,7 +21,8 @@ if (count($ss->tables)>0){
         $timeRange[0],
         $timeRange[1],
         $ss->timezone,
-        $tFilters
+        $tFilters,
+        $tOrderby
     );
     $dJson = json_encode($dataset);
     $tName = $tSettings->name;
@@ -48,7 +50,7 @@ if (count($ss->tables)>0){
             <!-- Table selector with improved styling for dark background -->
             <span style="margin-left: 20px; display: inline-block;">
                 <label for="tableSelector" style="color: white; font-weight: bold;">Table:</label>
-                <select id="tableSelector" class="form-control" style="width: 150px; display: inline-block; margin-left: 10px; background-color: #fff; color: #000;">
+                <select id="tableSelector" class="form-control" style="width: 150px; display: inline-block; margin-left: 10px; background-color: #fff; color: #000; appearance: auto; -webkit-appearance: menulist; padding-right: 24px;">
                     <?php
                     for ($i=0; $i<count($c->statistics->tables); $i++) {
                         $t = $c->statistics->tables[$i];
@@ -78,7 +80,7 @@ if (count($ss->tables)>0){
         let t<?=$tName?>Data = <?=$dJson?>;
         let t<?=$tName?>Columns = <?=$tColumns?>;
         let t<?=$tName?>Table = new Tabulator('#t<?=$tName?>', {
-            layout: "fitColumns",
+            layout: "fitDataStretch",
             columns: t<?=$tName?>Columns,
             columnCalcs: "both",
             pagination: "local",
@@ -146,6 +148,7 @@ if (count($ss->tables)>0){
             let selectedDimensions = <?= json_encode($tSettings->groupby) ?>;
             
             let existingFilters = <?= json_encode(isset($tSettings->filters) ? $tSettings->filters : new stdClass()) ?>;
+            let existingOrderby = <?= json_encode(isset($tSettings->orderby) ? $tSettings->orderby : []) ?>;
             initializeStatsTableEditor(
                 availableClmns,
                 selectedClmns,
@@ -153,7 +156,8 @@ if (count($ss->tables)>0){
                 selectedDimensions,
                 "<?=$tName?>",
                 `clmnseditor.php?action=savestats&name=<?=$tName?>&campid=<?=$campId?>`,
-                existingFilters
+                existingFilters,
+                existingOrderby
             );
 
             $('#statsTableModal').modal({
@@ -177,7 +181,8 @@ if (count($ss->tables)>0){
                 [], // no selected group by
                 'New', // no table name
                 'clmnseditor.php?action=savestats&campid=<?=$campId?>',
-                {}
+                {},
+                []
             );
             $('#statsTableModal').modal({
                 modalClass: 'ywbmodal',

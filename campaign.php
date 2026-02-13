@@ -449,17 +449,21 @@ class StatisticsTable implements JsonSerializable
     public string $name;
     public array $columns;
     public array $groupby;
+    public array $filters;
+    public array $orderby;
 
-    public function __construct($name, $columns, $groupby)
+    public function __construct($name, $columns, $groupby, $filters = [], $orderby = [])
     {
         $this->name = $name;
         $this->columns = $columns;
         $this->groupby = $groupby;
+        $this->filters = $filters;
+        $this->orderby = $orderby;
     }
 
     public static function fromArray($arr): StatisticsTable
     {
-        return new StatisticsTable($arr['name'], $arr['columns'], $arr['groupby']);
+        return new StatisticsTable($arr['name'], $arr['columns'], $arr['groupby'], $arr['filters'] ?? [], $arr['orderby'] ?? []);
     }
 
     public function jsonSerialize(): array
@@ -468,6 +472,8 @@ class StatisticsTable implements JsonSerializable
             "name" => $this->name,
             "columns" => $this->columns,
             "groupby" => $this->groupby,
+            "filters" => $this->filters,
+            "orderby" => $this->orderby,
         ];
     }
 }

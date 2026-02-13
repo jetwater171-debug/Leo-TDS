@@ -10,7 +10,7 @@
     border-radius: 12px !important;
     margin: 0 !important;
     width: 95vw !important;
-    max-width: 1300px !important;
+    max-width: 930px !important;
     max-height: 90vh !important;
     z-index: 999999 !important;
     overflow: hidden !important; /* Ensure inner content doesn't break rounded corners */
@@ -94,12 +94,12 @@
 }
 
 .columns-flex-container .columns-section {
-    flex: 0 0 200px;
+    flex: 0 0 230px;
     overflow: hidden;
 }
 
 .columns-flex-container .filters-section {
-    flex: 2;
+    flex: 1;
     min-width: 0;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .filter-row .filter-field {
-    flex: 1;
+    flex: 0 0 110px;
     min-width: 0;
 }
 
@@ -129,12 +129,17 @@
 }
 
 .filter-row .filter-value {
-    flex: 1;
+    flex: 0 0 120px;
     min-width: 0;
 }
 
 .filter-row .filter-remove {
-    flex: 0 0 auto;
+    flex: 0 0 25px;
+    text-align: center;
+    font-size: 16px;
+    line-height: 1;
+    padding: 4px 0;
+    margin-left: 7px;
 }
 
 /* Buttons */
@@ -229,7 +234,7 @@
 }
 
 .jquery-modal .modal {
-    max-width: 1300px !important;
+    max-width: 920px !important;
     width: 95vw !important;
     padding: 0 !important;
 }
