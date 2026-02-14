@@ -104,8 +104,9 @@ function update_width(array &$table, array $c) {
         if ($tcolumn['field'] !== $c['field'])
             continue;
         $tcolumn['width'] = $c['width'];
-        break;
+        return;
     }
+    $table[] = ['field' => $c['field'], 'width' => $c['width']];
 }
 
 

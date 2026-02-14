@@ -97,6 +97,15 @@ class Tabulator
 
     public static function get_campaigns_columns(array $columns): string
     {
+        $nameWidth = 90;
+        $actionsWidth = 200;
+        foreach ($columns as $col) {
+            if (($col['field'] ?? '') === 'name' && isset($col['width']) && $col['width'] > 0)
+                $nameWidth = $col['width'];
+            if (($col['field'] ?? '') === 'actions' && isset($col['width']) && $col['width'] > 0)
+                $actionsWidth = $col['width'];
+        }
+
         $defaultClmns = <<<JSON
     [
         {
@@ -113,8 +122,8 @@ class Tabulator
             },
             "field": "name",
             "headerFilter": false,
-            "width": 90,
-            "editor":"input",
+            "width": $nameWidth,
+            "editor":false,
             "bottomCalc":() => "TOTAL"
         },
         {
@@ -132,7 +141,7 @@ class Tabulator
                     <button class="btn btn-camp btn-blocked" title="View blocked clicks"><i class="bi bi-ban"></i></button>
                     <button class="btn btn-camp btn-leads" title="View leads"><i class="bi bi-coin"></i></button>`;
             },
-            "width":200
+            "width":$actionsWidth
         },
 JSON;
 

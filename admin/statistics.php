@@ -80,7 +80,7 @@ if (count($ss->tables)>0){
         let t<?=$tName?>Data = <?=$dJson?>;
         let t<?=$tName?>Columns = <?=$tColumns?>;
         let t<?=$tName?>Table = new Tabulator('#t<?=$tName?>', {
-            layout: "fitDataStretch",
+            layout: "fitData",
             columns: t<?=$tName?>Columns,
             columnCalcs: "both",
             pagination: "local",
