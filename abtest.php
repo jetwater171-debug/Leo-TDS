@@ -165,6 +165,43 @@ class AbTest
         return $bestItem;
     }
 
+    /**
+     * Compute win probability for each variant via Monte Carlo simulation.
+     * @param array $statsMap ['variantName' => ['imp' => N, 'conv' => N], ...]
+     * @param int $numSamples number of simulations
+     * @return array ['variantName' => probabilityPercent, ...] sorted desc
+     */
+    public static function compute_win_probabilities(array $statsMap, int $numSamples = 5000): array
+    {
+        if (count($statsMap) < 2) return [];
+
+        $winCount = array_fill_keys(array_keys($statsMap), 0);
+
+        for ($i = 0; $i < $numSamples; $i++) {
+            $bestScore = -1;
+            $bestKey = null;
+            foreach ($statsMap as $key => $s) {
+                $imp = $s['imp'] ?? 0;
+                $conv = $s['conv'] ?? 0;
+                $score = self::random_beta($conv + 1, $imp - $conv + 1);
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestKey = $key;
+                }
+            }
+            if ($bestKey !== null) {
+                $winCount[$bestKey]++;
+            }
+        }
+
+        $result = [];
+        foreach ($winCount as $key => $wins) {
+            $result[$key] = round($wins / $numSamples * 100);
+        }
+        arsort($result);
+        return $result;
+    }
+
     // ── Beta distribution sampling (Marsaglia & Tsang) ──
 
     public static function random_beta(float $alpha, float $beta): float

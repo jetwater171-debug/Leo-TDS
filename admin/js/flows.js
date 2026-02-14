@@ -235,6 +235,11 @@ document.addEventListener('DOMContentLoaded', function () {
         var secHtml = '<section id="sec-flow-' + fi + '" class="camp-section flow-section" data-flow-index="' + fi + '">' +
             '<h5 class="flow-section-title">' + flowName + '</h5>' +
 
+            '<div class="flow-group"><span class="flow-group-title">Flow Filters</span>' +
+            '<div class="form-group-inner">' +
+            '<div class="row"><div id="flow-filters-' + fi + '"></div></div>' +
+            '</div></div>' +
+
             '<div class="flow-group"><span class="flow-group-title">Distribution</span>' +
             '<div class="form-group-inner">' +
             '<select class="form-select flow-dist" data-fi="' + fi + '">' +
@@ -252,11 +257,6 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="funnels" name="flow_' + fi + '_optimize_mode" class="flow-optimize-mode" data-fi="' + fi + '" /> Funnels (preland+land combos)</label></div></div></div>' +
             '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="separate" name="flow_' + fi + '_optimize_mode" class="flow-optimize-mode" data-fi="' + fi + '" /> Separate (independent)</label></div></div></div>' +
             '</div></div></div></div>' +
-
-            '<div class="flow-group"><span class="flow-group-title">Flow Filters</span>' +
-            '<div class="form-group-inner">' +
-            '<div class="row"><div id="flow-filters-' + fi + '"></div></div>' +
-            '</div></div>' +
 
             '<div class="flow-group"><span class="flow-group-title">Prelanding method</span>' +
             '<div class="form-group-inner">' +

@@ -123,3 +123,85 @@
     color: #e74c3c;
     letter-spacing: 0.3px;
 }
+
+/* Win Probability display */
+.flow-winprob {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 5px;
+}
+
+.winprob-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8899bb;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    margin-top: 10px;
+}
+
+.winprob-section-title:first-child {
+    margin-top: 0;
+}
+
+.winprob-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.winprob-name {
+    min-width: 140px;
+    max-width: 200px;
+    font-size: 13px;
+    color: #aab;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.winprob-bar-wrap {
+    flex: 1;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.winprob-bar {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.winprob-leader .winprob-bar {
+    background: #22c55e;
+}
+
+.winprob-leader .winprob-name {
+    color: #fff;
+    font-weight: 600;
+}
+
+.winprob-leader .winprob-pct {
+    color: #22c55e;
+    font-weight: 700;
+}
+
+.winprob-pct {
+    min-width: 40px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 600;
+    color: #8899bb;
+}
+
+.winprob-empty {
+    font-size: 13px;
+    color: #667;
+    font-style: italic;
+}

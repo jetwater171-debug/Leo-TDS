@@ -2,7 +2,8 @@
 require_once __DIR__ . '/securitycheck.php';
 require_once __DIR__ . '/campinit.php';
 require_once __DIR__ . '/../paths.php';
-global $c;
+require_once __DIR__ . '/../abtest.php';
+global $c, $db, $campId;
 ?>
 <!doctype html>
 <html lang="en">
@@ -65,6 +66,18 @@ global $c;
             </section>
 
             <section id="sec-safepage" class="camp-section">
+            <div class="flow-group">
+            <span class="flow-group-title">Filters</span>
+            <div class="form-group-inner">
+                <p>
+                Traffic matching these filters will be shown the <strong>safe page</strong>. Everyone else goes to the black flows.
+                </p>
+                <div class="row">
+                    <div id="filtersbuilder"></div>
+                </div>
+            </div>
+            </div>
+
             <div class="flow-group">
             <span class="flow-group-title">Method</span>
             <div class="form-group-inner">
@@ -499,17 +512,6 @@ global $c;
             </div>
             </div>
 
-            <div class="flow-group">
-            <span class="flow-group-title">Filters</span>
-            <div class="form-group-inner">
-                <p>
-                Traffic matching these filters will be shown the <strong>safe page</strong>. Everyone else goes to the black flows.
-                </p>
-                <div class="row">
-                    <div id="filtersbuilder"></div>
-                </div>
-            </div>
-            </div>
             </section>
 
             <section id="sec-flows" class="camp-section">
@@ -588,6 +590,15 @@ global $c;
             <h5 class="flow-section-title"><?= htmlspecialchars($flow->name) ?></h5>
 
             <div class="flow-group">
+            <span class="flow-group-title">Flow Filters</span>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div id="flow-filters-<?= $fi ?>"></div>
+                </div>
+            </div>
+            </div>
+
+            <div class="flow-group">
             <span class="flow-group-title">Distribution</span>
             <div class="form-group-inner">
                 <select class="form-select flow-dist" data-fi="<?= $fi ?>">
@@ -619,15 +630,94 @@ global $c;
                         </label></div></div></div>
                     </div>
                 </div>
-            </div>
-            </div>
+                <?php
+                // ── Win Probability computation ──
+                if ($flow->distribution === 'thompson') {
+                    $winProbData = [];
+                    $totalImp = 0;
+                    $isFunnel = $flow->hasPrelanding() && $flow->optimize_mode === 'funnels';
 
-            <div class="flow-group">
-            <span class="flow-group-title">Flow Filters</span>
-            <div class="form-group-inner">
-                <div class="row">
-                    <div id="flow-filters-<?= $fi ?>"></div>
+                    // Current variants from flow settings
+                    $curPrelands = $flow->hasPrelanding() ? $flow->preland->folderNames : [];
+                    $curLands = $flow->land->action === 'redirect' ? $flow->land->redirectUrls : $flow->land->folderNames;
+
+                    if ($isFunnel) {
+                        $stats = $db->get_funnel_stats($campId, $flow->name, $flow->optimize_for);
+                        $statsMap = [];
+                        foreach ($stats as $row) {
+                            if (!in_array($row['preland'], $curPrelands, true) || !in_array($row['land'], $curLands, true)) continue;
+                            $key = $row['preland'] . ' + ' . $row['land'];
+                            $statsMap[$key] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
+                            $totalImp += (int)$row['impressions'];
+                        }
+                        $winProbData = AbTest::compute_win_probabilities($statsMap);
+                    } else {
+                        // Separate mode: show preland probabilities (if any) + land probabilities
+                        if ($flow->hasPrelanding()) {
+                            $pStats = $db->get_variant_stats($campId, $flow->name, 'preland', $flow->optimize_for);
+                            $pMap = [];
+                            foreach ($pStats as $row) {
+                                if (!in_array($row['variant'], $curPrelands, true)) continue;
+                                $pMap[$row['variant']] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
+                                $totalImp += (int)$row['impressions'];
+                            }
+                            $winProbPreland = AbTest::compute_win_probabilities($pMap);
+                        }
+                        $lStats = $db->get_variant_stats($campId, $flow->name, 'land', $flow->optimize_for);
+                        $lMap = [];
+                        foreach ($lStats as $row) {
+                            if (!in_array($row['variant'], $curLands, true)) continue;
+                            $lMap[$row['variant']] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
+                            $totalImp += (int)$row['impressions'];
+                        }
+                        $winProbLand = AbTest::compute_win_probabilities($lMap);
+                    }
+                ?>
+                <div class="flow-winprob">
+                    <?php if ($totalImp < 10) { ?>
+                        <div class="winprob-empty">Not enough data yet (<?= $totalImp ?> impressions)</div>
+                    <?php } elseif ($isFunnel) { ?>
+                        <div class="winprob-section-title">Funnel Win Probability</div>
+                        <?php $isFirst = true; foreach ($winProbData as $variant => $prob) { ?>
+                        <div class="winprob-row <?= $isFirst ? 'winprob-leader' : '' ?>">
+                            <span class="winprob-name"><?= htmlspecialchars($variant) ?></span>
+                            <div class="winprob-bar-wrap">
+                                <div class="winprob-bar" style="width: <?= max($prob, 2) ?>%"></div>
+                            </div>
+                            <span class="winprob-pct"><?= $prob ?>%</span>
+                        </div>
+                        <?php $isFirst = false; } ?>
+                    <?php } else { ?>
+                        <?php if ($flow->hasPrelanding() && !empty($winProbPreland)) { ?>
+                        <div class="winprob-section-title">Prelanding Win Probability</div>
+                        <?php $isFirst = true; foreach ($winProbPreland as $variant => $prob) { ?>
+                        <div class="winprob-row <?= $isFirst ? 'winprob-leader' : '' ?>">
+                            <span class="winprob-name"><?= htmlspecialchars($variant) ?></span>
+                            <div class="winprob-bar-wrap">
+                                <div class="winprob-bar" style="width: <?= max($prob, 2) ?>%"></div>
+                            </div>
+                            <span class="winprob-pct"><?= $prob ?>%</span>
+                        </div>
+                        <?php $isFirst = false; } ?>
+                        <?php } ?>
+                        <?php if (!empty($winProbLand)) { ?>
+                        <div class="winprob-section-title">Landing Win Probability</div>
+                        <?php $isFirst = true; foreach ($winProbLand as $variant => $prob) { ?>
+                        <div class="winprob-row <?= $isFirst ? 'winprob-leader' : '' ?>">
+                            <span class="winprob-name"><?= htmlspecialchars($variant) ?></span>
+                            <div class="winprob-bar-wrap">
+                                <div class="winprob-bar" style="width: <?= max($prob, 2) ?>%"></div>
+                            </div>
+                            <span class="winprob-pct"><?= $prob ?>%</span>
+                        </div>
+                        <?php $isFirst = false; } ?>
+                        <?php } ?>
+                        <?php if (empty($winProbPreland ?? []) && empty($winProbLand)) { ?>
+                        <div class="winprob-empty">No variant data collected yet</div>
+                        <?php } ?>
+                    <?php } ?>
                 </div>
+                <?php } ?>
             </div>
             </div>
 
