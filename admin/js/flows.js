@@ -108,68 +108,190 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Delete path items (delegated) ──
     document.addEventListener('click', function (e) {
-        if (e.target.classList.contains('flow-remove-preland') ||
-            e.target.classList.contains('flow-remove-land-folder') ||
-            e.target.classList.contains('flow-remove-land-redirect')) {
-            var item = e.target.closest('.flow-path-item');
-            if (!item) return;
-            var sec = item.closest('.flow-section');
-            var fi = sec ? sec.dataset.flowIndex : '';
-            var isWeighted = getFlowDist(fi) === 'weighted';
-            // Read removed weight before removing
-            var removedWeightInp = item.querySelector('input[type="number"]');
-            var removedWeight = removedWeightInp ? (parseInt(removedWeightInp.value, 10) || 0) : 0;
-            // Determine which selector to use for remaining weights
-            var weightClass = '';
-            if (e.target.classList.contains('flow-remove-preland')) weightClass = '.flow-preland-weight';
-            else if (e.target.classList.contains('flow-remove-land-folder')) weightClass = '.flow-land-weight';
-            else if (e.target.classList.contains('flow-remove-land-redirect')) weightClass = '.flow-land-weight';
-            item.remove();
-            if (isWeighted && weightClass && sec) {
-                var remaining = sec.querySelectorAll(weightClass);
-                redistributeWeightsAfterDelete(remaining, removedWeight);
+        var removeBtn = e.target.closest('.flow-remove-preland, .flow-remove-land-folder, .flow-remove-land-redirect');
+        if (!removeBtn) return;
+        var item = removeBtn.closest('.flow-path-item');
+        if (!item) return;
+        var sec = item.closest('.flow-section');
+        var fi = sec ? sec.dataset.flowIndex : '';
+        var isWeighted = getFlowDist(fi) === 'weighted';
+        // Read removed weight before removing
+        var removedWeightInp = item.querySelector('input[type="number"]');
+        var removedWeight = removedWeightInp ? (parseInt(removedWeightInp.value, 10) || 0) : 0;
+        // Determine which selector to use for remaining weights
+        var weightClass = '';
+        if (removeBtn.classList.contains('flow-remove-preland')) weightClass = '.flow-preland-weight';
+        else if (removeBtn.classList.contains('flow-remove-land-folder')) weightClass = '.flow-land-weight';
+        else if (removeBtn.classList.contains('flow-remove-land-redirect')) weightClass = '.flow-land-weight';
+        item.remove();
+        if (isWeighted && weightClass && sec) {
+            var remaining = sec.querySelectorAll(weightClass);
+            redistributeWeightsAfterDelete(remaining, removedWeight);
+        }
+    });
+
+    // ── Helper: build a folder row HTML ──
+    function buildFolderRow(type, folderName, showWeight) {
+        var label = type === 'preland' ? 'Prelanding folder:' : 'Landing folder:';
+        var inputClass = type === 'preland' ? 'flow-preland-folder' : 'flow-land-folder';
+        var weightClass = type === 'preland' ? 'flow-preland-weight' : 'flow-land-weight';
+        var removeClass = type === 'preland' ? 'flow-remove-preland' : 'flow-remove-land-folder';
+        return '<div class="form-group-inner flow-path-item"><div class="row">' +
+            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">' + label + '</label></div>' +
+            '<div class="col-lg-3"><input type="text" class="form-control ' + inputClass + '" value="' + folderName + '" placeholder="folder" readonly /></div>' +
+            '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
+            '<input type="number" step="1" class="form-control ' + weightClass + '" value="" placeholder="%" style="width:70px" /></div>' +
+            '<div class="col-lg-3"><a href="javascript:void(0)" class="btn btn-warning btn-sm flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a> <a href="javascript:void(0)" class="btn btn-danger btn-sm ' + removeClass + '" title="Delete"><i class="bi bi-trash"></i></a></div>' +
+            '</div></div>';
+    }
+
+    // ── Folder Picker Modal logic ──
+    var fpResolve = null;
+    var fpFolders = [];
+
+    function openFolderPicker(folders) {
+        fpFolders = folders;
+        var $list = $('#fp-list');
+        var $empty = $('#fp-empty');
+        var $search = $('#fp-search');
+        $search.val('');
+        renderFpList(folders, $list, $empty);
+
+        $search.off('input').on('input', function () {
+            var q = $(this).val().toLowerCase();
+            var filtered = folders.filter(function (f) { return f.toLowerCase().indexOf(q) !== -1; });
+            renderFpList(filtered, $list, $empty);
+        });
+
+        $('#fp-ok').off('click').on('click', function () {
+            var sel = $('input[name=fp-folder]:checked').val();
+            $.modal.close();
+            if (fpResolve) fpResolve(sel || null);
+            fpResolve = null;
+        });
+
+        $('#fp-cancel').off('click').on('click', function () {
+            $.modal.close();
+            if (fpResolve) fpResolve(null);
+            fpResolve = null;
+        });
+
+        $('#folderPickerModal').modal({
+            modalClass: 'ywbmodal',
+            fadeDuration: 250,
+            fadeDelay: 0.80,
+            showClose: false
+        });
+
+        return new Promise(function (resolve) { fpResolve = resolve; });
+    }
+
+    function renderFpList(folders, $list, $empty) {
+        if (!folders.length) {
+            $list.html('');
+            $empty.show();
+            return;
+        }
+        $empty.hide();
+        var html = '';
+        folders.forEach(function (f) {
+            html += '<label><input type="radio" name="fp-folder" value="' + f + '"> ' + f + '</label>';
+        });
+        $list.html(html);
+
+        $list.find('label').on('click', function () {
+            $list.find('label').removeClass('fp-selected');
+            $(this).addClass('fp-selected');
+        });
+    }
+
+    // ── Add Existing folder (delegated) ──
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.flow-add-existing');
+        if (!btn) return;
+        var fi = btn.dataset.fi;
+        var type = btn.dataset.type; // 'preland' or 'land'
+        var containerId = type === 'preland' ? 'flow-preland-items-' + fi : 'flow-land-folder-items-' + fi;
+        var container = document.getElementById(containerId);
+        var showWeight = getFlowDist(fi) === 'weighted';
+
+        btn.disabled = true;
+        fetch('listfolders.php').then(function (r) { return r.json(); }).then(function (data) {
+            btn.disabled = false;
+            if (data.error) { alert(data.result); return; }
+            if (!data.folders.length) { alert('No folders found in lcache. Upload a ZIP first.'); return; }
+
+            openFolderPicker(data.folders).then(function (choice) {
+                if (!choice) return;
+                container.insertAdjacentHTML('beforeend', buildFolderRow(type, choice, showWeight));
+                if (showWeight) {
+                    var weightClass = type === 'preland' ? '.flow-preland-weight' : '.flow-land-weight';
+                    redistributeWeights(container.querySelectorAll(weightClass));
+                }
+            });
+        }).catch(function (err) { btn.disabled = false; alert('Error: ' + err); });
+    });
+
+    // ── Upload ZIP (bottom button, creates new row) ──
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.flow-upload-zip');
+        if (!btn) return;
+        var fi = btn.dataset.fi;
+        var type = btn.dataset.type;
+        if (!fi || !type) return;
+
+        var containerId = type === 'preland' ? 'flow-preland-items-' + fi : 'flow-land-folder-items-' + fi;
+        var container = document.getElementById(containerId);
+        var showWeight = getFlowDist(fi) === 'weighted';
+
+        // Pick file first (preserves user gesture), then ask for folder name
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.zip';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+
+        fileInput.addEventListener('change', function () {
+            if (!fileInput.files.length) { fileInput.remove(); return; }
+            var file = fileInput.files[0];
+
+            var folderName = prompt('Enter folder name for the new landing:');
+            if (!folderName || !folderName.trim()) { fileInput.remove(); return; }
+            folderName = folderName.trim();
+            if (!/^[a-zA-Z0-9_\-\.]+$/.test(folderName)) {
+                alert('Invalid folder name. Use only letters, numbers, hyphens, underscores, dots.');
+                fileInput.remove();
+                return;
             }
-        }
-    });
 
-    // ── Add preland folder (delegated) ──
-    document.addEventListener('click', function (e) {
-        var btn = e.target.closest('.flow-add-preland');
-        if (!btn) return;
-        var fi = btn.dataset.fi;
-        var container = document.getElementById('flow-preland-items-' + fi);
-        var showWeight = getFlowDist(fi) === 'weighted';
-        var html = '<div class="form-group-inner flow-path-item"><div class="row">' +
-            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Prelanding folder:</label></div>' +
-            '<div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="" placeholder="preland1" /></div>' +
-            '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
-            '<input type="number" step="1" class="form-control flow-preland-weight" value="" placeholder="%" style="width:70px" /></div>' +
-            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">✕ Delete</a></div>' +
-            '</div></div>';
-        container.insertAdjacentHTML('beforeend', html);
-        if (showWeight) {
-            redistributeWeights(container.querySelectorAll('.flow-preland-weight'));
-        }
-    });
+            var fd = new FormData();
+            fd.append('zipfile', file);
+            fd.append('folder', folderName);
 
-    // ── Add land folder (delegated) ──
-    document.addEventListener('click', function (e) {
-        var btn = e.target.closest('.flow-add-land-folder');
-        if (!btn) return;
-        var fi = btn.dataset.fi;
-        var container = document.getElementById('flow-land-folder-items-' + fi);
-        var showWeight = getFlowDist(fi) === 'weighted';
-        var html = '<div class="form-group-inner flow-path-item"><div class="row">' +
-            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Landing folder:</label></div>' +
-            '<div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="" placeholder="land1" /></div>' +
-            '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
-            '<input type="number" step="1" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>' +
-            '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">✕ Delete</a></div>' +
-            '</div></div>';
-        container.insertAdjacentHTML('beforeend', html);
-        if (showWeight) {
-            redistributeWeights(container.querySelectorAll('.flow-land-weight'));
-        }
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+            btn.style.pointerEvents = 'none';
+
+            fetch('zipupload.php', { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        alert('Upload error: ' + data.result);
+                    } else {
+                        container.insertAdjacentHTML('beforeend', buildFolderRow(type, data.folder, showWeight));
+                        if (showWeight) {
+                            var weightClass = type === 'preland' ? '.flow-preland-weight' : '.flow-land-weight';
+                            redistributeWeights(container.querySelectorAll(weightClass));
+                        }
+                    }
+                })
+                .catch(function (err) { alert('Upload failed: ' + err); })
+                .finally(function () {
+                    btn.innerHTML = '<i class="bi bi-upload"></i> Upload ZIP';
+                    btn.style.pointerEvents = '';
+                    fileInput.remove();
+                });
+        });
+        fileInput.click();
     });
 
     // ── Add land redirect (delegated) ──
@@ -271,7 +393,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             '<div class="flow-preland-folders" id="flow-preland-folders-' + fi + '" style="display:none">' +
             '<div class="flow-preland-items" id="flow-preland-items-' + fi + '"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-preland" data-fi="' + fi + '">+ Add Prelanding</a>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="' + fi + '" data-type="preland"><i class="bi bi-folder-symlink"></i> Add Existing</a> ' +
+            '<a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="' + fi + '" data-type="preland"><i class="bi bi-upload"></i> Upload ZIP</a>' +
             '</div></div>' +
 
             '<div class="flow-group"><span class="flow-group-title">Landing method</span>' +
@@ -287,7 +410,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             '<div class="flow-land-folders" id="flow-land-folders-' + fi + '" style="display:block">' +
             '<div class="flow-land-folder-items" id="flow-land-folder-items-' + fi + '"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-folder" data-fi="' + fi + '">+ Add Landing Folder</a>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="' + fi + '" data-type="land"><i class="bi bi-folder-symlink"></i> Add Existing</a> ' +
+            '<a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="' + fi + '" data-type="land"><i class="bi bi-upload"></i> Upload ZIP</a>' +
             '</div>' +
 
             '<div class="flow-land-redirects" id="flow-land-redirects-' + fi + '" style="display:none">' +
@@ -324,6 +448,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // 5. Navigate to the new flow section
         if (window.showSection) window.showSection('sec-flow-' + fi);
+    });
+
+    // ── Edit folder (delegated) ──
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.flow-edit-folder');
+        if (!btn) return;
+        var item = btn.closest('.flow-path-item');
+        if (!item) return;
+        var folderInput = item.querySelector('.flow-preland-folder, .flow-land-folder');
+        if (!folderInput || !folderInput.value.trim()) {
+            alert('Please enter a folder name first.');
+            return;
+        }
+        if (typeof window.openFileEditor === 'function') {
+            window.openFileEditor(folderInput.value.trim());
+        } else {
+            alert('File editor not loaded.');
+        }
     });
 
     // ── Flow list: Move Up ──

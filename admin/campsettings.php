@@ -9,6 +9,7 @@ global $c, $db, $campId;
 <html lang="en">
 <?php include __DIR__.'/head.php' ?>
 <link rel="stylesheet" href="<?=get_cloaker_path()?>css/campsettings.css?v=<?=filemtime(__DIR__.'/css/campsettings.css')?>">
+<link rel="stylesheet" href="<?=get_cloaker_path()?>css/fileeditor.css?v=<?=filemtime(__DIR__.'/css/fileeditor.css')?>">
 
 <body>
     <?php include __DIR__.'/header.php' ?>
@@ -739,16 +740,17 @@ global $c, $db, $campId;
                     <div class="form-group-inner flow-path-item">
                         <div class="row">
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Prelanding folder:</label></div>
-                            <div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="<?= htmlspecialchars($pf) ?>" placeholder="preland1" /></div>
+                            <div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="<?= htmlspecialchars($pf) ?>" placeholder="preland1" readonly /></div>
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" step="1" class="form-control flow-preland-weight" value="<?= $flow->preland->weights[$pi] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland">✕ Delete</a></div>
+                            <div class="col-lg-3"><a href="javascript:void(0)" class="btn btn-warning btn-sm flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a> <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland" title="Delete"><i class="bi bi-trash"></i></a></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-preland" data-fi="<?= $fi ?>">+ Add Prelanding</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="<?= $fi ?>" data-type="preland"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+                <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="<?= $fi ?>" data-type="preland"><i class="bi bi-upload"></i> Upload ZIP</a>
             </div>
             </div>
 
@@ -770,16 +772,17 @@ global $c, $db, $campId;
                     <div class="form-group-inner flow-path-item">
                         <div class="row">
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Landing folder:</label></div>
-                            <div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="<?= htmlspecialchars($lf) ?>" placeholder="land1" /></div>
+                            <div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="<?= htmlspecialchars($lf) ?>" placeholder="land1" readonly /></div>
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" step="1" class="form-control flow-land-weight" value="<?= $flow->land->weights[$li] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder">✕ Delete</a></div>
+                            <div class="col-lg-3"><a href="javascript:void(0)" class="btn btn-warning btn-sm flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a> <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder" title="Delete"><i class="bi bi-trash"></i></a></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-folder" data-fi="<?= $fi ?>">+ Add Landing Folder</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="<?= $fi ?>" data-type="land"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+                <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="<?= $fi ?>" data-type="land"><i class="bi bi-upload"></i> Upload ZIP</a>
             </div>
             <div class="flow-land-redirects" id="flow-land-redirects-<?= $fi ?>" style="display:<?= $flow->land->action === 'redirect' ? 'block' : 'none' ?>">
                 <div class="flow-land-redirect-items" id="flow-land-redirect-items-<?= $fi ?>">
@@ -1370,6 +1373,50 @@ global $c, $db, $campId;
         <?php } ?>
 
     </script>
+    <!-- Folder Picker Modal -->
+    <div id="folderPickerModal" class="ywbmodal" style="max-width:420px !important;">
+        <div class="fp-modal-content">
+            <div class="fp-modal-header"><h5 style="margin:0;font-size:18px;color:#e2e8f0;">Select Folder</h5></div>
+            <div class="fp-modal-body">
+                <input type="text" id="fp-search" placeholder="Search..." class="fp-search-input">
+                <div id="fp-list" class="fp-list-wrap"></div>
+                <div id="fp-empty" style="display:none;color:#94a3b8;text-align:center;padding:20px 0;">No folders found. Upload a ZIP first.</div>
+            </div>
+            <div class="fp-modal-footer">
+                <button type="button" class="btn btn-default btn-sm" id="fp-cancel">Cancel</button>
+                <button type="button" class="btn btn-info btn-sm" id="fp-ok">OK</button>
+            </div>
+        </div>
+    </div>
+    <style>
+        #folderPickerModal{background:#151b2d !important;padding:0 !important;border-radius:12px !important;overflow:hidden !important;}
+        .fp-modal-content{display:flex;flex-direction:column;max-height:80vh;}
+        .fp-modal-header{padding:12px 16px;border-bottom:1px solid #2a3245;}
+        .fp-modal-body{padding:12px 16px;flex:1;overflow:hidden;display:flex;flex-direction:column;}
+        .fp-search-input{width:100%;padding:6px 12px;background:#1a2235;border:1px solid #2a3245;border-radius:6px;color:#e2e8f0;font-size:14px;margin-bottom:10px;}
+        .fp-search-input:focus{outline:none;border-color:#0084ff;}
+        .fp-list-wrap{max-height:45vh;overflow-y:auto;}
+        .fp-list-wrap::-webkit-scrollbar{width:8px;}
+        .fp-list-wrap::-webkit-scrollbar-track{background:#1a2235;border-radius:4px;}
+        .fp-list-wrap::-webkit-scrollbar-thumb{background:#2d3748;border-radius:4px;}
+        .fp-modal-footer{padding:12px 16px;border-top:1px solid #2a3245;display:flex;justify-content:flex-end;gap:8px;}
+        #fp-list label{display:block;padding:8px 12px;margin:0;border-radius:6px;cursor:pointer;color:#e2e8f0;font-size:14px;transition:background .15s}
+        #fp-list label:hover{background:#1e2a3f}
+        #fp-list input[type=radio]{margin-right:10px;accent-color:#0084ff}
+        #fp-list label.fp-selected{background:#1a2a45}
+    </style>
+
+    <script>window.LANDING_FOLDER = <?= json_encode($cloSettings['landingFolder'] ?? 'lcache') ?>;</script>
+    <!-- CodeMirror 6 local bundles -->
+    <script src="js/cm6/html.min.js"></script>
+    <script>window.CM6_HTML = cm6;</script>
+    <script src="js/cm6/css.min.js"></script>
+    <script>window.CM6_CSS = cm6;</script>
+    <script src="js/cm6/javascript.min.js"></script>
+    <script>window.CM6_JS = cm6;</script>
+    <script src="js/cm6/php.min.js"></script>
+    <script>window.CM6_PHP = cm6;</script>
+    <script src="js/fileeditor.js"></script>
     <script src="js/flows.js"></script>
     <script src="js/campsettings-nav.js"></script>
 </body>
