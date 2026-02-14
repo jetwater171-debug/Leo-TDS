@@ -25,7 +25,8 @@ if (str_starts_with($original_action, "http")) {
     $fullpath = $original_action;
 } //else, compose the full address to the script
 else {
-    $url = get_cookie('landing') . '/' . $original_action;
+    $landingFolder = $cloSettings['landingFolder'] . '/' . get_cookie('landing');
+    $url = $landingFolder . '/' . $original_action;
     $fullpath = get_abs_from_rel($url);
 }
 

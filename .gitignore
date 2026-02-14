@@ -3,11 +3,7 @@
 /logs
 /ycclogs
 /cache
-/land
-/preland
-/black
-/student
-/white
+/lcache
 /fromfolder
 /db/*.db
 /db/*.db-shm

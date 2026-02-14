@@ -6,6 +6,13 @@ require_once __DIR__ . '/htmlinject.php';
 require_once __DIR__ . '/macros.php';
 require_once __DIR__ . '/cookies.php';
 require_once __DIR__ . '/debug.php';
+require_once __DIR__ . '/settings.php';
+
+function get_landing_path(string $folderName): string
+{
+    global $cloSettings;
+    return $cloSettings['landingFolder'] . '/' . $folderName;
+}
 function load_content_with_include($url): string
 {
     ob_start();
@@ -34,9 +41,10 @@ function load_content_with_include($url): string
 //Load content of black landing from another folder
 function load_prelanding(Campaign $c, string $url): string
 {
-    $fullpath = get_abs_from_rel($url);
+    $path = get_landing_path($url);
+    $fullpath = get_abs_from_rel($path);
 
-    $html = load_content_with_include($url);
+    $html = load_content_with_include($path);
     $html = remove_scrapbook($html);
 
     //cleaning <head>
@@ -79,9 +87,10 @@ function load_prelanding(Campaign $c, string $url): string
 //Load content of black landing from another folder
 function load_landing(Campaign $c, bool $hasPrelanding, string $url)
 {
-    $fullpath = get_abs_from_rel($url);
+    $path = get_landing_path($url);
+    $fullpath = get_abs_from_rel($path);
 
-    $html = load_content_with_include($url);
+    $html = load_content_with_include($path);
     $html = remove_scrapbook($html);
     $html = fix_head_add_base($html, $fullpath);
     $html = fix_src($html);
