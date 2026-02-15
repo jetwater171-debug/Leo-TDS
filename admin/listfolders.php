@@ -4,8 +4,9 @@ require_once __DIR__ . '/../settings.php';
 
 header('Content-Type: application/json');
 
-global $cloSettings;
-$landingDir = realpath(__DIR__ . '/../' . $cloSettings['landingFolder']);
+$type = $_GET['type'] ?? 'landing';
+$subKey = $type === 'white' ? 'whiteFolder' : 'landingFolder';
+$landingDir = realpath(__DIR__ . '/../' . get_cache_path($subKey));
 if ($landingDir === false) {
     echo json_encode(['error' => false, 'folders' => []]);
     exit;

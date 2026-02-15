@@ -148,9 +148,10 @@
     }
 
     // ── API calls ──
+    var currentType = 'landing';
     function apiCall(action, params, method) {
         method = method || 'POST';
-        var url = 'fileeditor.php?action=' + action + '&folder=' + encodeURIComponent(currentFolder);
+        var url = 'fileeditor.php?action=' + action + '&folder=' + encodeURIComponent(currentFolder) + '&type=' + encodeURIComponent(currentType);
 
         if (method === 'GET') {
             Object.keys(params || {}).forEach(function (k) {
@@ -211,7 +212,7 @@
             if (editorView) { editorView.destroy(); editorView = null; }
             var container = document.getElementById('fe-editor');
             container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:16px;">' +
-                '<img src="../' + (window.LANDING_FOLDER || 'lcache') + '/' + encodeURIComponent(currentFolder) + '/' + filePath.split('/').map(encodeURIComponent).join('/') + '" ' +
+                '<img src="../' + (currentType === 'white' ? (window.WHITE_FOLDER || 'caching/whites') : (window.LANDING_FOLDER || 'caching/landings')) + '/' + encodeURIComponent(currentFolder) + '/' + filePath.split('/').map(encodeURIComponent).join('/') + '" ' +
                 'style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;" />' +
                 '</div>';
             isDirty = false;
@@ -281,6 +282,7 @@
         document.getElementById('fe-close-btn').addEventListener('click', function () {
             if (isDirty && !confirm('You have unsaved changes. Close anyway?')) return;
             document.getElementById('fe-modal').style.display = 'none';
+            document.body.classList.remove('fe-modal-open');
             currentFolder = '';
             currentFile = '';
             isDirty = false;
@@ -341,7 +343,7 @@
                 var fd = new FormData();
                 fd.append('file', fi.files[0]);
                 fd.append('subpath', subpath);
-                var url = 'fileeditor.php?action=upload&folder=' + encodeURIComponent(currentFolder);
+                var url = 'fileeditor.php?action=upload&folder=' + encodeURIComponent(currentFolder) + '&type=' + encodeURIComponent(currentType);
                 fetch(url, { method: 'POST', body: fd })
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
@@ -374,7 +376,7 @@
             var selPath = getSelectedPath();
             var selType = getSelectedType();
             if (!selPath || selType === 'dir') { alert('Select a file first'); return; }
-            var url = '../' + (window.LANDING_FOLDER || 'lcache') + '/' + encodeURIComponent(currentFolder) + '/' + selPath.split('/').map(encodeURIComponent).join('/');
+            var url = '../' + (currentType === 'white' ? (window.WHITE_FOLDER || 'caching/whites') : (window.LANDING_FOLDER || 'caching/landings')) + '/' + encodeURIComponent(currentFolder) + '/' + selPath.split('/').map(encodeURIComponent).join('/');
             var a = document.createElement('a');
             a.href = url;
             a.download = selPath.split('/').pop();
@@ -414,7 +416,7 @@
     });
 
     // ── Public API ──
-    window.openFileEditor = function (folderName) {
+    window.openFileEditor = function (folderName, type) {
         var modal = document.getElementById('fe-modal');
         if (!modal) {
             modal = buildModal();
@@ -422,6 +424,7 @@
         }
 
         currentFolder = folderName;
+        currentType = type || 'landing';
         currentFile = '';
         isDirty = false;
         document.getElementById('fe-folder-name').textContent = folderName;
@@ -429,6 +432,7 @@
         document.getElementById('fe-editor').innerHTML = '';
 
         modal.style.display = 'flex';
+        document.body.classList.add('fe-modal-open');
         setEditorContent('', 'html');
         loadTree();
     };

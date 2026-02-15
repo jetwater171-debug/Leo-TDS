@@ -12,10 +12,11 @@ function fe_error(string $msg): void
 
 function get_lcache_dir(): string
 {
-    global $cloSettings;
-    $dir = realpath(__DIR__ . '/../' . $cloSettings['landingFolder']);
+    $type = $_REQUEST['type'] ?? 'landing';
+    $subKey = $type === 'white' ? 'whiteFolder' : 'landingFolder';
+    $dir = realpath(__DIR__ . '/../' . get_cache_path($subKey));
     if ($dir === false) {
-        fe_error('Landing folder does not exist');
+        fe_error('Target folder does not exist');
     }
     return $dir;
 }
@@ -31,7 +32,7 @@ function safe_path(string $lcacheDir, string $folder, string $relativePath = '')
     // For existing paths, use realpath
     $real = realpath($target);
     if ($real !== false) {
-        // Must be within lcache/<folder>
+        // Must be within cache/<folder>
         $folderReal = realpath($lcacheDir . DIRECTORY_SEPARATOR . $folder);
         if ($folderReal === false || !str_starts_with($real, $folderReal)) {
             fe_error('Access denied: path outside allowed directory');
