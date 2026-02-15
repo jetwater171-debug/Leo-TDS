@@ -45,7 +45,7 @@ $landName = $click['land'];
 switch ($ls->action) {
     case 'folder':
         $db->add_lpctr($subid);
-        echo load_landing($c, $flow->hasPrelanding(), $landName);
+        echo load_landing($c, $flow->hasPrelanding(), $landName, $ls->isDirectLoad($landName));
         break;
     case 'redirect':
         $redirectUrl = null;

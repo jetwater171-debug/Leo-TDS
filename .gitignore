@@ -2,13 +2,12 @@
 /temp_update
 /logs
 /ycclogs
-/cache
-/lcache
+/caching
 /fromfolder
+/tmp
 /db/*.db
 /db/*.db-shm
 /db/*.db-wal
 bases/update.txt
 bases/*.mmdb
-tur.xml
 bases/test.txt

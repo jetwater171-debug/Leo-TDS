@@ -136,19 +136,24 @@ document.addEventListener('DOMContentLoaded', function () {
         var inputClass = type === 'preland' ? 'flow-preland-folder' : 'flow-land-folder';
         var weightClass = type === 'preland' ? 'flow-preland-weight' : 'flow-land-weight';
         var removeClass = type === 'preland' ? 'flow-remove-preland' : 'flow-remove-land-folder';
+        var modeClass = type === 'preland' ? 'flow-preland-mode' : 'flow-land-mode';
         return '<div class="form-group-inner flow-path-item"><div class="row">' +
             '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">' + label + '</label></div>' +
             '<div class="col-lg-3"><input type="text" class="form-control ' + inputClass + '" value="' + folderName + '" placeholder="folder" readonly /></div>' +
             '<div class="col-lg-2 flow-weight-col" style="display:' + (showWeight ? 'block' : 'none') + '">' +
             '<input type="number" step="1" class="form-control ' + weightClass + '" value="" placeholder="%" style="width:70px" /></div>' +
-            '<div class="col-lg-3"><a href="javascript:void(0)" class="btn btn-warning btn-sm flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a> <a href="javascript:void(0)" class="btn btn-danger btn-sm ' + removeClass + '" title="Delete"><i class="bi bi-trash"></i></a></div>' +
-            '</div></div>';
+            '<div class="col-lg-3"><div class="btn-group btn-group-sm">' +
+            '<a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn ' + modeClass + '" data-mode="base" data-modes="base,direct" title="Loading mode"><i class="bi bi-house-door"></i></a>' +
+            '<a href="javascript:void(0)" class="btn btn-warning flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a>' +
+            '<a href="javascript:void(0)" class="btn btn-danger ' + removeClass + '" title="Delete"><i class="bi bi-trash"></i></a>' +
+            '</div></div></div></div>';
     }
 
     // ── Folder Picker Modal logic ──
     var fpResolve = null;
     var fpFolders = [];
 
+    window.openFolderPicker = openFolderPicker;
     function openFolderPicker(folders) {
         fpFolders = folders;
         var $list = $('#fp-list');
@@ -219,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('listfolders.php').then(function (r) { return r.json(); }).then(function (data) {
             btn.disabled = false;
             if (data.error) { alert(data.result); return; }
-            if (!data.folders.length) { alert('No folders found in lcache. Upload a ZIP first.'); return; }
+            if (!data.folders.length) { alert('No landing folders found. Upload a ZIP first.'); return; }
 
             openFolderPicker(data.folders).then(function (choice) {
                 if (!choice) return;
@@ -535,11 +540,15 @@ window.collectFlowsData = function () {
 
         var prelandFolders = [];
         var prelandWeights = [];
+        var prelandLoadmode = {};
         sec.querySelectorAll('.flow-preland-folder').forEach(function (inp) {
             if (inp.value.trim()) {
-                prelandFolders.push(inp.value.trim());
+                var folder = inp.value.trim();
+                prelandFolders.push(folder);
                 var weightInp = inp.closest('.flow-path-item').querySelector('.flow-preland-weight');
                 prelandWeights.push(parseInt(weightInp ? weightInp.value : 0, 10) || 0);
+                var modeBtn = inp.closest('.flow-path-item').querySelector('.flow-preland-mode');
+                if (modeBtn) prelandLoadmode[folder] = modeBtn.dataset.mode || 'base';
             }
         });
 
@@ -557,12 +566,17 @@ window.collectFlowsData = function () {
         var landWeights = [];
         var redirectType = 302;
 
+        var landLoadmode = {};
+
         if (landAction === 'folder') {
             sec.querySelectorAll('.flow-land-folder').forEach(function (inp) {
                 if (inp.value.trim()) {
-                    landFolders.push(inp.value.trim());
+                    var folder = inp.value.trim();
+                    landFolders.push(folder);
                     var w = inp.closest('.flow-path-item').querySelector('.flow-land-weight');
                     landWeights.push(parseInt(w ? w.value : 0, 10) || 0);
+                    var modeBtn = inp.closest('.flow-path-item').querySelector('.flow-land-mode');
+                    if (modeBtn) landLoadmode[folder] = modeBtn.dataset.mode || 'base';
                 }
             });
         } else {
@@ -600,14 +614,16 @@ window.collectFlowsData = function () {
                 action: prelandAction,
                 folders: prelandFolders,
                 distribution: prelandDist,
-                weights: prelandWeights
+                weights: prelandWeights,
+                directload: prelandLoadmode
             },
             landing: {
                 action: landAction,
                 folders: landFolders,
                 redirect: { urls: landRedirectUrls, type: redirectType },
                 distribution: landDist,
-                weights: landWeights
+                weights: landWeights,
+                directload: landLoadmode
             }
         });
     });

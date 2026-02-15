@@ -10,7 +10,6 @@ $cloSettings =
 
 //WARNING:if you are using nginx either change your website's config so that it prevents people from
 //downloading your database, or just rename the db file so security through obscurity will work! :-D
-//TODO: add an ability to quickly switch from SQLite to MySQL
 "dbConnection" => "clicks.db",
 
 //if you want to automatically update MaxMind's geobases 
@@ -27,5 +26,28 @@ $cloSettings =
 //- won't obfuscate any javascript code
 //- add tracing to some javascripts (they will print info to browser console)
 //- will add YWB headers to the response, where you'll be able to see, how long does it take to process requests
-"debug" => true
+"debug" => true,
+
+//root directory for all caches
+"cachingDir" => "caching",
+
+//folder where all landings and prelandings are stored (inside cachingDir)
+"landingFolder" => "landings",
+
+//folder where all white pages are stored (inside cachingDir)
+"whiteFolder" => "whites",
+
+//folder for caching CURL white page resources (inside cachingDir, auto-managed)
+"whiteCurlCache" => "whites_curl",
+
+//folder for DeviceDetector cache (inside cachingDir)
+"devicesCache" => "devices",
+
+//folder for currency rate cache (inside cachingDir)
+"currencyCache" => "currency"
 ];
+
+function get_cache_path(string $subKey): string {
+    global $cloSettings;
+    return $cloSettings['cachingDir'] . '/' . $cloSettings[$subKey];
+}

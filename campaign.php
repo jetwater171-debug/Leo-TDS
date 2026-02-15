@@ -59,6 +59,7 @@ class WhiteSettings implements JsonSerializable
     public bool $domainFilterEnabled;
     public array $domainSpecific;
     public JsChecks $jsChecks;
+    public array $loadMode;
 
     public static function fromArray(array $s): WhiteSettings
     {
@@ -78,7 +79,18 @@ class WhiteSettings implements JsonSerializable
         }
 
         $ws->jsChecks = JsChecks::fromArray($s['jschecks']);
+        $ws->loadMode = $s['loadmode'] ?? [];
         return $ws;
+    }
+
+    public function isDirectLoad(string $name): bool
+    {
+        return ($this->loadMode[$name] ?? '') === 'direct';
+    }
+
+    public function getLoadMode(string $name): string
+    {
+        return $this->loadMode[$name] ?? 'base';
     }
 
     public function jsonSerialize(): array
@@ -97,7 +109,8 @@ class WhiteSettings implements JsonSerializable
             "domainfilter" => [
                 "use" => $this->domainFilterEnabled,
                 "domains" => $this->domainSpecific
-            ]
+            ],
+            "loadmode" => $this->loadMode
         ];
     }
 }
@@ -201,6 +214,7 @@ class PrelandSettings implements JsonSerializable
     public array $folderNames;
     public string $distribution;
     public array $weights;
+    public array $directLoad;
 
     public static function fromArray($arr): PrelandSettings
     {
@@ -209,7 +223,13 @@ class PrelandSettings implements JsonSerializable
         $pls->folderNames = $arr['folders'];
         $pls->distribution = $arr['distribution'] ?? 'equal';
         $pls->weights = $arr['weights'] ?? [];
+        $pls->directLoad = $arr['directload'] ?? [];
         return $pls;
+    }
+
+    public function isDirectLoad(string $folderName): bool
+    {
+        return ($this->directLoad[$folderName] ?? '') === 'direct';
     }
 
     public function jsonSerialize(): array
@@ -218,7 +238,8 @@ class PrelandSettings implements JsonSerializable
             "action" => $this->action,
             "folders" => $this->folderNames,
             "distribution" => $this->distribution,
-            "weights" => $this->weights
+            "weights" => $this->weights,
+            "directload" => $this->directLoad
         ];
     }
 }
@@ -231,6 +252,7 @@ class LandingSettings implements JsonSerializable
     public int $redirectType;
     public string $distribution;
     public array $weights;
+    public array $directLoad;
 
     public static function fromArray($arr): LandingSettings
     {
@@ -241,7 +263,13 @@ class LandingSettings implements JsonSerializable
         $ls->redirectType = $arr['redirect']['type'];
         $ls->distribution = $arr['distribution'] ?? 'equal';
         $ls->weights = $arr['weights'] ?? [];
+        $ls->directLoad = $arr['directload'] ?? [];
         return $ls;
+    }
+
+    public function isDirectLoad(string $folderName): bool
+    {
+        return ($this->directLoad[$folderName] ?? '') === 'direct';
     }
 
     public function jsonSerialize(): array
@@ -254,7 +282,8 @@ class LandingSettings implements JsonSerializable
                 "type" => $this->redirectType
             ],
             "distribution" => $this->distribution,
-            "weights" => $this->weights
+            "weights" => $this->weights,
+            "directload" => $this->directLoad
         ];
     }
 }

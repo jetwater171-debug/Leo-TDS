@@ -52,6 +52,18 @@ switch ($action) {
                     $s['black']['flows'] = $arrFlows;
                 }
             }
+            else if ($key==="white_folders"){
+                $arr = json_decode($value, true);
+                if (is_array($arr)) $s['white']['folders'] = $arr;
+            }
+            else if ($key==="white_loadmode"){
+                $arr = json_decode($value, true);
+                if (is_array($arr)) $s['white']['loadmode'] = $arr;
+            }
+            else if ($key==="domains_list"){
+                $arr = json_decode($value, true);
+                if (is_array($arr)) $s['domains'] = $arr;
+            }
             else
                 setArrayValue($s,$key,$value);
         }

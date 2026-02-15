@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/logging.php';
 require_once __DIR__ . '/requestfunc.php';
+require_once __DIR__ . '/settings.php';
 
 class CurrencyConverter
 {
@@ -11,7 +12,9 @@ class CurrencyConverter
     ];
     
     private const TURKISH_BANK_CURRENCIES = ['RUB','PKR','QAR','KRW','AZN','AED'];
-    private const CACHE_DIR = __DIR__ . '/cache';
+    private static function getCacheDir(): string {
+        return __DIR__ . '/' . get_cache_path('currencyCache');
+    }
     
     public static function convert(float $amount, string $from): float
     {
@@ -38,9 +41,10 @@ class CurrencyConverter
     {
         $url = "https://api.frankfurter.dev/v1/latest?base=$from&symbols=USD";
         
-        if (!file_exists(self::CACHE_DIR)) 
-            mkdir(self::CACHE_DIR);
-        $cacheFile = self::CACHE_DIR . "/$from.json";
+        $cacheDir = self::getCacheDir();
+        if (!file_exists($cacheDir)) 
+            mkdir($cacheDir, 0755, true);
+        $cacheFile = $cacheDir . "/$from.json";
         
         if (file_exists($cacheFile) && filemtime($cacheFile) > (time() - 600)) {
             $res = json_decode(file_get_contents($cacheFile), true);
@@ -67,9 +71,10 @@ class CurrencyConverter
         // Get the XML file from Turkish Central Bank
         $xmlUrl = 'https://www.tcmb.gov.tr/kurlar/today.xml';
         
-        if (!file_exists(self::CACHE_DIR)) 
-            mkdir(self::CACHE_DIR);
-        $cacheFile = self::CACHE_DIR . '/tur.xml';
+        $cacheDir = self::getCacheDir();
+        if (!file_exists($cacheDir)) 
+            mkdir($cacheDir, 0755, true);
+        $cacheFile = $cacheDir . '/tur.xml';
         $useCache = false;
         
         if (file_exists($cacheFile)) {

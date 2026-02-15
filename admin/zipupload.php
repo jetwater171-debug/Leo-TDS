@@ -1,7 +1,17 @@
 <?php
+@ini_set('upload_max_filesize', '256M');
+@ini_set('post_max_size', '256M');
+@ini_set('max_execution_time', '300');
+@ini_set('display_errors', '0');
+error_reporting(0);
+
+// Clean any output that PHP may have already emitted (e.g. post_max_size warning)
+if (ob_get_level()) ob_end_clean();
+ob_start();
+
 require_once __DIR__ . '/securitycheck.php';
 require_once __DIR__ . '/../settings.php';
-
+ob_end_clean();
 header('Content-Type: application/json');
 
 function zip_error(string $msg): void
@@ -14,8 +24,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     zip_error('Only POST allowed');
 }
 
-if (empty($_FILES['zipfile']) || $_FILES['zipfile']['error'] !== UPLOAD_ERR_OK) {
-    zip_error('No file uploaded or upload error');
+// Detect if POST body was too large (PHP drops $_POST and $_FILES when post_max_size is exceeded)
+if (empty($_FILES) && empty($_POST) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
+    $maxSize = ini_get('post_max_size');
+    zip_error('File too large. Maximum upload size is ' . $maxSize . '. Restart the server with higher limits or upload manually using FTP/SSH.');
+}
+
+if (empty($_FILES['zipfile'])) {
+    zip_error('No file uploaded');
+}
+
+if ($_FILES['zipfile']['error'] !== UPLOAD_ERR_OK) {
+    $uploadErrors = [
+        UPLOAD_ERR_INI_SIZE   => 'File exceeds the server upload_max_filesize limit (' . ini_get('upload_max_filesize') . ')',
+        UPLOAD_ERR_FORM_SIZE  => 'File exceeds the form MAX_FILE_SIZE limit',
+        UPLOAD_ERR_PARTIAL    => 'File was only partially uploaded',
+        UPLOAD_ERR_NO_FILE    => 'No file was uploaded',
+        UPLOAD_ERR_NO_TMP_DIR => 'Server missing temporary folder',
+        UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+        UPLOAD_ERR_EXTENSION  => 'Upload stopped by a PHP extension',
+    ];
+    $code = $_FILES['zipfile']['error'];
+    $msg = $uploadErrors[$code] ?? 'Unknown upload error (code ' . $code . ')';
+    zip_error($msg);
 }
 
 $folder = $_POST['folder'] ?? '';
@@ -26,14 +57,16 @@ if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $folder)) {
     zip_error('Invalid folder name. Use only letters, numbers, hyphens, underscores, dots.');
 }
 
-global $cloSettings;
-$landingDir = realpath(__DIR__ . '/../' . $cloSettings['landingFolder']);
+$uploadType = $_POST['type'] ?? 'landing';
+$subKey = $uploadType === 'white' ? 'whiteFolder' : 'landingFolder';
+$baseFolder = get_cache_path($subKey);
+$landingDir = realpath(__DIR__ . '/../' . $baseFolder);
 if ($landingDir === false) {
     // Try to create it
-    @mkdir(__DIR__ . '/../' . $cloSettings['landingFolder'], 0755, true);
-    $landingDir = realpath(__DIR__ . '/../' . $cloSettings['landingFolder']);
+    @mkdir(__DIR__ . '/../' . $baseFolder, 0755, true);
+    $landingDir = realpath(__DIR__ . '/../' . $baseFolder);
     if ($landingDir === false) {
-        zip_error('Landing folder does not exist and could not be created');
+        zip_error('Target folder does not exist and could not be created');
     }
 }
 

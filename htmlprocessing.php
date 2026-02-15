@@ -10,8 +10,7 @@ require_once __DIR__ . '/settings.php';
 
 function get_landing_path(string $folderName): string
 {
-    global $cloSettings;
-    return $cloSettings['landingFolder'] . '/' . $folderName;
+    return get_cache_path('landingFolder') . '/' . $folderName;
 }
 function load_content_with_include($url): string
 {
@@ -39,7 +38,7 @@ function load_content_with_include($url): string
 }
 
 //Load content of black landing from another folder
-function load_prelanding(Campaign $c, string $url): string
+function load_prelanding(Campaign $c, string $url, bool $directLoad = false): string
 {
     $path = get_landing_path($url);
     $fullpath = get_abs_from_rel($path);
@@ -47,9 +46,14 @@ function load_prelanding(Campaign $c, string $url): string
     $html = load_content_with_include($path);
     $html = remove_scrapbook($html);
 
-    //cleaning <head>
-    $html = fix_head_add_base($html, $fullpath);
-    $html = fix_src($html);
+    if ($directLoad) {
+        set_cookie('dl', 'preland');
+    } else {
+        set_cookie('dl', '');
+        //cleaning <head>
+        $html = fix_head_add_base($html, $fullpath);
+        $html = fix_src($html);
+    }
 
     $mp = new MacrosProcessor();
     $html = $mp->replace_html_macros($html);
@@ -85,22 +89,29 @@ function load_prelanding(Campaign $c, string $url): string
 }
 
 //Load content of black landing from another folder
-function load_landing(Campaign $c, bool $hasPrelanding, string $url)
+function load_landing(Campaign $c, bool $hasPrelanding, string $url, bool $directLoad = false)
 {
     $path = get_landing_path($url);
     $fullpath = get_abs_from_rel($path);
 
     $html = load_content_with_include($path);
     $html = remove_scrapbook($html);
-    $html = fix_head_add_base($html, $fullpath);
-    $html = fix_src($html);
+    if ($directLoad) {
+        set_cookie('dl', 'land');
+    } else {
+        set_cookie('dl', '');
+        $html = fix_head_add_base($html, $fullpath);
+        $html = fix_src($html);
+    }
 
     $query = http_build_query($_GET);
+    $cloaker = get_cloaker_path();
+    $sendPath = $directLoad ? $cloaker . 'send.php' : '../send.php';
     $html = preg_replace_callback(
         '/\saction=[\'\"]([^\'\"]+)[\'\"]/',
-        function ($matches) use ($query) {
+        function ($matches) use ($query, $sendPath) {
             $originalAction = urlencode($matches[1]);
-            $send = " action=\"../send.php?original_action={$originalAction}";
+            $send = " action=\"{$sendPath}?original_action={$originalAction}";
             if ($query !== '') {
                 $send .= "&" . $query;
             }
@@ -195,12 +206,25 @@ function add_images_lazy_load($html)
 }
 
 //load white page from FOLDER
-function load_white_content($url): string
+function load_white_content($url, string $mode = 'base'): string
 {
-    $html = load_content_with_include($url);
-    $baseurl = '/' . $url . '/';
-    //переписываем все относительные src и href (не начинающиеся с http)
-    $html = rewrite_relative_urls($html, $baseurl);
+    $path = get_cache_path('whiteFolder') . '/' . $url;
+    $html = load_content_with_include($path);
+
+    switch ($mode) {
+        case 'direct':
+            session_write('dl', 'white');
+            break;
+        case 'rewrite':
+            $baseurl = get_cloaker_path() . $path . '/';
+            $html = rewrite_relative_urls($html, $baseurl);
+            break;
+        case 'base':
+        default:
+            $fullpath = get_abs_from_rel($path);
+            $html = fix_head_add_base($html, $fullpath);
+            break;
+    }
 
     //adding no-referer,noindex,nofollow
     $html = str_replace('<head>', '<head><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex, nofollow">', $html);
@@ -209,13 +233,9 @@ function load_white_content($url): string
     return $html;
 }
 
-//loading white page with CURL
-function load_white_curl(string $url): string
+//sanitize white page HTML: remove trackers, og:url, canonical, noscript; add noindex/nofollow
+function sanitize_white_html(string $html): string
 {
-    $res = get($url);
-    $html = $res['content'];
-    $html = rewrite_relative_urls($html, $url);
-
     //remove everything unneeded
     $html = preg_replace('/(<meta property=\"og:url\" [^>]+>)/', "", $html);
     $html = preg_replace('/(<link rel=\"canonical\" [^>]+>)/', "", $html);
@@ -235,8 +255,8 @@ function load_white_curl(string $url): string
         'yandex_metrika' => 'https://mc.yandex.ru/metrika/tag.js',
         'hotjar' => 'static.hotjar.com/c/hotjar'
     );
-    foreach ($tracking_scripts as $key => $url) {
-        $pattern = '#<script[^>]*(src="[^"]*' . preg_quote($url) . '[^"]*")[^>]*>.*?</script>|<script[^>]*>[^<]*' . preg_quote($url) . '[^<]*</script>#is';
+    foreach ($tracking_scripts as $key => $scriptUrl) {
+        $pattern = '#<script[^>]*(src="[^"]*' . preg_quote($scriptUrl) . '[^"]*")[^>]*>.*?</script>|<script[^>]*>[^<]*' . preg_quote($scriptUrl) . '[^<]*</script>#is';
         $html = preg_replace($pattern, '', $html);
     }
     //removing all noscript tags
@@ -245,6 +265,21 @@ function load_white_curl(string $url): string
     //adding some additional tags to head
     $html = str_replace('<head>', '<head><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex, nofollow">', $html);
 
+    return $html;
+}
+
+//loading white page with CURL
+function load_white_curl(string $url, string $mode = 'rewrite'): string
+{
+    $res = get($url);
+    $html = $res['content'];
+    if ($mode === 'direct') {
+        session_write('dl', 'white_curl');
+    } else {
+        $html = rewrite_relative_urls($html, $url);
+    }
+
+    $html = sanitize_white_html($html);
     return $html;
 }
 

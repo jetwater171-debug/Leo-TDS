@@ -41,29 +41,20 @@ global $c, $db, $campId;
                 </div>
             </div>
             </div>
- 
+
             <div id="domains_container">
-                <?php for ($i = 0; $i < count($c->domains); $i++) {
-                        $dn = $c->domains[$i];
-                ?>
-                <div class="form-group-inner domains">
+                <?php foreach ($c->domains as $dn) { ?>
+                <div class="form-group-inner domain-item">
                     <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Domain:</label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="domain.com" value="<?=$dn?>" name="domains[<?= $i ?>]" />
-                            </div>
-                        </div>
-                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                            <a href="javascript:void(0)" class="remove-domain-item btn btn-danger">✕ Delete</a>
-                        </div>
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Domain:</label></div>
+                        <div class="col-lg-3"><input type="text" class="form-control domain-name" value="<?= htmlspecialchars($dn) ?>" placeholder="domain.com" readonly /></div>
+                        <div class="col-lg-1 domain-status-col"><i class="bi bi-hourglass-split domain-status" style="color:#94a3b8" title="Checking..."></i></div>
+                        <div class="col-lg-2"><a href="javascript:void(0)" class="btn btn-danger btn-sm remove-domain-item" title="Delete"><i class="bi bi-trash"></i></a></div>
                     </div>
                 </div>
                 <?php } ?>
             </div>
-            <a id="add-domain-item" class="btn btn-primary" href="javascript:;">+ Add Domain</a>
+            <a id="add-domain-item" class="btn btn-primary btn-sm" href="javascript:void(0)"><i class="bi bi-plus-circle"></i> Add Domain</a>
             </section>
 
             <section id="sec-safepage" class="camp-section">
@@ -142,22 +133,15 @@ global $c, $db, $campId;
                     ?>
                     <div class="form-group-inner white-folder-item">
                         <div class="row">
-                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                                <label class="login2 pull-left pull-left-pro">Safe page folder:</label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="white1" value="<?=$fn?>" name="white.folders[<?= $i ?>]" />
-                                </div>
-                            </div>
-                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-white-folder-item btn btn-danger">✕ Delete</a>
-                            </div>
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Safe page folder:</label></div>
+                            <div class="col-lg-3"><input type="text" class="form-control white-folder-name" value="<?= htmlspecialchars($fn) ?>" placeholder="white1" readonly /></div>
+                            <div class="col-lg-4"><div class="btn-group btn-group-sm"><a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="<?= htmlspecialchars($c->white->getLoadMode($fn)) ?>" data-modes="base,rewrite,direct" title="Loading mode"><i class="bi <?= match($c->white->getLoadMode($fn)) { 'rewrite' => 'bi-arrow-repeat', 'direct' => 'bi-hdd-network', default => 'bi-house-door' } ?>"></i></a><a href="javascript:void(0)" class="btn btn-warning white-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a><a href="javascript:void(0)" class="btn btn-danger remove-white-folder-item" title="Delete"><i class="bi bi-trash"></i></a></div></div>
                         </div>
                     </div>
                     <?php } ?>
                 </div>
-                <a id="add-white-folder-item" class="btn btn-primary" href="javascript:;">+ Add Safe Page Folder</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm white-add-existing"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+                <a href="javascript:void(0)" class="btn btn-info btn-sm white-upload-zip"><i class="bi bi-upload"></i> Upload ZIP</a>
             </div>
             <div id="b_3" style="display:<?= ($c->white->action === 'redirect' ? 'block' : 'none') ?>;">
 
@@ -245,17 +229,9 @@ global $c, $db, $campId;
                     ?>
                     <div class="form-group-inner curl-item">
                         <div class="row">
-                            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                                <label class="login2 pull-left pull-left-pro">Curl address:</label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="https://ya.ru" value="<?=$cu?>" name="white.curls[<?= $i ?>]" />
-                                </div>
-                            </div>
-                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-curl-item btn btn-danger">✕ Delete</a>
-                            </div>
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Curl address:</label></div>
+                            <div class="col-lg-3"><input type="text" class="form-control white-curl-url" placeholder="https://ya.ru" value="<?=$cu?>" name="white.curls[<?= $i ?>]" /></div>
+                            <div class="col-lg-2"><div class="btn-group btn-group-sm"><a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="<?= htmlspecialchars($c->white->getLoadMode($cu)) ?>" data-modes="rewrite,direct" title="Loading mode"><i class="bi <?= $c->white->getLoadMode($cu) === 'direct' ? 'bi-hdd-network' : 'bi-arrow-repeat' ?>"></i></a><a href="javascript:void(0)" class="btn btn-danger remove-curl-item" title="Delete"><i class="bi bi-trash"></i></a></div></div>
                         </div>
                     </div>
                     <?php } ?>
@@ -744,7 +720,7 @@ global $c, $db, $campId;
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" step="1" class="form-control flow-preland-weight" value="<?= $flow->preland->weights[$pi] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-3"><a href="javascript:void(0)" class="btn btn-warning btn-sm flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a> <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-preland" title="Delete"><i class="bi bi-trash"></i></a></div>
+                            <div class="col-lg-3"><div class="btn-group btn-group-sm"><a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn flow-preland-mode" data-mode="<?= $flow->preland->isDirectLoad($pf) ? 'direct' : 'base' ?>" data-modes="base,direct" title="Loading mode"><i class="bi <?= $flow->preland->isDirectLoad($pf) ? 'bi-hdd-network' : 'bi-house-door' ?>"></i></a><a href="javascript:void(0)" class="btn btn-warning flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a><a href="javascript:void(0)" class="btn btn-danger flow-remove-preland" title="Delete"><i class="bi bi-trash"></i></a></div></div>
                         </div>
                     </div>
                 <?php } ?>
@@ -776,7 +752,7 @@ global $c, $db, $campId;
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" step="1" class="form-control flow-land-weight" value="<?= $flow->land->weights[$li] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-3"><a href="javascript:void(0)" class="btn btn-warning btn-sm flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a> <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-folder" title="Delete"><i class="bi bi-trash"></i></a></div>
+                            <div class="col-lg-3"><div class="btn-group btn-group-sm"><a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn flow-land-mode" data-mode="<?= $flow->land->isDirectLoad($lf) ? 'direct' : 'base' ?>" data-modes="base,direct" title="Loading mode"><i class="bi <?= $flow->land->isDirectLoad($lf) ? 'bi-hdd-network' : 'bi-house-door' ?>"></i></a><a href="javascript:void(0)" class="btn btn-warning flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a><a href="javascript:void(0)" class="btn btn-danger flow-remove-land-folder" title="Delete"><i class="bi bi-trash"></i></a></div></div>
                         </div>
                     </div>
                 <?php } ?>
@@ -1214,24 +1190,6 @@ global $c, $db, $campId;
     <!--cloneData-->
     <script src="js/cloneData.js"></script>
     <script>
-        $('#add-domain-item').cloneData({
-            mainContainerId: 'domains_container',
-            cloneContainer: 'domains',
-            removeButtonClass: 'remove-domain-item',
-            maxLimit: 10,
-            minLimit: 1,
-            removeConfirm: false
-        });
-        
-        $('#add-white-folder-item').cloneData({
-            mainContainerId: 'white_folder_container',
-            cloneContainer: 'white-folder-item',
-            removeButtonClass: 'remove-white-folder-item',
-            maxLimit: 5,
-            minLimit: 1,
-            removeConfirm: false
-        });
-        
         $('#add-redirect-item').cloneData({
             mainContainerId: 'redirect_container',
             cloneContainer: 'redirect-item',
@@ -1307,6 +1265,217 @@ global $c, $db, $campId;
         
     </script>
     <script>
+    // ── White folder management ──
+    function buildWhiteFolderRow(folderName, mode) {
+        mode = mode || 'base';
+        var info = window.LOAD_MODE_INFO || {};
+        var icon = (info[mode] || {}).icon || 'bi-house-door';
+        return '<div class="form-group-inner white-folder-item"><div class="row">' +
+            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Safe page folder:</label></div>' +
+            '<div class="col-lg-3"><input type="text" class="form-control white-folder-name" value="' + folderName + '" placeholder="white1" readonly /></div>' +
+            '<div class="col-lg-4"><div class="btn-group btn-group-sm">' +
+            '<a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="' + mode + '" data-modes="base,rewrite,direct" title="Loading mode"><i class="bi ' + icon + '"></i></a>' +
+            '<a href="javascript:void(0)" class="btn btn-warning white-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a>' +
+            '<a href="javascript:void(0)" class="btn btn-danger remove-white-folder-item" title="Delete"><i class="bi bi-trash"></i></a>' +
+            '</div></div></div></div>';
+    }
+
+    document.addEventListener('click', function (e) {
+        // Delete white folder row
+        var delBtn = e.target.closest('.remove-white-folder-item');
+        if (delBtn) {
+            var row = delBtn.closest('.white-folder-item');
+            if (row) row.remove();
+            return;
+        }
+        // Edit white folder
+        var editBtn = e.target.closest('.white-edit-folder');
+        if (editBtn) {
+            var row = editBtn.closest('.white-folder-item');
+            var folder = row.querySelector('.white-folder-name').value;
+            if (window.openFileEditor) window.openFileEditor(folder, 'white');
+            return;
+        }
+    });
+
+    // Add Existing white folder
+    document.querySelector('.white-add-existing')?.addEventListener('click', function () {
+        var btn = this;
+        btn.disabled = true;
+        fetch('listfolders.php?type=white').then(function (r) { return r.json(); }).then(function (data) {
+            btn.disabled = false;
+            if (data.error) { alert(data.result); return; }
+            if (!data.folders.length) { alert('No white page folders found. Upload a ZIP first.'); return; }
+            if (window.openFolderPicker) {
+                window.openFolderPicker(data.folders).then(function (choice) {
+                    if (!choice) return;
+                    document.getElementById('white_folder_container').insertAdjacentHTML('beforeend', buildWhiteFolderRow(choice));
+                });
+            }
+        }).catch(function (err) { btn.disabled = false; alert('Error: ' + err); });
+    });
+
+    // Upload ZIP for white folder
+    document.querySelector('.white-upload-zip')?.addEventListener('click', function () {
+        var btn = this;
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.zip';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+
+        fileInput.addEventListener('change', function () {
+            if (!fileInput.files.length) { fileInput.remove(); return; }
+            var file = fileInput.files[0];
+            var folderName = prompt('Enter folder name for the new white page:');
+            if (!folderName || !folderName.trim()) { fileInput.remove(); return; }
+            folderName = folderName.trim();
+            if (!/^[a-zA-Z0-9_\-\.]+$/.test(folderName)) {
+                alert('Invalid folder name. Use only letters, numbers, hyphens, underscores, dots.');
+                fileInput.remove();
+                return;
+            }
+            var fd = new FormData();
+            fd.append('zipfile', file);
+            fd.append('folder', folderName);
+            fd.append('type', 'white');
+
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+            btn.style.pointerEvents = 'none';
+
+            fetch('zipupload.php', { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        alert('Upload error: ' + data.result);
+                    } else {
+                        document.getElementById('white_folder_container').insertAdjacentHTML('beforeend', buildWhiteFolderRow(data.folder));
+                    }
+                })
+                .catch(function (err) { alert('Upload failed: ' + err); })
+                .finally(function () {
+                    btn.innerHTML = '<i class="bi bi-upload"></i> Upload ZIP';
+                    btn.style.pointerEvents = '';
+                    fileInput.remove();
+                });
+        });
+        fileInput.click();
+    });
+
+    // Collect white folders + loadmode + curl loadmode before save
+    window.collectWhiteData = function () {
+        var folders = [];
+        var loadmode = {};
+        document.querySelectorAll('#white_folder_container .white-folder-name').forEach(function (inp) {
+            var name = inp.value.trim();
+            if (name) {
+                folders.push(name);
+                var modeBtn = inp.closest('.white-folder-item').querySelector('.load-mode-btn');
+                if (modeBtn) loadmode[name] = modeBtn.dataset.mode || 'base';
+            }
+        });
+        // Also collect curl loadmode
+        document.querySelectorAll('#curl_container .white-curl-url').forEach(function (inp) {
+            var url = inp.value.trim();
+            if (url) {
+                var modeBtn = inp.closest('.curl-item').querySelector('.load-mode-btn');
+                if (modeBtn) loadmode[url] = modeBtn.dataset.mode || 'rewrite';
+            }
+        });
+        return { folders: folders, loadmode: loadmode };
+    };
+    </script>
+    <script>
+    // ── Domain management ──
+    function buildDomainRow(domain, statusHtml) {
+        return '<div class="form-group-inner domain-item"><div class="row">' +
+            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Domain:</label></div>' +
+            '<div class="col-lg-3"><input type="text" class="form-control domain-name" value="' + domain + '" placeholder="domain.com" readonly /></div>' +
+            '<div class="col-lg-1 domain-status-col">' + statusHtml + '</div>' +
+            '<div class="col-lg-2"><a href="javascript:void(0)" class="btn btn-danger btn-sm remove-domain-item" title="Delete"><i class="bi bi-trash"></i></a></div>' +
+            '</div></div>';
+    }
+
+    function domainStatusIcon(data) {
+        if (data.wildcard) {
+            return '<i class="bi bi-asterisk domain-status" style="color:#f59e0b" title="Wildcard domain \u2014 DNS check skipped"></i>';
+        }
+        if (data.cloudflare) {
+            return '<span class="domain-cf-badge domain-status" title="CloudFlare detected (IP: ' + (data.ip || '?') + ')">CF</span>';
+        }
+        if (data.resolves) {
+            return '<i class="bi bi-check-circle-fill domain-status" style="color:#22c55e" title="Resolves to this server (' + (data.ip || '') + ')"></i>';
+        }
+        var errMsg = data.error || 'Domain does not resolve to this server';
+        return '<i class="bi bi-x-circle-fill domain-status" style="color:#ef4444" title="' + errMsg.replace(/"/g, '&quot;') + '"></i>';
+    }
+
+    function checkDomain(domain) {
+        return fetch('domaincheck.php?domain=' + encodeURIComponent(domain))
+            .then(function (r) { return r.json(); });
+    }
+
+    function checkDomainStatus(row) {
+        var domain = row.querySelector('.domain-name').value.trim();
+        if (!domain) return;
+        var col = row.querySelector('.domain-status-col');
+        col.innerHTML = '<i class="bi bi-hourglass-split domain-status" style="color:#94a3b8" title="Checking..."></i>';
+        checkDomain(domain).then(function (data) {
+            col.innerHTML = domainStatusIcon(data);
+        }).catch(function () {
+            col.innerHTML = '<i class="bi bi-question-circle domain-status" style="color:#94a3b8" title="Check failed"></i>';
+        });
+    }
+
+    // Delete domain row (delegated)
+    document.addEventListener('click', function (e) {
+        var delBtn = e.target.closest('.remove-domain-item');
+        if (!delBtn) return;
+        var row = delBtn.closest('.domain-item');
+        if (row) row.remove();
+    });
+
+    // Add domain
+    document.getElementById('add-domain-item')?.addEventListener('click', function () {
+        var domain = prompt('Enter domain (without http(s)://):');
+        if (!domain || !domain.trim()) return;
+        domain = domain.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        if (!domain) return;
+
+        // Check for duplicates
+        var existing = document.querySelectorAll('#domains_container .domain-name');
+        for (var i = 0; i < existing.length; i++) {
+            if (existing[i].value.trim().toLowerCase() === domain.toLowerCase()) {
+                alert('Domain "' + domain + '" is already added.');
+                return;
+            }
+        }
+
+        var loadingHtml = '<i class="bi bi-hourglass-split domain-status" style="color:#94a3b8" title="Checking..."></i>';
+        var container = document.getElementById('domains_container');
+        container.insertAdjacentHTML('beforeend', buildDomainRow(domain, loadingHtml));
+        var newRow = container.querySelector('.domain-item:last-child');
+        checkDomainStatus(newRow);
+    });
+
+    // Check all existing domains on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('#domains_container .domain-item').forEach(function (row) {
+            checkDomainStatus(row);
+        });
+    });
+
+    // Collect domains for save
+    window.collectDomainsData = function () {
+        var domains = [];
+        document.querySelectorAll('#domains_container .domain-name').forEach(function (inp) {
+            var name = inp.value.trim();
+            if (name) domains.push(name);
+        });
+        return domains;
+    };
+    </script>
+    <script>
         document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("campsettings")?.addEventListener("submit", async (e) => {
                 e.preventDefault();
@@ -1320,6 +1489,8 @@ global $c, $db, $campId;
 
                 let rules = $('#filtersbuilder').queryBuilder('getRules');
                 let flowsJson = window.collectFlowsData ? window.collectFlowsData() : '[]';
+                let whiteData = window.collectWhiteData ? window.collectWhiteData() : { folders: [], loadmode: {} };
+                let domainsData = window.collectDomainsData ? window.collectDomainsData() : [];
                 let formData = new FormData(document.getElementById("campsettings"));
                 let filteredFormData = new FormData();
                 for (let [key, value] of formData.entries()) {
@@ -1329,6 +1500,9 @@ global $c, $db, $campId;
                 }
                 filteredFormData.append("filters", JSON.stringify(rules));
                 filteredFormData.append("flows", flowsJson);
+                filteredFormData.append("white_folders", JSON.stringify(whiteData.folders));
+                filteredFormData.append("white_loadmode", JSON.stringify(whiteData.loadmode));
+                filteredFormData.append("domains_list", JSON.stringify(domainsData));
                 let settingsBody = new URLSearchParams(filteredFormData.entries()).toString();
 
                 let res = await fetch(`campeditor.php?action=save&campId=${campId}`, {
@@ -1406,7 +1580,99 @@ global $c, $db, $campId;
         #fp-list label.fp-selected{background:#1a2a45}
     </style>
 
-    <script>window.LANDING_FOLDER = <?= json_encode($cloSettings['landingFolder'] ?? 'lcache') ?>;</script>
+    <!-- Load Mode Modal -->
+    <div id="loadModeModal" class="ywbmodal" style="max-width:380px !important;">
+        <div class="fp-modal-content">
+            <div class="fp-modal-header"><h5 style="margin:0;font-size:18px;color:#e2e8f0;">Loading Mode</h5></div>
+            <div class="fp-modal-body" id="lm-body"></div>
+            <div class="fp-modal-footer">
+                <button type="button" class="btn btn-default btn-sm" id="lm-cancel">Cancel</button>
+                <button type="button" class="btn btn-info btn-sm" id="lm-ok">OK</button>
+            </div>
+        </div>
+    </div>
+    <style>
+        #loadModeModal{background:#151b2d !important;padding:0 !important;border-radius:12px !important;overflow:hidden !important;}
+        .lm-option{display:block;padding:10px 14px;margin:0 0 4px;border-radius:6px;cursor:pointer;color:#e2e8f0;font-size:14px;transition:background .15s}
+        .lm-option:hover{background:#1e2a3f}
+        .lm-option input[type=radio]{margin-right:10px;accent-color:#0084ff}
+        .lm-option.lm-selected{background:#1a2a45}
+        .lm-desc{display:block;margin-left:26px;font-size:12px;color:#94a3b8;margin-top:2px}
+    </style>
+    <script>
+    (function(){
+        var MODE_INFO = {
+            base:    { icon: 'bi-house-door',   label: 'Base',    desc: 'Adds &lt;base&gt; tag — browser resolves all relative paths. Fast, reliable, suspicious.' },
+            rewrite: { icon: 'bi-arrow-repeat',  label: 'Rewrite', desc: 'PHP rewrites all URLs in HTML to absolute paths. Medium speed, can be errors in styles, less suspicious but still.' },
+            direct:  { icon: 'bi-hdd-network',   label: 'Direct',  desc: 'All resources served via PHP catch-all. Slowest, error-prone, invisible.' }
+        };
+        window.LOAD_MODE_INFO = MODE_INFO;
+
+        var lmResolve = null;
+
+        window.openLoadModeModal = function(currentMode, availableModes) {
+            var body = document.getElementById('lm-body');
+            body.innerHTML = '';
+            availableModes.forEach(function(m) {
+                var info = MODE_INFO[m];
+                if (!info) return;
+                var lbl = document.createElement('label');
+                lbl.className = 'lm-option' + (m === currentMode ? ' lm-selected' : '');
+                lbl.innerHTML = '<input type="radio" name="lm-choice" value="' + m + '"' + (m === currentMode ? ' checked' : '') + ' /> ' +
+                    '<i class="bi ' + info.icon + '"></i> ' + info.label +
+                    '<span class="lm-desc">' + info.desc + '</span>';
+                lbl.querySelector('input').addEventListener('change', function() {
+                    body.querySelectorAll('.lm-option').forEach(function(el){ el.classList.remove('lm-selected'); });
+                    lbl.classList.add('lm-selected');
+                });
+                body.appendChild(lbl);
+            });
+
+            $('#lm-ok').off('click').on('click', function() {
+                var checked = document.querySelector('#lm-body input[name="lm-choice"]:checked');
+                $.modal.close();
+                if (lmResolve) lmResolve(checked ? checked.value : null);
+                lmResolve = null;
+            });
+            $('#lm-cancel').off('click').on('click', function() {
+                $.modal.close();
+                if (lmResolve) lmResolve(null);
+                lmResolve = null;
+            });
+
+            $('#loadModeModal').modal({
+                modalClass: 'ywbmodal',
+                fadeDuration: 250,
+                fadeDelay: 0.80,
+                showClose: false
+            });
+
+            return new Promise(function(resolve) {
+                lmResolve = resolve;
+            });
+        };
+
+        // Delegated click handler for all mode buttons
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.load-mode-btn');
+            if (!btn) return;
+            e.preventDefault();
+            var currentMode = btn.dataset.mode || 'base';
+            var modes = (btn.dataset.modes || 'base,direct').split(',');
+            openLoadModeModal(currentMode, modes).then(function(chosen) {
+                if (!chosen || chosen === currentMode) return;
+                btn.dataset.mode = chosen;
+                var info = MODE_INFO[chosen];
+                var icon = btn.querySelector('i');
+                if (icon && info) {
+                    icon.className = 'bi ' + info.icon;
+                }
+            });
+        });
+    })();
+    </script>
+
+    <script>window.LANDING_FOLDER = <?= json_encode(get_cache_path('landingFolder')) ?>;window.WHITE_FOLDER = <?= json_encode(get_cache_path('whiteFolder')) ?>;</script>
     <!-- CodeMirror 6 local bundles -->
     <script src="js/cm6/html.min.js"></script>
     <script>window.CM6_HTML = cm6;</script>

@@ -100,15 +100,19 @@ function white(Campaign $c): CloakerAction
     switch ($action) {
         case 'error':
             $curcode = $abtest->select_item($error_codes, 'white', false);
+            session_write('white', $curcode[0]);
             return new CloakerAction('white', 'error', $curcode[0]);
         case 'folder':
             $curfolder = $abtest->select_item($folder_names, 'white', true);
-            return new CloakerAction('white', 'html', load_white_content($curfolder[0]));
+            session_write('white', $curfolder[0]);
+            return new CloakerAction('white', 'html', load_white_content($curfolder[0], $ws->getLoadMode($curfolder[0])));
         case 'curl':
             $cururl = $abtest->select_item($curl_urls, 'white', false);
-            return new CloakerAction('white', 'html', load_white_curl($cururl[0]));
+            session_write('white', $cururl[0]);
+            return new CloakerAction('white', 'html', load_white_curl($cururl[0], $ws->getLoadMode($cururl[0])));
         case 'redirect':
             $cururl = $abtest->select_item($redirect_urls, 'white', false);
+            session_write('white', $cururl[0]);
             return new CloakerAction('white', 'redirect', $cururl[0], $ws->redirectType);
         default:
             return new CloakerAction('white', 'error', 404);
@@ -143,13 +147,14 @@ function black(Campaign $c, int $flowIndex, array $clickparams): CloakerAction
                 $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $flow->distribution, $bl->weights);
                 $landing = $res[0];
             }
+            set_cookie('landing', $landing);
             $db->add_black_click($cursubid, $clickparams, '', $landing, $flow->name, $c->campaignId);
 
             $action = match ($bl->action) {
                 'folder' => new CloakerAction(
                     'black',
                     'html',
-                    load_landing($c, $flow->hasPrelanding(), $landing)
+                    load_landing($c, $flow->hasPrelanding(), $landing, $bl->isDirectLoad($landing))
                 ),
                 'redirect' => new CloakerAction(
                     'black',
@@ -179,9 +184,11 @@ function black(Campaign $c, int $flowIndex, array $clickparams): CloakerAction
                 $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $flow->distribution, $bl->weights);
                 $landing = $res[0];
             }
+            set_cookie('prelanding', $prelanding);
+            set_cookie('landing', $landing);
 
             $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $flow->name, $c->campaignId);
-            $action = new CloakerAction('black', 'html', load_prelanding($c, $prelanding));
+            $action = new CloakerAction('black', 'html', load_prelanding($c, $prelanding, $bp->isDirectLoad($prelanding)));
             break;
         default:
             $action = new CloakerAction('black', 'die', "No such prelanding action found: " . $bp->action);

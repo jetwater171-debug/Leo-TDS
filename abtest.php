@@ -31,7 +31,6 @@ class AbTest
             $item = $this->get_random_item($items);
         }
 
-        set_cookie($item_type, $item);
         return [$item, array_search($item, $items)];
     }
 
@@ -92,7 +91,6 @@ class AbTest
                 : $this->get_random_item($items);
         }
 
-        set_cookie($item_type, $item);
         return [$item, array_search($item, $items)];
     }
 

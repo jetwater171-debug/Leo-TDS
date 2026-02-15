@@ -56,7 +56,11 @@ class FiltrationCore
         $dd = new DeviceDetector($a['ua'], $clientHints);
 
         DebugMethods::start("YWBCoreDeviceDetector");
-        $phpFileCache = new Doctrine\Common\Cache\PhpFileCache(__DIR__ . '/cache/');
+        $cachePath = get_cache_path('devicesCache');
+        $cacheDir = (DIRECTORY_SEPARATOR === '\\' ? preg_match('/^[A-Za-z]:/', $cachePath) : str_starts_with($cachePath, '/'))
+            ? $cachePath . '/'
+            : __DIR__ . '/' . $cachePath . '/';
+        $phpFileCache = new Doctrine\Common\Cache\PhpFileCache($cacheDir);
         $dd->setCache(new DoctrineBridge($phpFileCache));
         $dd->parse();
         $clientInfo = $dd->getClient();
