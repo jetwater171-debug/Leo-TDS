@@ -8,6 +8,8 @@ require_once __DIR__ . "/../paths.php";
 class Db
 {
     private $dbPath;
+    private ?SQLite3 $readDb = null;
+    private ?SQLite3 $writeDb = null;
 
     public function __construct()
     {
@@ -17,6 +19,102 @@ class Db
             $created = $this->create_new_db();
             if (!$created)
                 die("Couldn't create the SQLite database! Read logs for additional info.");
+        }
+    }
+
+    private function create_new_db(): bool
+    {
+        $db = null;
+        try {
+            // Read SQL schema and initial settings
+            $createTableSQL = @file_get_contents(__DIR__ . "/db.sql");
+            if ($createTableSQL === false) {
+                throw new Exception("Failed to read database schema file");
+            }
+
+            $settingsJson = @file_get_contents(__DIR__ . '/common.json');
+            if ($settingsJson === false) {
+                throw new Exception("Failed to read common settings file");
+            }
+
+            // Initialize database
+            $db = new SQLite3($this->dbPath, SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE);
+            $db->busyTimeout(5000);
+
+
+            // Create tables
+            $result = $db->exec($createTableSQL);
+            if ($result === false) {
+                throw new Exception($db->lastErrorMsg());
+            }
+
+            // Insert initial settings
+            $query = "INSERT INTO common (settings) VALUES (:settings)";
+            $stmt = $db->prepare($query);
+
+            if ($stmt === false) {
+                throw new Exception($db->lastErrorMsg());
+            }
+
+            $stmt->bindValue(':settings', $settingsJson, SQLITE3_TEXT);
+            $result = $stmt->execute();
+
+            if ($result === false) {
+                throw new Exception($db->lastErrorMsg());
+            }
+
+            add_log("trace", "Successfully initialized database with schema and common settings");
+            return true;
+        } catch (Exception $e) {
+            if (isset($db)) {
+                $db->exec('ROLLBACK');
+                add_log("errors", "Failed to initialize database: " . $e->getMessage());
+            } else {
+                die("Critical error initializing database: " . $e->getMessage());
+            }
+            return false;
+        } finally {
+            if (isset($db))
+                $db->close();
+        }
+    }
+
+    private function open_db(bool $readOnly = false): SQLite3
+    {
+        if ($readOnly && $this->readDb !== null) {
+            return $this->readDb;
+        }
+        if (!$readOnly && $this->writeDb !== null) {
+            return $this->writeDb;
+        }
+
+        $db = new SQLite3($this->dbPath, $readOnly ? SQLITE3_OPEN_READONLY : SQLITE3_OPEN_READWRITE);
+        $db->busyTimeout(5000);
+
+        // Optimizations
+        $db->exec('PRAGMA journal_mode = wal');
+        $db->exec('PRAGMA mmap_size = 268435456');    // 256MB memory mapping
+        $db->exec('PRAGMA cache_size = -64000');      // 64MB cache pages  
+        $db->exec('PRAGMA temp_store = MEMORY');      // temporary data in RAM
+
+        if (!$readOnly) {
+            $db->exec('PRAGMA synchronous = OFF');    // only for writing
+            $this->writeDb = $db;
+        } else {
+            $this->readDb = $db;
+        }
+
+        return $db;
+    }
+    public function __destruct()
+    {
+        if ($this->readDb !== null) {
+            $this->readDb->close();
+            $this->readDb = null;
+        }
+        if ($this->writeDb !== null) {
+            $this->writeDb->close();
+            $this->writeDb = null;
         }
     }
 
@@ -318,7 +416,6 @@ class Db
         if ($stmt === false) {
             $errorMessage = $db->lastErrorMsg();
             add_log("errors", "Error preparing statistics statement: $errorMessage");
-            $db->close();
             return [];
         }
 
@@ -333,7 +430,6 @@ class Db
         if ($result === false) {
             $errorMessage = $db->lastErrorMsg();
             add_log("errors", "Error executing statistics statement: $errorMessage");
-            $db->close();
             return [];
         }
 
@@ -341,8 +437,6 @@ class Db
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $rows[] = $row;
         }
-
-        $db->close();
 
         // Build the tree structure
         $tree = $this->build_tree($rows, $groupByFields, $selectedFields, 0, $orderby);
@@ -466,7 +560,6 @@ class Db
 
     private function add_click(string $query, array $click): bool
     {
-        $db = null;
         try {
             $db = $this->open_db();
             $stmt = $db->prepare($query);
@@ -493,9 +586,6 @@ class Db
         } catch (Exception $e) {
             add_log("errors", "Failed to add click: " . $e->getMessage() . ", Data: " . json_encode($click));
             return false;
-        } finally {
-            if (isset($db))
-                $db->close();
         }
     }
 
@@ -795,26 +885,9 @@ class Db
         return $this->exec_write_query($query, [$settingsJson => SQLITE3_TEXT]);
     }
 
-    private function open_db(bool $readOnly = false): SQLite3
-    {
-        $db = new SQLite3($this->dbPath, $readOnly ? SQLITE3_OPEN_READONLY : SQLITE3_OPEN_READWRITE);
-        $db->busyTimeout(5000);
-
-        // Optimizations
-        $db->exec('PRAGMA mmap_size = 268435456');    // 256MB memory mapping
-        $db->exec('PRAGMA cache_size = -64000');      // 64MB cache pages  
-        $db->exec('PRAGMA temp_store = MEMORY');      // temporary data in RAM
-
-        if (!$readOnly) {
-            $db->exec('PRAGMA synchronous = OFF');    // only for writing
-        }
-
-        return $db;
-    }
 
     private function exec_write_query(string $query, array $p, bool $returnId = false): bool|int
     {
-        $db = null;
         try {
             $db = $this->open_db();
             $db->exec('BEGIN IMMEDIATE');
@@ -842,19 +915,14 @@ class Db
             add_log("trace", "Successfully executed $query");
             return $returnId ? $db->lastInsertRowID() : true;
         } catch (Exception $e) {
-            if (isset($db))
-                $db->exec('ROLLBACK');
+            $this->writeDb?->exec('ROLLBACK');
             add_log("errors", $e->getMessage());
             return false;
-        } finally {
-            if (isset($db))
-                $db->close();
         }
     }
 
     private function exec_update_query(string $query, array $p): bool
     {
-        $db = null;
         try {
             $db = $this->open_db();
             $stmt = $db->prepare($query);
@@ -883,15 +951,11 @@ class Db
         } catch (Exception $e) {
             add_log("errors", $e->getMessage());
             return false;
-        } finally {
-            if (isset($db))
-                $db->close();
         }
     }
 
     private function exec_read_query(string $query, array $p, bool $firstOnly = false): array
     {
-        $db = null;
         try {
             $db = $this->open_db(true);
             $stmt = $db->prepare($query);
@@ -920,69 +984,9 @@ class Db
         } catch (Exception $e) {
             add_error_log($e->getMessage());
             return [];
-        } finally {
-            if (isset($db)) {
-                $db->close();
-            }
         }
     }
 
-    private function create_new_db(): bool
-    {
-        $db = null;
-        try {
-            // Read SQL schema and initial settings
-            $createTableSQL = @file_get_contents(__DIR__ . "/db.sql");
-            if ($createTableSQL === false) {
-                throw new Exception("Failed to read database schema file");
-            }
-
-            $settingsJson = @file_get_contents(__DIR__ . '/common.json');
-            if ($settingsJson === false) {
-                throw new Exception("Failed to read common settings file");
-            }
-
-            // Initialize database
-            $db = new SQLite3($this->dbPath, SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE);
-            $db->busyTimeout(5000);
-
-
-            // Create tables
-            $result = $db->exec($createTableSQL);
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            // Insert initial settings
-            $query = "INSERT INTO common (settings) VALUES (:settings)";
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':settings', $settingsJson, SQLITE3_TEXT);
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            add_log("trace", "Successfully initialized database with schema and common settings");
-            return true;
-        } catch (Exception $e) {
-            if (isset($db)) {
-                $db->exec('ROLLBACK');
-                add_log("errors", "Failed to initialize database: " . $e->getMessage());
-            } else {
-                die("Critical error initializing database: " . $e->getMessage());
-            }
-            return false;
-        } finally {
-            if (isset($db))
-                $db->close();
-        }
-    }
 }
 
 $db = new Db();
