@@ -4,7 +4,21 @@ require_once __DIR__ . "/securitycheck.php";
 require_once __DIR__ . "/../paths.php";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $result = array('success' => check_password(false));
+    $ip = getip();
+    $rl = check_rate_limit($ip);
+    if (!$rl['allowed']) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'locked' => true, 'retry_after' => $rl['retry_after']]);
+        exit();
+    }
+    $result = ['success' => check_password(false)];
+    if (!$result['success']) {
+        $rl2 = check_rate_limit($ip);
+        if (!$rl2['allowed']) {
+            $result['locked'] = true;
+            $result['retry_after'] = $rl2['retry_after'];
+        }
+    }
     header('Content-Type: application/json');
     echo json_encode($result);
     exit();
@@ -62,6 +76,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     </style>
     <script>
+        let lockoutActive = false;
+        let lockoutTimer = null;
+
+        function startLockout(seconds) {
+            lockoutActive = true;
+            const form = document.getElementById('login-form');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const btnSpan = submitButton.querySelector('span');
+            const originalText = btnSpan.textContent;
+
+            submitButton.disabled = true;
+            submitButton.classList.remove('loading');
+
+            let remaining = seconds;
+            function tick() {
+                const m = Math.floor(remaining / 60);
+                const s = remaining % 60;
+                btnSpan.textContent = `Locked out — ${m}:${String(s).padStart(2, '0')}`;
+                if (remaining <= 0) {
+                    clearInterval(lockoutTimer);
+                    lockoutActive = false;
+                    submitButton.disabled = false;
+                    btnSpan.textContent = originalText;
+                    return;
+                }
+                remaining--;
+            }
+            tick();
+            lockoutTimer = setInterval(tick, 1000);
+        }
+
         // Matrix rain effect
         function setupMatrixRain() {
             const canvas = document.getElementById('matrix-rain');
@@ -156,14 +201,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     const data = await response.json();
                     if (data.success) {
                         window.location.href = 'index.php';
+                    } else if (data.locked) {
+                        startLockout(data.retry_after);
                     } else {
                         alert('Wrong password!');
                     }
                 } catch (error) {
                     alert('Error occurred during login');
                 }
-                submitButton.disabled = false;
-                submitButton.classList.remove('loading');
+                if (!lockoutActive) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('loading');
+                }
             });
         });
     </script>

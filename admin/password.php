@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/../settings.php';
 require_once __DIR__ . '/../cookies.php';
+require_once __DIR__ . '/ratelimit.php';
 
 function check_password($die = true): bool
 {
@@ -25,6 +26,18 @@ function check_password($die = true): bool
         return true;
     }
 
+    $ip = getip();
+    $rl = check_rate_limit($ip);
+    if (!$rl['allowed']) {
+        $msg = "Too many login attempts. Try again in {$rl['retry_after']} seconds.";
+        add_log('login', $msg, true);
+        if ($die) {
+            die($msg);
+        } else {
+            return false;
+        }
+    }
+
     if (!isset($_REQUEST['password'])) {
         $msg = "No password found!";
         add_log("login", $msg, true);
@@ -39,13 +52,14 @@ function check_password($die = true): bool
         $msg = "Empty password!";
         add_log("login", $msg, true);
         if ($die){
-    die($msg);
+            die($msg);
         }else{
             return false;
         }
     }
 
     if ($_REQUEST['password'] !== $pwd) {
+        record_failed_attempt($ip);
         $msg = "Incorrect password!";
         add_log("login", $msg, true);
         if ($die){
@@ -55,6 +69,7 @@ function check_password($die = true): bool
         }
     }
 
+    rl_reset($ip);
     add_log("login", "Logged in, setting session.", true);
     $_SESSION['loggedin'] = true;
     session_write_close();
