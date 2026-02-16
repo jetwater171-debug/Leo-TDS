@@ -31,12 +31,12 @@ function jscheck(Campaign $c): CloakerAction
     $detectJs = str_replace('{DEBUG}', DebugMethods::on() ? 'true' : 'false', $detectJs);
     $detectJs = str_replace('{DOMAIN}', get_cloaker_path(), $detectJs);
 
-    $jsChecks = $c->white->jsChecks;
-    $js_checks_str = implode('", "', $jsChecks->events);
+    $jbd = $c->black->jsBotDetection;
+    $js_checks_str = implode('", "', $jbd->events);
     $detectJs = str_replace('{JSCHECKS}', $js_checks_str, $detectJs);
-    $detectJs = str_replace('{JSTIMEOUT}', $jsChecks->timeout, $detectJs);
-    $detectJs = str_replace('{JSTZMIN}', $jsChecks->tzMin, $detectJs);
-    $detectJs = str_replace('{JSTZMAX}', $jsChecks->tzMax, $detectJs);
+    $detectJs = str_replace('{JSTIMEOUT}', $jbd->timeout, $detectJs);
+    $detectJs = str_replace('{JSTZMIN}', $jbd->tzMin, $detectJs);
+    $detectJs = str_replace('{JSTZMAX}', $jbd->tzMax, $detectJs);
 
     if (!DebugMethods::on()) {
         $hunter = new HunterObfuscator($detectJs);
@@ -64,34 +64,27 @@ function white(Campaign $c): CloakerAction
     $folder_names = $ws->folderNames;
     $curl_urls = $ws->curlUrls;
     $redirect_urls = $ws->redirectUrls;
+    $redirect_type = $ws->redirectType;
+    /** @var WhiteSettings|DomainWhiteSettings $loadModeSource */
+    $loadModeSource = $ws;
 
-
-    if ($ws->domainFilterEnabled) { //if we want to use different white pages for different domains
-        $curdomain = $_SERVER['HTTP_HOST'];
+    if ($ws->domainFilterEnabled) {
+        $httpHost = $_SERVER['HTTP_HOST'] ?? '';
+        $curdomain = $httpHost;
         if (str_ends_with($curdomain, ':' . $_SERVER['SERVER_PORT'])) {
-            $portLength = strlen(':' . $_SERVER['SERVER_PORT']);
-            $curdomain = substr($curdomain, 0, -$portLength);
+            $curdomain = substr($curdomain, 0, -strlen(':' . $_SERVER['SERVER_PORT']));
         }
-        foreach ($ws->domainSpecific as $wds) {
-            if ($wds->name !== $curdomain) {
+        foreach ($ws->domainSpecific as $dws) {
+            if ($dws->domain !== $httpHost && $dws->domain !== $curdomain) {
                 continue;
             }
-            $wtd_arr = explode(":", $wds->action, 2);
-            $action = $wtd_arr[0];
-            switch ($action) {
-                case 'error':
-                    $error_codes = [intval($wtd_arr[1])];
-                    break;
-                case 'folder':
-                    $folder_names = [$wtd_arr[1]];
-                    break;
-                case 'curl':
-                    $curl_urls = [$wtd_arr[1]];
-                    break;
-                case 'redirect':
-                    $redirect_urls = [$wtd_arr[1]];
-                    break;
-            }
+            $action = $dws->action;
+            $error_codes = $dws->errorCodes;
+            $folder_names = $dws->folderNames;
+            $curl_urls = $dws->curlUrls;
+            $redirect_urls = $dws->redirectUrls;
+            $redirect_type = $dws->redirectType;
+            $loadModeSource = $dws;
             break;
         }
     }
@@ -105,15 +98,15 @@ function white(Campaign $c): CloakerAction
         case 'folder':
             $curfolder = $abtest->select_item($folder_names, 'white', true);
             session_write('white', $curfolder[0]);
-            return new CloakerAction('white', 'html', load_white_content($curfolder[0], $ws->getLoadMode($curfolder[0])));
+            return new CloakerAction('white', 'html', load_white_content($curfolder[0], $loadModeSource->getLoadMode($curfolder[0])));
         case 'curl':
             $cururl = $abtest->select_item($curl_urls, 'white', false);
             session_write('white', $cururl[0]);
-            return new CloakerAction('white', 'html', load_white_curl($cururl[0], $ws->getLoadMode($cururl[0])));
+            return new CloakerAction('white', 'html', load_white_curl($cururl[0], $loadModeSource->getLoadMode($cururl[0])));
         case 'redirect':
             $cururl = $abtest->select_item($redirect_urls, 'white', false);
             session_write('white', $cururl[0]);
-            return new CloakerAction('white', 'redirect', $cururl[0], $ws->redirectType);
+            return new CloakerAction('white', 'redirect', $cururl[0], $redirect_type);
         default:
             return new CloakerAction('white', 'error', 404);
     }
