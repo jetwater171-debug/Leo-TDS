@@ -91,9 +91,12 @@ function get_session($readOnly = false)
 {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     
-    session_set_cookie_params(["SameSite" => "None"]); //can be used from js connected ones
-    session_set_cookie_params(["Secure" => "true"]); //https always
-    session_set_cookie_params(["HttpOnly" => "false"]); //can be used from js code
+    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    session_set_cookie_params([
+        "SameSite" => $isSecure ? "None" : "Lax",
+        "Secure"   => $isSecure,
+        "HttpOnly" => false,
+    ]);
     if ($readOnly)
         session_start(['read_and_close' => true]);
     else 
