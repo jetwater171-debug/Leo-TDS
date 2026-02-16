@@ -34,6 +34,7 @@ use DeviceDetector\Parser\Device\AbstractDeviceParser;
 class FiltrationCore
 {
     public string $block_reason = "";
+    public array $matched_filters = [];
     public array $click_params = [];
 
     public function __construct(array $prefill = [])
@@ -135,6 +136,7 @@ class FiltrationCore
             $paramValue = $this->click_params[$curParamName];
             $check = $this->operator($val, $filter['operator'], $paramValue);
             if ($check) {
+                $this->matched_filters[] = $curParamName;
                 return true;
             }
         } else {
@@ -145,11 +147,13 @@ class FiltrationCore
                     $clickQS = $this->click_params['qs'];
                     if (!isset($clickQS[$pName])) {
                         if ($filter['operator'] === 'param_not_in'){
+                            $this->matched_filters[] = $curParamName;
                             return true;
                         }
                     } else {
                         $check = $this->operator($pValues, $filter['operator'], $clickQS[$pName]);
                         if ($check) {
+                            $this->matched_filters[] = $curParamName;
                             return true;
                         }
                     }
@@ -157,18 +161,22 @@ class FiltrationCore
                 case 'vpntor':
                     $vpnDetected = $this->is_proxy_or_vpn($this->click_params['ip']);
                     if ($val === 0 && $vpnDetected) {
+                        $this->matched_filters[] = $curParamName;
                         return true;
                     }
                     if ($val === 1 && !$vpnDetected) {
+                        $this->matched_filters[] = $curParamName;
                         return true;
                     }
                     break;
                 case 'ipbase':
                     $inBase = $this->is_ip_in_base($this->click_params['ip'], $val);
                     if ($filter['operator'] === 'in' && $inBase) {
+                        $this->matched_filters[] = $curParamName;
                         return true;
                     }
                     if ($filter['operator'] === 'not_in' && !$inBase) {
+                        $this->matched_filters[] = $curParamName;
                         return true;
                     }
                     break;
@@ -176,7 +184,6 @@ class FiltrationCore
                     die("No operator defined for '$curParamName' check!");
             }
         }
-        $this->block_reason = $curParamName;
         return false;
     }
 
@@ -262,7 +269,9 @@ class FiltrationCore
             }
             
             $allShouldMatch = $filters['condition'] === 'AND';
-            return $this->match_filters($allShouldMatch, $filters['rules']);
+            $result = $this->match_filters($allShouldMatch, $filters['rules']);
+            $this->block_reason = implode(', ', array_unique($this->matched_filters));
+            return $result;
         } finally {
             DebugMethods::stop("YWBCoreCheck");
         }
