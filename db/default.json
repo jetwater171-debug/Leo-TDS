@@ -37,18 +37,6 @@
         }
       ]
     },
-    "jschecks": {
-      "enabled": false,
-      "events": [
-        "audiocontext",
-        "timezone"
-      ],
-      "timeout": "40000",
-      "timezone": {
-        "min": "-3",
-        "max": "4"
-      }
-    },
     "filters": {
       "condition": "AND",
       "rules": [
@@ -66,6 +54,18 @@
   },
   "black": {
     "jsconnect": "redirect",
+    "jsbotdetection": {
+      "enabled": false,
+      "events": [
+        "audiocontext",
+        "timezone"
+      ],
+      "timeout": "40000",
+      "timezone": {
+        "min": "-3",
+        "max": "4"
+      }
+    },
     "flows": [
       {
         "name": "Flow 1",

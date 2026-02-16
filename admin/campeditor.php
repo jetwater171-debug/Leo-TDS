@@ -64,6 +64,10 @@ switch ($action) {
                 $arr = json_decode($value, true);
                 if (is_array($arr)) $s['domains'] = $arr;
             }
+            else if ($key==="white_domainspecific"){
+                $arr = json_decode($value, true);
+                if (is_array($arr)) $s['white']['domainfilter']['domains'] = $arr;
+            }
             else
                 setArrayValue($s,$key,$value);
         }

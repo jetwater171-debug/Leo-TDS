@@ -19,6 +19,9 @@ global $c, $db, $campId;
                 <ul>
                     <li><a href="#sec-domains" class="active">Domains</a></li>
                     <li><a href="#sec-safepage">Safe Page</a></li>
+                    <?php if ($c->white->domainFilterEnabled) foreach ($c->domains as $di => $domainName) { ?>
+                    <li class="dws-nav-item" data-domain="<?= htmlspecialchars($domainName) ?>"><a href="#sec-dws-<?= $di ?>">&nbsp;&nbsp;<?= htmlspecialchars($domainName) ?></a></li>
+                    <?php } ?>
                     <li><a href="#sec-flows">Flows</a></li>
                     <?php foreach ($c->black->flows as $fi => $flow) { ?>
                     <li class="flow-nav-item" data-flow-index="<?= $fi ?>"><a href="#sec-flow-<?= $fi ?>">&nbsp;&nbsp;<?= htmlspecialchars($flow->name) ?></a></li>
@@ -70,6 +73,26 @@ global $c, $db, $campId;
             </div>
             </div>
 
+            <div class="flow-group">
+            <span class="flow-group-title">Scope</span>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">White page mode:</label></div>
+                    <div class="col-lg-9">
+                        <div class="bt-df-checkbox pull-left">
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= !$c->white->domainFilterEnabled ? 'checked' : '' ?> value="false" name="white.domainfilter.use" class="white-scope-radio" /> Global (same white page for all domains)
+                            </label></div></div></div>
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= $c->white->domainFilterEnabled ? 'checked' : '' ?> value="true" name="white.domainfilter.use" class="white-scope-radio" /> Domain-Specific (each domain gets its own config)
+                            </label></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div id="global-white-config" style="display:<?= !$c->white->domainFilterEnabled ? 'block' : 'none' ?>">
             <div class="flow-group">
             <span class="flow-group-title">Method</span>
             <div class="form-group-inner">
@@ -160,7 +183,7 @@ global $c, $db, $campId;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-redirect-item btn btn-danger">✕ Delete</a>
+                                <a href="javascript:void(0)" class="remove-redirect-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
                             </div>
                         </div>
                     </div>
@@ -171,53 +194,14 @@ global $c, $db, $campId;
                 <div class="form-group-inner">
                     <div class="row">
                         <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Choose
-                                Redirect HTTP-code:</label>
+                            <label class="login2 pull-left pull-left-pro">Redirect type:</label>
                         </div>
-                        <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                            <div class="bt-df-checkbox pull-left">
-
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->white->redirectType === 301 ? 'checked' : '' ?> value="301" name="white.redirect.type" />
-                                                301
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->white->redirectType === 302 ? 'checked' : '' ?> value="302" name="white.redirect.type" />
-                                                302
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->white->redirectType === 303 ? 'checked' : '' ?> value="303" name="white.redirect.type" />
-                                                303
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="radio" <?= $c->white->redirectType === 307 ? 'checked' : '' ?> value="307" name="white.redirect.type" />
-                                                307
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
+                            <select class="form-select" name="white.redirect.type">
+                                <?php foreach ([301,302,303,307] as $rt) { ?>
+                                <option value="<?= $rt ?>" <?= $c->white->redirectType === $rt ? 'selected' : '' ?>><?= $rt ?></option>
+                                <?php } ?>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -254,7 +238,7 @@ global $c, $db, $campId;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-errorcode-item btn btn-danger">✕ Delete</a>
+                                <a href="javascript:void(0)" class="remove-errorcode-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
                             </div>
                         </div>
                     </div>
@@ -264,232 +248,125 @@ global $c, $db, $campId;
             </div>
             </div>
 
-            <div class="flow-group">
-            <span class="flow-group-title">Settings</span>
-            <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">
-
-                            <img src="img/info.ico" title="Allowed methods are: folder, redirect, curl, error" />
-                            Show
-                            individual
-                            domain-specific safe page?
-                        </label>
-                    </div>
-                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->white->domainFilterEnabled === false ? 'checked' : '' ?> value="false" name="white.domainfilter.use" onclick="(document.getElementById('b_6').style.display = 'none')" />
-                                            No
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->white->domainFilterEnabled === true ? 'checked' : '' ?> value="true" name="white.domainfilter.use" onclick="(document.getElementById('b_6').style.display = 'block')" />
-                                            Yes
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="b_6" style="display:<?= $c->white->domainFilterEnabled === true ? 'block' : 'none' ?>;">
-                <div id="domainspecific_container">
-                    <?php for ($j = 0; $j < count($c->white->domainSpecific); $j++) { ?>
-                    <div class="form-group-inner domain-specific-item">
-                        <div class="row">
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="login2 pull-left pull-left-pro">Domain => Method:Action</label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="xxx.yyy.com" value="<?= $c->white->domainSpecific[$j]->name ?>" name="white.domainfilter.domains[<?= $j ?>][name]" />
-                                </div>
-                            </div>
-                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <p>=></p>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="folder:white" value="<?= $c->white->domainSpecific[$j]->action ?>" name="white.domainfilter.domains[<?= $j ?>][action]" />
-                                </div>
-                            </div>
-                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-domain-specific-item btn btn-danger">✕ Delete</a>
-                            </div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                </div>
-                <a id="add-domain-specific-item" class="btn btn-primary" href="javascript:;">+ Add Domain-Specific Safe Page</a>
-            </div>
-
-            <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="If JS filters are switched ON, then the user will be shown a safe page for a moment and only after all the checks are passed he'll be shown the money page." />
-                            Use Javascript filters?
-                            <small></small>
-                        </label>
-                    </div>
-                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->white->jsChecks->enabled === false ? 'checked="checked"' : '' ?> value="false" name="white.jschecks.enabled" onclick="(document.getElementById('jscheckssettings').style.display = 'none')" />
-                                            No, don't use
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" value="true" <?= $c->white->jsChecks->enabled === true ? 'checked="checked"' : '' ?> name="white.jschecks.enabled" onclick="(document.getElementById('jscheckssettings').style.display = 'block')" />
-                                            Yes, use
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="jscheckssettings" style="display:<?=$c->white->jsChecks->enabled === true ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">JS-Test
-                                timeout (msec): </label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="10000" name="white.jschecks.timeout" value="<?= $c->white->jsChecks->timeout ?>" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">What will
-                                be tested? </label>
-                        </div>
-                        <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                            <div class="bt-df-checkbox pull-left">
-
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="checkbox" name="white.jschecks.events[]" value="pointerdown" <?= in_array('pointerdown', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Mouse click / Touch start  
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="checkbox" name="white.jschecks.events[]" value="keydown" <?= in_array('keydown', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Text typing
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="checkbox" name="white.jschecks.events[]" value="devicemotion" <?= in_array('devicemotion', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Device motion (Android only)
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="checkbox" name="white.jschecks.events[]" value="deviceorientation" <?= in_array('deviceorientation', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Device orientation (Android
-                                                only)
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input type="checkbox" name="white.jschecks.events[]" value="audiocontext" <?= in_array('audiocontext', $c->white->jsChecks->events) ? 'checked' : '' ?> />
-                                                Audio engine existence
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                        <div class="i-checks pull-left">
-                                            <label>
-                                                <input id="tzcheck" type="checkbox" name="white.jschecks.events[]" value="timezone" <?= in_array('timezone', $c->white->jsChecks->events) ? 'checked' : '' ?> onchange="(document.getElementById('jscheckstz').style.display = this.checked ? 'block' : 'none')" />
-                                                Time zone
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="jscheckstz" class="form-group-inner" style="display:<?= in_array('timezone', $c->white->jsChecks->events) ? 'block' : 'none' ?>;">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Minimum
-                                allowed timezone</label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="-3" name="white.jschecks.timezone.min" value="<?= $c->white->jsChecks->tzMin ?>" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro">Maximum
-                                allowed timezone</label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                            <div class="input-group custom-go-button">
-                                <input type="text" class="form-control" placeholder="3" name="white.jschecks.timezone.max" value="<?= $c->white->jsChecks->tzMax ?>" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            </div>
+            </div><!-- /#global-white-config -->
 
             </section>
+
+            <?php
+            // Build a lookup map: domain => DomainWhiteSettings
+            $dwsMap = [];
+            foreach ($c->white->domainSpecific as $dws) {
+                $dwsMap[$dws->domain] = $dws;
+            }
+            foreach ($c->domains as $di => $domainName) {
+                $dws = $dwsMap[$domainName] ?? null;
+                $dwAction = $dws ? $dws->action : 'folder';
+            ?>
+            <section id="sec-dws-<?= $di ?>" class="camp-section dws-section" data-domain="<?= htmlspecialchars($domainName) ?>">
+            <h5><?= htmlspecialchars($domainName) ?> — Safe Page</h5>
+
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Method:</label></div>
+                    <div class="col-lg-9">
+                        <div class="bt-df-checkbox pull-left">
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= $dwAction === 'folder' ? 'checked' : '' ?> value="folder" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> Local folder
+                            </label></div></div></div>
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= $dwAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> Redirect
+                            </label></div></div></div>
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= $dwAction === 'curl' ? 'checked' : '' ?> value="curl" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> CURL
+                            </label></div></div></div>
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= $dwAction === 'error' ? 'checked' : '' ?> value="error" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> HTTP Code
+                            </label></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dws-folder-block" data-di="<?= $di ?>" style="display:<?= $dwAction === 'folder' ? 'block' : 'none' ?>">
+                <div class="dws-folder-items">
+                <?php if ($dws) foreach ($dws->folderNames as $fn) { ?>
+                    <div class="form-group-inner dws-folder-item">
+                        <div class="row">
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Folder:</label></div>
+                            <div class="col-lg-3"><input type="text" class="form-control dws-folder-name" value="<?= htmlspecialchars($fn) ?>" readonly /></div>
+                            <div class="col-lg-4"><div class="btn-group btn-group-sm">
+                                <a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="<?= htmlspecialchars($dws->getLoadMode($fn)) ?>" data-modes="base,rewrite,direct" title="Loading mode"><i class="bi <?= match($dws->getLoadMode($fn)) { 'rewrite' => 'bi-arrow-repeat', 'direct' => 'bi-hdd-network', default => 'bi-house-door' } ?>"></i></a>
+                                <a href="javascript:void(0)" class="btn btn-warning dws-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a>
+                                <a href="javascript:void(0)" class="btn btn-danger dws-remove-folder" title="Delete"><i class="bi bi-trash"></i></a>
+                            </div></div>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-existing" data-di="<?= $di ?>"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+                <a href="javascript:void(0)" class="btn btn-info btn-sm dws-upload-zip" data-di="<?= $di ?>"><i class="bi bi-upload"></i> Upload ZIP</a>
+            </div>
+
+            <div class="dws-redirect-block" data-di="<?= $di ?>" style="display:<?= $dwAction === 'redirect' ? 'block' : 'none' ?>">
+                <div class="dws-redirect-items">
+                <?php if ($dws) foreach ($dws->redirectUrls as $ru) { ?>
+                    <div class="form-group-inner dws-redirect-item">
+                        <div class="row">
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>
+                            <div class="col-lg-5"><input type="text" class="form-control dws-redirect-url" value="<?= htmlspecialchars($ru) ?>" placeholder="https://example.com" /></div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm dws-remove-redirect"><i class="bi bi-trash"></i></a></div>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-redirect" data-di="<?= $di ?>">+ Add URL</a>
+                <div class="form-group-inner" style="margin-top:10px">
+                    <div class="row">
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>
+                        <div class="col-lg-3"><select class="form-select dws-redirect-type">
+                            <?php $dwRt = $dws ? $dws->redirectType : 302; foreach ([301,302,303,307] as $rt) { ?>
+                            <option value="<?= $rt ?>" <?= $dwRt === $rt ? 'selected' : '' ?>><?= $rt ?></option>
+                            <?php } ?>
+                        </select></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dws-curl-block" data-di="<?= $di ?>" style="display:<?= $dwAction === 'curl' ? 'block' : 'none' ?>">
+                <div class="dws-curl-items">
+                <?php if ($dws) foreach ($dws->curlUrls as $cu) { ?>
+                    <div class="form-group-inner dws-curl-item">
+                        <div class="row">
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">CURL URL:</label></div>
+                            <div class="col-lg-5"><input type="text" class="form-control dws-curl-url" value="<?= htmlspecialchars($cu) ?>" placeholder="https://example.com" /></div>
+                            <div class="col-lg-2"><div class="btn-group btn-group-sm">
+                                <a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="<?= htmlspecialchars($dws->getLoadMode($cu)) ?>" data-modes="rewrite,direct" title="Loading mode"><i class="bi <?= $dws->getLoadMode($cu) === 'direct' ? 'bi-hdd-network' : 'bi-arrow-repeat' ?>"></i></a>
+                                <a href="javascript:void(0)" class="btn btn-danger dws-remove-curl"><i class="bi bi-trash"></i></a>
+                            </div></div>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-curl" data-di="<?= $di ?>">+ Add CURL</a>
+            </div>
+
+            <div class="dws-error-block" data-di="<?= $di ?>" style="display:<?= $dwAction === 'error' ? 'block' : 'none' ?>">
+                <div class="dws-error-items">
+                <?php if ($dws) foreach ($dws->errorCodes as $ec) { ?>
+                    <div class="form-group-inner dws-error-item">
+                        <div class="row">
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">HTTP Code:</label></div>
+                            <div class="col-lg-2"><input type="text" class="form-control dws-error-code" value="<?= htmlspecialchars($ec) ?>" placeholder="404" /></div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm dws-remove-error"><i class="bi bi-trash"></i></a></div>
+                        </div>
+                    </div>
+                <?php } ?>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-error" data-di="<?= $di ?>">+ Add Code</a>
+            </div>
+
+            </section><!-- /sec-dws -->
+            <?php } ?>
 
             <section id="sec-flows" class="camp-section">
             <div class="form-group-inner">
@@ -507,6 +384,88 @@ global $c, $db, $campId;
                 <a id="add-flow-btn" class="btn btn-primary" href="javascript:void(0)" style="margin-top:15px;display:inline-block;">+ Add Flow</a>
             </div>
             <hr/>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">
+                            <img src="img/info.ico" title="If Yes then the user will always be shown the same content on every visit" />
+                            Save user flow (Sticky):
+                        </label>
+                    </div>
+                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
+                        <div class="bt-df-checkbox pull-left">
+                            <div class="row">
+                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                    <input type="radio" <?= $c->saveUserFlow === false ? 'checked' : '' ?> value="false" name="saveuserflow" /> No
+                                </label></div></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                    <input type="radio" <?= $c->saveUserFlow === true ? 'checked' : '' ?> value="true" name="saveuserflow" /> Yes
+                                </label></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <?php $jbd = $c->black->jsBotDetection; ?>
+            <div class="flow-group">
+            <span class="flow-group-title">JS Bot Detection</span>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">
+                            <img src="img/info.ico" title="If enabled, the user will first see a safe page. Only after browser-side checks confirm a real human will they see the money page." />
+                            Enable JS Bot Detection:
+                        </label>
+                    </div>
+                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
+                        <div class="bt-df-checkbox pull-left">
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= !$jbd->enabled ? 'checked' : '' ?> value="false" name="black.jsbotdetection.enabled" onclick="(document.getElementById('jbd-settings').style.display = 'none')" /> No
+                            </label></div></div></div>
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="radio" <?= $jbd->enabled ? 'checked' : '' ?> value="true" name="black.jsbotdetection.enabled" onclick="(document.getElementById('jbd-settings').style.display = 'block')" /> Yes
+                            </label></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="jbd-settings" style="display:<?= $jbd->enabled ? 'block' : 'none' ?>;">
+                <div class="form-group-inner">
+                    <div class="row">
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Timeout (msec):</label></div>
+                        <div class="col-lg-3"><input type="text" class="form-control" placeholder="10000" name="black.jsbotdetection.timeout" value="<?= $jbd->timeout ?>" /></div>
+                    </div>
+                </div>
+                <div class="form-group-inner">
+                    <div class="row">
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Tests:</label></div>
+                        <div class="col-lg-9"><div class="bt-df-checkbox pull-left">
+                            <?php foreach (['pointerdown' => 'Mouse click / Touch start', 'keydown' => 'Text typing', 'devicemotion' => 'Device motion (Android only)', 'deviceorientation' => 'Device orientation (Android only)', 'audiocontext' => 'Audio engine existence', 'timezone' => 'Time zone'] as $ev => $evLabel) { ?>
+                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                                <input type="checkbox" name="black.jsbotdetection.events[]" value="<?= $ev ?>" <?= in_array($ev, $jbd->events) ? 'checked' : '' ?>
+                                    <?= $ev === 'timezone' ? 'onchange="(document.getElementById(\'jbd-tz\').style.display = this.checked ? \'block\' : \'none\')"' : '' ?> />
+                                <?= $evLabel ?>
+                            </label></div></div></div>
+                            <?php } ?>
+                        </div></div>
+                    </div>
+                </div>
+                <div id="jbd-tz" class="form-group-inner" style="display:<?= in_array('timezone', $jbd->events) ? 'block' : 'none' ?>;">
+                    <div class="row">
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Minimum allowed timezone</label></div>
+                        <div class="col-lg-3"><input type="text" class="form-control" placeholder="-3" name="black.jsbotdetection.timezone.min" value="<?= $jbd->tzMin ?>" /></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Maximum allowed timezone</label></div>
+                        <div class="col-lg-3"><input type="text" class="form-control" placeholder="3" name="black.jsbotdetection.timezone.max" value="<?= $jbd->tzMax ?>" /></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -530,30 +489,6 @@ global $c, $db, $campId;
                             <div class="row">
                                 <div class="col-lg-12"><div class="i-checks pull-left"><label>
                                     <input type="radio" <?= $c->black->jsconnectAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="black_jsconnect" /> Redirect
-                                </label></div></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="If Yes then the user will always be shown the same content on every visit" />
-                            Save user flow:
-                        </label>
-                    </div>
-                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row">
-                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                    <input type="radio" <?= $c->saveUserFlow === false ? 'checked' : '' ?> value="false" name="saveuserflow" /> No
-                                </label></div></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                    <input type="radio" <?= $c->saveUserFlow === true ? 'checked' : '' ?> value="true" name="saveuserflow" /> Yes
                                 </label></div></div>
                             </div>
                         </div>
@@ -770,20 +705,22 @@ global $c, $db, $campId;
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
                                 <input type="number" step="1" class="form-control flow-land-weight" value="<?= $flow->land->weights[$ri] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect">✕ Delete</a></div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect" title="Delete"><i class="bi bi-trash"></i></a></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
                 <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="<?= $fi ?>">+ Add Redirect</a>
                 <div class="form-group-inner" style="margin-top:10px">
-                    <label class="login2 pull-left pull-left-pro">Redirect type:</label>
-                    <div class="bt-df-checkbox pull-left">
-                        <?php foreach ([301,302,303,307] as $rt) { ?>
-                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                            <input type="radio" <?= $flow->land->redirectType === $rt ? 'checked' : '' ?> value="<?= $rt ?>" name="flow_<?= $fi ?>_redirect_type" class="flow-redirect-type" /> <?= $rt ?>
-                        </label></div></div></div>
-                        <?php } ?>
+                    <div class="row">
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>
+                        <div class="col-lg-3">
+                            <select class="form-select flow-redirect-type" data-fi="<?= $fi ?>">
+                                <?php foreach ([301,302,303,307] as $rt) { ?>
+                                <option value="<?= $rt ?>" <?= $flow->land->redirectType === $rt ? 'selected' : '' ?>><?= $rt ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -846,7 +783,7 @@ global $c, $db, $campId;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a href="javascript:void(0)" class="remove-backfix-url-item btn btn-danger">✕ Delete</a>
+                                <a href="javascript:void(0)" class="remove-backfix-url-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
                             </div>
                         </div>
                     </div>
@@ -1113,7 +1050,7 @@ global $c, $db, $campId;
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
-                                <a class="remove-s2s-item btn btn-danger">✕ Delete</a>
+                                <a class="remove-s2s-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
                             </div>
                         </div>
                         <div class="row">
@@ -1213,15 +1150,6 @@ global $c, $db, $campId;
             cloneContainer: 'errorcode-item',
             removeButtonClass: 'remove-errorcode-item',
             maxLimit: 5,
-            minLimit: 1,
-            removeConfirm: false
-        });
-
-        $('#add-domain-specific-item').cloneData({
-            mainContainerId: 'domainspecific_container',
-            cloneContainer: 'domain-specific-item',
-            removeButtonClass: 'remove-domain-specific-item',
-            maxLimit: 10,
             minLimit: 1,
             removeConfirm: false
         });
@@ -1386,6 +1314,288 @@ global $c, $db, $campId;
     };
     </script>
     <script>
+    // ── Scope radio: Global / Domain-Specific toggle ──
+    document.querySelectorAll('.white-scope-radio').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            var isDomainSpecific = this.value === 'true';
+            document.getElementById('global-white-config').style.display = isDomainSpecific ? 'none' : 'block';
+            // Ensure sections + nav items exist for all domains
+            if (isDomainSpecific && window.syncDomainWhiteSections) window.syncDomainWhiteSections();
+            // Show/hide sidebar nav items for domain-specific sections
+            document.querySelectorAll('.dws-nav-item').forEach(function (li) {
+                li.style.display = isDomainSpecific ? '' : 'none';
+            });
+        });
+    });
+    // Hide dws nav items on load if global mode
+    if (!document.querySelector('.white-scope-radio[value="true"]:checked')) {
+        document.querySelectorAll('.dws-nav-item').forEach(function (li) { li.style.display = 'none'; });
+    }
+
+    // ── Domain-specific: method radio toggle ──
+    document.addEventListener('change', function (e) {
+        var radio = e.target.closest('.dws-action');
+        if (!radio) return;
+        var section = radio.closest('.dws-section');
+        if (!section) return;
+        var action = radio.value;
+        section.querySelector('.dws-folder-block').style.display = action === 'folder' ? 'block' : 'none';
+        section.querySelector('.dws-redirect-block').style.display = action === 'redirect' ? 'block' : 'none';
+        section.querySelector('.dws-curl-block').style.display = action === 'curl' ? 'block' : 'none';
+        section.querySelector('.dws-error-block').style.display = action === 'error' ? 'block' : 'none';
+    });
+
+    // ── Domain-specific: delegated click handlers ──
+    document.addEventListener('click', function (e) {
+        // Remove folder
+        var btn = e.target.closest('.dws-remove-folder');
+        if (btn) { var row = btn.closest('.dws-folder-item'); if (row) row.remove(); return; }
+        // Remove redirect
+        btn = e.target.closest('.dws-remove-redirect');
+        if (btn) { var row = btn.closest('.dws-redirect-item'); if (row) row.remove(); return; }
+        // Remove curl
+        btn = e.target.closest('.dws-remove-curl');
+        if (btn) { var row = btn.closest('.dws-curl-item'); if (row) row.remove(); return; }
+        // Remove error
+        btn = e.target.closest('.dws-remove-error');
+        if (btn) { var row = btn.closest('.dws-error-item'); if (row) row.remove(); return; }
+        // Edit folder
+        btn = e.target.closest('.dws-edit-folder');
+        if (btn) {
+            var row = btn.closest('.dws-folder-item');
+            var folder = row.querySelector('.dws-folder-name').value;
+            if (window.openFileEditor) window.openFileEditor(folder, 'white');
+            return;
+        }
+        // Add existing folder
+        btn = e.target.closest('.dws-add-existing');
+        if (btn) {
+            var section = btn.closest('.dws-section');
+            btn.disabled = true;
+            fetch('listfolders.php?type=white').then(function (r) { return r.json(); }).then(function (data) {
+                btn.disabled = false;
+                if (data.error) { alert(data.result); return; }
+                if (!data.folders.length) { alert('No white page folders found. Upload a ZIP first.'); return; }
+                if (window.openFolderPicker) {
+                    window.openFolderPicker(data.folders).then(function (choice) {
+                        if (!choice) return;
+                        section.querySelector('.dws-folder-items').insertAdjacentHTML('beforeend', buildDwsFolderRow(choice));
+                    });
+                }
+            }).catch(function (err) { btn.disabled = false; alert('Error: ' + err); });
+            return;
+        }
+        // Upload ZIP
+        btn = e.target.closest('.dws-upload-zip');
+        if (btn) {
+            var section = btn.closest('.dws-section');
+            var fileInput = document.createElement('input');
+            fileInput.type = 'file'; fileInput.accept = '.zip'; fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            fileInput.addEventListener('change', function () {
+                if (!fileInput.files.length) { fileInput.remove(); return; }
+                var folderName = prompt('Enter folder name for this white page:', fileInput.files[0].name.replace(/\.zip$/i, ''));
+                if (!folderName || !folderName.trim()) { fileInput.remove(); return; }
+                var fd = new FormData();
+                fd.append('zipfile', fileInput.files[0]);
+                fd.append('folder', folderName.trim());
+                fd.append('type', 'white');
+                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+                btn.style.pointerEvents = 'none';
+                fetch('zipupload.php', { method: 'POST', body: fd })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.error) { alert('Upload error: ' + data.result); }
+                        else { section.querySelector('.dws-folder-items').insertAdjacentHTML('beforeend', buildDwsFolderRow(data.folder)); }
+                    })
+                    .catch(function (err) { alert('Upload failed: ' + err); })
+                    .finally(function () {
+                        btn.innerHTML = '<i class="bi bi-upload"></i> Upload ZIP';
+                        btn.style.pointerEvents = '';
+                        fileInput.remove();
+                    });
+            });
+            fileInput.click();
+            return;
+        }
+        // Add redirect URL
+        btn = e.target.closest('.dws-add-redirect');
+        if (btn) {
+            var url = prompt('Enter redirect URL:');
+            if (!url || !url.trim()) return;
+            var section = btn.closest('.dws-section');
+            section.querySelector('.dws-redirect-items').insertAdjacentHTML('beforeend',
+                '<div class="form-group-inner dws-redirect-item"><div class="row">' +
+                '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>' +
+                '<div class="col-lg-5"><input type="text" class="form-control dws-redirect-url" value="' + url.trim().replace(/"/g, '&quot;') + '" placeholder="https://example.com" /></div>' +
+                '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm dws-remove-redirect"><i class="bi bi-trash"></i></a></div>' +
+                '</div></div>');
+            return;
+        }
+        // Add CURL URL
+        btn = e.target.closest('.dws-add-curl');
+        if (btn) {
+            var url = prompt('Enter CURL URL:');
+            if (!url || !url.trim()) return;
+            var section = btn.closest('.dws-section');
+            section.querySelector('.dws-curl-items').insertAdjacentHTML('beforeend',
+                '<div class="form-group-inner dws-curl-item"><div class="row">' +
+                '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">CURL URL:</label></div>' +
+                '<div class="col-lg-5"><input type="text" class="form-control dws-curl-url" value="' + url.trim().replace(/"/g, '&quot;') + '" placeholder="https://example.com" /></div>' +
+                '<div class="col-lg-2"><div class="btn-group btn-group-sm">' +
+                '<a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="rewrite" data-modes="rewrite,direct" title="Loading mode"><i class="bi bi-arrow-repeat"></i></a>' +
+                '<a href="javascript:void(0)" class="btn btn-danger dws-remove-curl"><i class="bi bi-trash"></i></a>' +
+                '</div></div></div></div>');
+            return;
+        }
+        // Add error code
+        btn = e.target.closest('.dws-add-error');
+        if (btn) {
+            var code = prompt('Enter HTTP code (e.g. 404):');
+            if (!code || !code.trim()) return;
+            var section = btn.closest('.dws-section');
+            section.querySelector('.dws-error-items').insertAdjacentHTML('beforeend',
+                '<div class="form-group-inner dws-error-item"><div class="row">' +
+                '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">HTTP Code:</label></div>' +
+                '<div class="col-lg-2"><input type="text" class="form-control dws-error-code" value="' + code.trim() + '" placeholder="404" /></div>' +
+                '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm dws-remove-error"><i class="bi bi-trash"></i></a></div>' +
+                '</div></div>');
+            return;
+        }
+    });
+
+    function buildDwsFolderRow(folderName, mode) {
+        mode = mode || 'base';
+        var info = window.LOAD_MODE_INFO || {};
+        var icon = (info[mode] || {}).icon || 'bi-house-door';
+        return '<div class="form-group-inner dws-folder-item"><div class="row">' +
+            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Folder:</label></div>' +
+            '<div class="col-lg-3"><input type="text" class="form-control dws-folder-name" value="' + folderName + '" readonly /></div>' +
+            '<div class="col-lg-4"><div class="btn-group btn-group-sm">' +
+            '<a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="' + mode + '" data-modes="base,rewrite,direct" title="Loading mode"><i class="bi ' + icon + '"></i></a>' +
+            '<a href="javascript:void(0)" class="btn btn-warning dws-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a>' +
+            '<a href="javascript:void(0)" class="btn btn-danger dws-remove-folder" title="Delete"><i class="bi bi-trash"></i></a>' +
+            '</div></div></div></div>';
+    }
+
+    // ── Collect domain-specific white data for save ──
+    window.collectDomainSpecificData = function () {
+        var result = [];
+        document.querySelectorAll('section.dws-section').forEach(function (section) {
+            var domain = section.dataset.domain;
+            var action = 'folder';
+            section.querySelectorAll('.dws-action').forEach(function (r) { if (r.checked) action = r.value; });
+
+            var folders = [];
+            var loadmode = {};
+            section.querySelectorAll('.dws-folder-name').forEach(function (inp) {
+                var name = inp.value.trim();
+                if (name) {
+                    folders.push(name);
+                    var mb = inp.closest('.dws-folder-item').querySelector('.load-mode-btn');
+                    if (mb) loadmode[name] = mb.dataset.mode || 'base';
+                }
+            });
+
+            var redirectUrls = [];
+            section.querySelectorAll('.dws-redirect-url').forEach(function (inp) {
+                var u = inp.value.trim(); if (u) redirectUrls.push(u);
+            });
+            var redirectType = 302;
+            var rtSel = section.querySelector('.dws-redirect-type');
+            if (rtSel) redirectType = parseInt(rtSel.value) || 302;
+
+            var curlUrls = [];
+            section.querySelectorAll('.dws-curl-url').forEach(function (inp) {
+                var u = inp.value.trim();
+                if (u) {
+                    curlUrls.push(u);
+                    var mb = inp.closest('.dws-curl-item').querySelector('.load-mode-btn');
+                    if (mb) loadmode[u] = mb.dataset.mode || 'rewrite';
+                }
+            });
+
+            var errorCodes = [];
+            section.querySelectorAll('.dws-error-code').forEach(function (inp) {
+                var c = inp.value.trim(); if (c) errorCodes.push(parseInt(c) || 0);
+            });
+
+            result.push({
+                domain: domain,
+                action: action,
+                folders: folders,
+                redirect: { urls: redirectUrls, type: redirectType },
+                curls: curlUrls,
+                errorcodes: errorCodes,
+                loadmode: loadmode
+            });
+        });
+        return result;
+    };
+
+    // ── Auto-sync: when domains change, rebuild domain-specific sections + sidebar nav ──
+    window.syncDomainWhiteSections = function () {
+        var currentDomains = window.collectDomainsData ? window.collectDomainsData() : [];
+        var isDomainSpecific = !!document.querySelector('.white-scope-radio[value="true"]:checked');
+        // Remove sections + nav items for domains that no longer exist
+        document.querySelectorAll('section.dws-section').forEach(function (sec) {
+            if (currentDomains.indexOf(sec.dataset.domain) === -1) sec.remove();
+        });
+        document.querySelectorAll('.dws-nav-item').forEach(function (li) {
+            if (currentDomains.indexOf(li.dataset.domain) === -1) li.remove();
+        });
+        // Add sections + nav items for new domains
+        var flowsSection = document.getElementById('sec-flows');
+        currentDomains.forEach(function (domain) {
+            if (!document.querySelector('section.dws-section[data-domain="' + CSS.escape(domain) + '"]')) {
+                // Insert section before sec-flows
+                var secHtml = buildDwsSection(domain);
+                flowsSection.insertAdjacentHTML('beforebegin', secHtml);
+                // Insert sidebar nav item
+                var navHtml = '<li class="dws-nav-item" data-domain="' + domain.replace(/"/g, '&quot;') + '" style="' + (isDomainSpecific ? '' : 'display:none') + '"><a href="#sec-dws-d' + (_dwsCounter - 1) + '">&nbsp;&nbsp;' + domain.replace(/</g, '&lt;') + '</a></li>';
+                var lastDwsNav = document.querySelectorAll('.dws-nav-item');
+                if (lastDwsNav.length > 0) {
+                    lastDwsNav[lastDwsNav.length - 1].insertAdjacentHTML('afterend', navHtml);
+                } else {
+                    var safePageNav = document.querySelector('a[href="#sec-safepage"]');
+                    if (safePageNav) safePageNav.closest('li').insertAdjacentHTML('afterend', navHtml);
+                }
+            }
+        });
+    };
+
+    var _dwsCounter = <?= count($c->domains) ?>;
+    function buildDwsSection(domain) {
+        var n = _dwsCounter++;
+        var secId = 'sec-dws-d' + n;
+        var actName = 'dws_action_d' + n;
+        return '<section id="' + secId + '" class="camp-section dws-section" data-domain="' + domain.replace(/"/g, '&quot;') + '">' +
+            '<h5>' + domain.replace(/</g, '&lt;') + ' — Safe Page</h5>' +
+            '<div class="form-group-inner"><div class="row">' +
+            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Method:</label></div>' +
+            '<div class="col-lg-9"><div class="bt-df-checkbox pull-left">' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="folder" name="' + actName + '" class="dws-action" /> Local folder</label></div></div></div>' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="redirect" name="' + actName + '" class="dws-action" /> Redirect</label></div></div></div>' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="curl" name="' + actName + '" class="dws-action" /> CURL</label></div></div></div>' +
+            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="error" name="' + actName + '" class="dws-action" /> HTTP Code</label></div></div></div>' +
+            '</div></div></div></div>' +
+            '<div class="dws-folder-block"><div class="dws-folder-items"></div>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-existing"><i class="bi bi-folder-symlink"></i> Add Existing</a> ' +
+            '<a href="javascript:void(0)" class="btn btn-info btn-sm dws-upload-zip"><i class="bi bi-upload"></i> Upload ZIP</a></div>' +
+            '<div class="dws-redirect-block" style="display:none"><div class="dws-redirect-items"></div>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-redirect">+ Add URL</a>' +
+            '<div class="form-group-inner" style="margin-top:10px"><div class="row">' +
+            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>' +
+            '<div class="col-lg-3"><select class="form-select dws-redirect-type"><option value="301">301</option><option value="302" selected>302</option><option value="303">303</option><option value="307">307</option></select></div>' +
+            '</div></div></div>' +
+            '<div class="dws-curl-block" style="display:none"><div class="dws-curl-items"></div>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-curl">+ Add CURL</a></div>' +
+            '<div class="dws-error-block" style="display:none"><div class="dws-error-items"></div>' +
+            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-error">+ Add Code</a></div>' +
+            '</section>';
+    }
+    </script>
+    <script>
     // ── Domain management ──
     function buildDomainRow(domain, statusHtml) {
         return '<div class="form-group-inner domain-item"><div class="row">' +
@@ -1407,7 +1617,7 @@ global $c, $db, $campId;
             return '<i class="bi bi-check-circle-fill domain-status" style="color:#22c55e" title="Resolves to this server (' + (data.ip || '') + ')"></i>';
         }
         var errMsg = data.error || 'Domain does not resolve to this server';
-        return '<i class="bi bi-x-circle-fill domain-status" style="color:#ef4444" title="' + errMsg.replace(/"/g, '&quot;') + '"></i>';
+        return '<i class="bi bi-exclamation-triangle-fill domain-status" style="color:#f59e0b" title="' + errMsg.replace(/"/g, '&quot;') + '"></i>';
     }
 
     function checkDomain(domain) {
@@ -1433,6 +1643,7 @@ global $c, $db, $campId;
         if (!delBtn) return;
         var row = delBtn.closest('.domain-item');
         if (row) row.remove();
+        if (window.syncDomainWhiteSections) window.syncDomainWhiteSections();
     });
 
     // Add domain
@@ -1456,6 +1667,7 @@ global $c, $db, $campId;
         container.insertAdjacentHTML('beforeend', buildDomainRow(domain, loadingHtml));
         var newRow = container.querySelector('.domain-item:last-child');
         checkDomainStatus(newRow);
+        if (window.syncDomainWhiteSections) window.syncDomainWhiteSections();
     });
 
     // Check all existing domains on page load
@@ -1491,10 +1703,11 @@ global $c, $db, $campId;
                 let flowsJson = window.collectFlowsData ? window.collectFlowsData() : '[]';
                 let whiteData = window.collectWhiteData ? window.collectWhiteData() : { folders: [], loadmode: {} };
                 let domainsData = window.collectDomainsData ? window.collectDomainsData() : [];
+                let dwsData = window.collectDomainSpecificData ? window.collectDomainSpecificData() : [];
                 let formData = new FormData(document.getElementById("campsettings"));
                 let filteredFormData = new FormData();
                 for (let [key, value] of formData.entries()) {
-                    if (!key.startsWith("filtersbuilder") && !key.startsWith("flow_")) {
+                    if (!key.startsWith("filtersbuilder") && !key.startsWith("flow_") && !key.startsWith("dws_")) {
                         filteredFormData.append(key, value);
                     }
                 }
@@ -1503,6 +1716,7 @@ global $c, $db, $campId;
                 filteredFormData.append("white_folders", JSON.stringify(whiteData.folders));
                 filteredFormData.append("white_loadmode", JSON.stringify(whiteData.loadmode));
                 filteredFormData.append("domains_list", JSON.stringify(domainsData));
+                filteredFormData.append("white_domainspecific", JSON.stringify(dwsData));
                 let settingsBody = new URLSearchParams(filteredFormData.entries()).toString();
 
                 let res = await fetch(`campeditor.php?action=save&campId=${campId}`, {
@@ -1604,7 +1818,7 @@ global $c, $db, $campId;
         var MODE_INFO = {
             base:    { icon: 'bi-house-door',   label: 'Base',    desc: 'Adds &lt;base&gt; tag — browser resolves all relative paths. Fast, reliable, suspicious.' },
             rewrite: { icon: 'bi-arrow-repeat',  label: 'Rewrite', desc: 'PHP rewrites all URLs in HTML to absolute paths. Medium speed, can be errors in styles, less suspicious but still.' },
-            direct:  { icon: 'bi-hdd-network',   label: 'Direct',  desc: 'All resources served via PHP catch-all. Slowest, error-prone, invisible.' }
+            direct:  { icon: 'bi-hdd-network',   label: 'Direct',  desc: 'All resources served via PHP catch-all. Slowest, error-prone, invisible. Multi-page sites do work!' }
         };
         window.LOAD_MODE_INFO = MODE_INFO;
 
