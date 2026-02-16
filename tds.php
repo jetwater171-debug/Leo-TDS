@@ -23,7 +23,7 @@ class Tds
                 $action = white($c);
             } else {
                 $jscheck_passed = session_read('jscheck_passed');
-                if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
+                if ($c->black->jsBotDetection->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                 } else {
                     $flowIndex = self::pick_flow_index($clkr, $c->black->flows);
@@ -53,7 +53,7 @@ class Tds
                 $action = white($c);
             } else {
                 $jscheck_passed = session_read('jscheck_passed');
-                if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
+                if ($c->black->jsBotDetection->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                     $action->action = 'html_content';
                 } else {
@@ -101,7 +101,7 @@ class Tds
             $current_time = time();
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             // Convert from milliseconds to seconds
-            $max_execution_time = $c->white->jsChecks->timeout / 1000;
+            $max_execution_time = $c->black->jsBotDetection->timeout / 1000;
             // Add 5 second buffer
             $allowed_time = $jscheck_start_time + $max_execution_time + 5;
 
@@ -154,7 +154,7 @@ class Tds
                 $action = white($c);
             } else {
                 $jscheck_passed = session_read('jscheck_passed');
-                if ($c->white->jsChecks->enabled && is_null($jscheck_passed)) {
+                if ($c->black->jsBotDetection->enabled && is_null($jscheck_passed)) {
                     $action = jscheck($c);
                 } else {
                     $flowIndex = self::pick_flow_index($clkr, $c->black->flows);

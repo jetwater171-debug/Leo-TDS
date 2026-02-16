@@ -58,7 +58,6 @@ class WhiteSettings implements JsonSerializable
     public array $errorCodes;
     public bool $domainFilterEnabled;
     public array $domainSpecific;
-    public JsChecks $jsChecks;
     public array $loadMode;
 
     public static function fromArray(array $s): WhiteSettings
@@ -75,10 +74,9 @@ class WhiteSettings implements JsonSerializable
 
         $ws->domainSpecific = [];
         foreach ($s['domainfilter']['domains'] as $df) {
-            $ws->domainSpecific[] = DomainSpecificWhite::fromArray($df);
+            $ws->domainSpecific[] = DomainWhiteSettings::fromArray($df);
         }
 
-        $ws->jsChecks = JsChecks::fromArray($s['jschecks']);
         $ws->loadMode = $s['loadmode'] ?? [];
         return $ws;
     }
@@ -105,7 +103,6 @@ class WhiteSettings implements JsonSerializable
             ],
             "curls" => $this->curlUrls,
             "errorcodes" => $this->errorCodes,
-            "jschecks" => $this->jsChecks,
             "domainfilter" => [
                 "use" => $this->domainFilterEnabled,
                 "domains" => $this->domainSpecific
@@ -115,27 +112,49 @@ class WhiteSettings implements JsonSerializable
     }
 }
 
-class DomainSpecificWhite implements JsonSerializable
+class DomainWhiteSettings implements JsonSerializable
 {
-    public string $name;
+    public string $domain;
     public string $action;
+    public array $folderNames;
+    public array $redirectUrls;
+    public int $redirectType;
+    public array $curlUrls;
+    public array $errorCodes;
+    public array $loadMode;
 
-    public function __construct($name, $action)
+    public static function fromArray(array $arr): DomainWhiteSettings
     {
-        $this->name = $name;
-        $this->action = $action;
+        $dw = new DomainWhiteSettings();
+        $dw->domain = $arr['domain'] ?? $arr['name'] ?? '';
+        $dw->action = $arr['action'] ?? 'folder';
+        $dw->folderNames = $arr['folders'] ?? [];
+        $dw->redirectUrls = $arr['redirect']['urls'] ?? [];
+        $dw->redirectType = $arr['redirect']['type'] ?? 302;
+        $dw->curlUrls = $arr['curls'] ?? [];
+        $dw->errorCodes = $arr['errorcodes'] ?? [];
+        $dw->loadMode = $arr['loadmode'] ?? [];
+        return $dw;
     }
 
-    public static function fromArray($arr): DomainSpecificWhite
+    public function getLoadMode(string $name): string
     {
-        return new DomainSpecificWhite($arr['name'], $arr['action']);
+        return $this->loadMode[$name] ?? 'base';
     }
 
     public function jsonSerialize(): array
     {
         return [
-            "name" => $this->name,
-            "action" => $this->action
+            "domain" => $this->domain,
+            "action" => $this->action,
+            "folders" => $this->folderNames,
+            "redirect" => [
+                "urls" => $this->redirectUrls,
+                "type" => $this->redirectType
+            ],
+            "curls" => $this->curlUrls,
+            "errorcodes" => $this->errorCodes,
+            "loadmode" => $this->loadMode
         ];
     }
 }
@@ -143,6 +162,7 @@ class DomainSpecificWhite implements JsonSerializable
 class BlackSettings implements JsonSerializable
 {
     public string $jsconnectAction;
+    public JsBotDetection $jsBotDetection;
     /** @var FlowSettings[] */
     public array $flows;
 
@@ -150,6 +170,7 @@ class BlackSettings implements JsonSerializable
     {
         $bs = new BlackSettings();
         $bs->jsconnectAction = $arr['jsconnect'];
+        $bs->jsBotDetection = JsBotDetection::fromArray($arr['jsbotdetection']);
         $bs->flows = [];
         foreach ($arr['flows'] as $f) {
             $bs->flows[] = FlowSettings::fromArray($f);
@@ -161,6 +182,7 @@ class BlackSettings implements JsonSerializable
     {
         return [
             "jsconnect" => $this->jsconnectAction,
+            "jsbotdetection" => $this->jsBotDetection,
             "flows" => $this->flows
         ];
     }
@@ -288,7 +310,7 @@ class LandingSettings implements JsonSerializable
     }
 }
 
-class JsChecks implements JsonSerializable
+class JsBotDetection implements JsonSerializable
 {
     public bool $enabled;
     public array $events;
@@ -296,9 +318,9 @@ class JsChecks implements JsonSerializable
     public int $tzMin;
     public int $tzMax;
 
-    public static function fromArray($arr): JsChecks
+    public static function fromArray($arr): JsBotDetection
     {
-        $jsc = new JsChecks();
+        $jsc = new JsBotDetection();
         $jsc->enabled = $arr['enabled'];
         $jsc->events = $arr['events'];
         $jsc->timeout = $arr['timeout'];
@@ -306,20 +328,29 @@ class JsChecks implements JsonSerializable
         $jsc->tzMax = $arr['timezone']['max'];
         return $jsc;
     }
+
+    public static function defaults(): JsBotDetection
+    {
+        $jsc = new JsBotDetection();
+        $jsc->enabled = false;
+        $jsc->events = [];
+        $jsc->timeout = 3;
+        $jsc->tzMin = -12;
+        $jsc->tzMax = 12;
+        return $jsc;
+    }
+
     public function jsonSerialize(): array
     {
         return [
-            "jschecks" => [
-                "enabled" => $this->enabled,
-                "events" => $this->events,
-                "timeout" => $this->timeout,
-                "timezone" => [
-                    "min" => $this->tzMin,
-                    "max" => $this->tzMax
-                ]
+            "enabled" => $this->enabled,
+            "events" => $this->events,
+            "timeout" => $this->timeout,
+            "timezone" => [
+                "min" => $this->tzMin,
+                "max" => $this->tzMax
             ]
         ];
-
     }
 }
 
