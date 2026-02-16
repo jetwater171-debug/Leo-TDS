@@ -1,14 +1,4 @@
 // Stats Table Editor functionality
-const FILTER_FIELDS = ['country','lang','os','osver','brand','model','device','isp','client','clientver','preland','land','flow','status'];
-const FILTER_OPERATORS = [
-    { value: '=', label: '=' },
-    { value: '!=', label: '!=' },
-    { value: 'in', label: 'in' },
-    { value: 'not_in', label: 'not in' },
-    { value: 'is_null', label: 'is null' },
-    { value: 'is_not_null', label: 'is not null' },
-];
-
 const qs = (sel, ctx = document) => ctx.querySelector(sel);
 const qsa = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
@@ -227,66 +217,6 @@ function initializeSortable(containerId, group) {
     });
 }
 
-// ── Filter management ──
-
-function initializeFilters(existingFilters) {
-    const rows = document.getElementById('filterRows');
-    rows.innerHTML = '';
-
-    const conditionSelect = document.getElementById('filterCondition');
-    conditionSelect.value = existingFilters?.condition || 'AND';
-
-    if (existingFilters?.rules?.length) {
-        for (const rule of existingFilters.rules) {
-            addFilterRowToDOM(rule.field, rule.operator, rule.value);
-        }
-    }
-
-    // Delegated click — survives DOM relocation by jquery-modal
-    document.removeEventListener('click', handleAddFilterClick);
-    document.addEventListener('click', handleAddFilterClick);
-}
-
-function handleAddFilterClick(e) {
-    if (e.target.closest('#addFilterRow')) {
-        addFilterRowToDOM('', '=', '');
-    }
-}
-
-function addFilterRowToDOM(field, operator, value) {
-    const fieldOptions = FILTER_FIELDS
-        .map(f => `<option value="${f}"${f === field ? ' selected' : ''}>${f}</option>`)
-        .join('');
-
-    const opOptions = FILTER_OPERATORS
-        .map(o => `<option value="${o.value}"${o.value === operator ? ' selected' : ''}>${o.label}</option>`)
-        .join('');
-
-    const needsValue = operator !== 'is_null' && operator !== 'is_not_null';
-    let displayValue = value ?? '';
-    if (Array.isArray(displayValue)) displayValue = displayValue.join(', ');
-
-    const row = document.createElement('div');
-    row.className = 'filter-row';
-    row.innerHTML = `
-        <select class="form-control filter-field">${fieldOptions}</select>
-        <select class="form-control filter-op">${opOptions}</select>
-        <input type="text" class="form-control filter-value" ${needsValue ? '' : 'style="display:none;"'} placeholder="value" value="${displayValue}">
-        <button class="btn btn-sm btn-outline-danger filter-remove" title="Remove">&times;</button>
-    `;
-
-    row.querySelector('.filter-op').addEventListener('change', (e) => {
-        const valInput = row.querySelector('.filter-value');
-        const isNullOp = e.target.value === 'is_null' || e.target.value === 'is_not_null';
-        valInput.style.display = isNullOp ? 'none' : '';
-        if (isNullOp) valInput.value = '';
-    });
-
-    row.querySelector('.filter-remove').addEventListener('click', () => row.remove());
-
-    document.getElementById('filterRows').appendChild(row);
-}
-
 // ── Sort toggle (3-state) on metric columns ──
 
 function getSortToggleIcon(state) {
@@ -336,31 +266,3 @@ function collectOrderby() {
     return rules;
 }
 
-function collectFilters() {
-    const rows = qsa('#filterRows .filter-row');
-    const rules = [];
-
-    for (const row of rows) {
-        const field = row.querySelector('.filter-field').value;
-        const op = row.querySelector('.filter-op').value;
-        let value = row.querySelector('.filter-value').value.trim();
-
-        if (!field) continue;
-
-        if (op === 'is_null' || op === 'is_not_null') {
-            rules.push({ field, operator: op, value: null });
-        } else if (value) {
-            if (op === 'in' || op === 'not_in') {
-                value = value.split(',').map(v => v.trim()).filter(Boolean);
-            }
-            rules.push({ field, operator: op, value });
-        }
-    }
-
-    if (!rules.length) return {};
-
-    return {
-        condition: document.getElementById('filterCondition').value || 'AND',
-        rules,
-    };
-}

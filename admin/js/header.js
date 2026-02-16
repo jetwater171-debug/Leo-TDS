@@ -83,7 +83,6 @@ function typeText(text, element) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-
     flatpickr("#litepicker", {
         dateFomat: "DD.MM.YY",
         mode: "range",
@@ -92,37 +91,39 @@ document.addEventListener('DOMContentLoaded', function() {
             update_datepicker_dates(selectedDates);
         }
     });
-    
+
     const updateBasesLink = document.getElementById('updateBases');
     const loadingAnimation = document.getElementById('loadingAnimation');
     const updateOverlay = document.getElementById('updateOverlay');
     const typingText = document.getElementById('typing-text');
     let typingCleanup = null;
 
-    updateBasesLink.addEventListener('click', async function(e) {
-        e.preventDefault();
-        loadingAnimation.style.display = 'inline';
-        updateOverlay.style.display = 'flex';
-        setupMatrixRain();
-        typingCleanup = typeText('GEOIP UPDATING...', typingText);
+    if (updateBasesLink) {
+        updateBasesLink.addEventListener('click', async function(e) {
+            e.preventDefault();
+            loadingAnimation.style.display = 'inline';
+            updateOverlay.style.display = 'flex';
+            setupMatrixRain();
+            typingCleanup = typeText('GEOIP UPDATING...', typingText);
 
-        try {
-            const response = await fetch('../bases/update.php');
-            const jsr = await response.json();
-            if (!jsr.error) {
-                alert('Update SUCCESSFULL:\n' + jsr.result);
-                location.reload();
-            } else {
-                alert('Error updating geobases:\n' + jsr.result);
+            try {
+                const response = await fetch('../bases/update.php');
+                const jsr = await response.json();
+                if (!jsr.error) {
+                    alert('Update SUCCESSFULL:\n' + jsr.result);
+                    location.reload();
+                } else {
+                    alert('Error updating geobases:\n' + jsr.result);
+                }
+            } catch (error) {
+                alert('Error updating geobases:\n' + error);
+            } finally {
+                if (typingCleanup) typingCleanup();
+                loadingAnimation.style.display = 'none';
+                updateOverlay.style.display = 'none';
             }
-        } catch (error) {
-            alert('Error updating geobases:\n' + error);
-        } finally {
-            if (typingCleanup) typingCleanup();
-            loadingAnimation.style.display = 'none';
-            updateOverlay.style.display = 'none';
-        }
-    });
+        });
+    }
 });
 
 async function sendAutoupdateRequest(action) {
@@ -176,7 +177,6 @@ async function checkForUpdates() {
     }
 }
 
-
 function update_datepicker_dates(selectedDates) {
     function formatDate(date) {
         const day = String(date.getDate()).padStart(2, '0');
@@ -189,5 +189,5 @@ function update_datepicker_dates(selectedDates) {
     let d2 = formatDate(selectedDates[1]);
     searchParams.set('startdate', d1);
     searchParams.set('enddate', d2);
-    window.location.search = searchParams.toString();
+    location.search = searchParams.toString();
 }

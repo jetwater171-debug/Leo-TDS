@@ -1,6 +1,6 @@
 let columnsSortable = null;
 
-function addColumnsToList(selectedClmns, availableClmns) {
+function addColumnsToList(selectedClmns, availableClmns, existingFilters) {
     const $list = $('#columnsList');
     $list.empty();
     
@@ -45,6 +45,9 @@ function addColumnsToList(selectedClmns, availableClmns) {
         updateSaveButtonState();
     });
 
+    // Initialize filters
+    initializeFilters(existingFilters || {});
+
     // Initial button state
     updateSaveButtonState();
 }
@@ -68,7 +71,7 @@ function setSaveButtonHandler(handlerUrl) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(selectedColumns)
+                body: JSON.stringify({ columns: selectedColumns, filters: collectFilters() })
             });
 
             if (!response.ok) {
