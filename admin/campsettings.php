@@ -1192,549 +1192,13 @@ global $c, $db, $campId;
         });
         
     </script>
-    <script>
-    // ── White folder management ──
-    function buildWhiteFolderRow(folderName, mode) {
-        mode = mode || 'base';
-        var info = window.LOAD_MODE_INFO || {};
-        var icon = (info[mode] || {}).icon || 'bi-house-door';
-        return '<div class="form-group-inner white-folder-item"><div class="row">' +
-            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Safe page folder:</label></div>' +
-            '<div class="col-lg-3"><input type="text" class="form-control white-folder-name" value="' + folderName + '" placeholder="white1" readonly /></div>' +
-            '<div class="col-lg-4"><div class="btn-group btn-group-sm">' +
-            '<a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="' + mode + '" data-modes="base,rewrite,direct" title="Loading mode"><i class="bi ' + icon + '"></i></a>' +
-            '<a href="javascript:void(0)" class="btn btn-warning white-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a>' +
-            '<a href="javascript:void(0)" class="btn btn-danger remove-white-folder-item" title="Delete"><i class="bi bi-trash"></i></a>' +
-            '</div></div></div></div>';
-    }
-
-    document.addEventListener('click', function (e) {
-        // Delete white folder row
-        var delBtn = e.target.closest('.remove-white-folder-item');
-        if (delBtn) {
-            var row = delBtn.closest('.white-folder-item');
-            if (row) row.remove();
-            return;
-        }
-        // Edit white folder
-        var editBtn = e.target.closest('.white-edit-folder');
-        if (editBtn) {
-            var row = editBtn.closest('.white-folder-item');
-            var folder = row.querySelector('.white-folder-name').value;
-            if (window.openFileEditor) window.openFileEditor(folder, 'white');
-            return;
-        }
-    });
-
-    // Add Existing white folder
-    document.querySelector('.white-add-existing')?.addEventListener('click', function () {
-        var btn = this;
-        btn.disabled = true;
-        fetch('listfolders.php?type=white').then(function (r) { return r.json(); }).then(function (data) {
-            btn.disabled = false;
-            if (data.error) { alert(data.result); return; }
-            if (!data.folders.length) { alert('No white page folders found. Upload a ZIP first.'); return; }
-            if (window.openFolderPicker) {
-                window.openFolderPicker(data.folders).then(function (choice) {
-                    if (!choice) return;
-                    document.getElementById('white_folder_container').insertAdjacentHTML('beforeend', buildWhiteFolderRow(choice));
-                });
-            }
-        }).catch(function (err) { btn.disabled = false; alert('Error: ' + err); });
-    });
-
-    // Upload ZIP for white folder
-    document.querySelector('.white-upload-zip')?.addEventListener('click', function () {
-        var btn = this;
-        var fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.zip';
-        fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
-
-        fileInput.addEventListener('change', function () {
-            if (!fileInput.files.length) { fileInput.remove(); return; }
-            var file = fileInput.files[0];
-            var folderName = prompt('Enter folder name for the new white page:');
-            if (!folderName || !folderName.trim()) { fileInput.remove(); return; }
-            folderName = folderName.trim();
-            if (!/^[a-zA-Z0-9_\-\.]+$/.test(folderName)) {
-                alert('Invalid folder name. Use only letters, numbers, hyphens, underscores, dots.');
-                fileInput.remove();
-                return;
-            }
-            var fd = new FormData();
-            fd.append('zipfile', file);
-            fd.append('folder', folderName);
-            fd.append('type', 'white');
-
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
-            btn.style.pointerEvents = 'none';
-
-            fetch('zipupload.php', { method: 'POST', body: fd })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.error) {
-                        alert('Upload error: ' + data.result);
-                    } else {
-                        document.getElementById('white_folder_container').insertAdjacentHTML('beforeend', buildWhiteFolderRow(data.folder));
-                    }
-                })
-                .catch(function (err) { alert('Upload failed: ' + err); })
-                .finally(function () {
-                    btn.innerHTML = '<i class="bi bi-upload"></i> Upload ZIP';
-                    btn.style.pointerEvents = '';
-                    fileInput.remove();
-                });
-        });
-        fileInput.click();
-    });
-
-    // Collect white folders + loadmode + curl loadmode before save
-    window.collectWhiteData = function () {
-        var folders = [];
-        var loadmode = {};
-        document.querySelectorAll('#white_folder_container .white-folder-name').forEach(function (inp) {
-            var name = inp.value.trim();
-            if (name) {
-                folders.push(name);
-                var modeBtn = inp.closest('.white-folder-item').querySelector('.load-mode-btn');
-                if (modeBtn) loadmode[name] = modeBtn.dataset.mode || 'base';
-            }
-        });
-        // Also collect curl loadmode
-        document.querySelectorAll('#curl_container .white-curl-url').forEach(function (inp) {
-            var url = inp.value.trim();
-            if (url) {
-                var modeBtn = inp.closest('.curl-item').querySelector('.load-mode-btn');
-                if (modeBtn) loadmode[url] = modeBtn.dataset.mode || 'rewrite';
-            }
-        });
-        return { folders: folders, loadmode: loadmode };
-    };
-    </script>
-    <script>
-    // ── Scope radio: Global / Domain-Specific toggle ──
-    document.querySelectorAll('.white-scope-radio').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-            var isDomainSpecific = this.value === 'true';
-            document.getElementById('global-white-config').style.display = isDomainSpecific ? 'none' : 'block';
-            // Ensure sections + nav items exist for all domains
-            if (isDomainSpecific && window.syncDomainWhiteSections) window.syncDomainWhiteSections();
-            // Show/hide sidebar nav items for domain-specific sections
-            document.querySelectorAll('.dws-nav-item').forEach(function (li) {
-                li.style.display = isDomainSpecific ? '' : 'none';
-            });
-        });
-    });
-    // Hide dws nav items on load if global mode
-    if (!document.querySelector('.white-scope-radio[value="true"]:checked')) {
-        document.querySelectorAll('.dws-nav-item').forEach(function (li) { li.style.display = 'none'; });
-    }
-
-    // ── Domain-specific: method radio toggle ──
-    document.addEventListener('change', function (e) {
-        var radio = e.target.closest('.dws-action');
-        if (!radio) return;
-        var section = radio.closest('.dws-section');
-        if (!section) return;
-        var action = radio.value;
-        section.querySelector('.dws-folder-block').style.display = action === 'folder' ? 'block' : 'none';
-        section.querySelector('.dws-redirect-block').style.display = action === 'redirect' ? 'block' : 'none';
-        section.querySelector('.dws-curl-block').style.display = action === 'curl' ? 'block' : 'none';
-        section.querySelector('.dws-error-block').style.display = action === 'error' ? 'block' : 'none';
-    });
-
-    // ── Domain-specific: delegated click handlers ──
-    document.addEventListener('click', function (e) {
-        // Remove folder
-        var btn = e.target.closest('.dws-remove-folder');
-        if (btn) { var row = btn.closest('.dws-folder-item'); if (row) row.remove(); return; }
-        // Remove redirect
-        btn = e.target.closest('.dws-remove-redirect');
-        if (btn) { var row = btn.closest('.dws-redirect-item'); if (row) row.remove(); return; }
-        // Remove curl
-        btn = e.target.closest('.dws-remove-curl');
-        if (btn) { var row = btn.closest('.dws-curl-item'); if (row) row.remove(); return; }
-        // Remove error
-        btn = e.target.closest('.dws-remove-error');
-        if (btn) { var row = btn.closest('.dws-error-item'); if (row) row.remove(); return; }
-        // Edit folder
-        btn = e.target.closest('.dws-edit-folder');
-        if (btn) {
-            var row = btn.closest('.dws-folder-item');
-            var folder = row.querySelector('.dws-folder-name').value;
-            if (window.openFileEditor) window.openFileEditor(folder, 'white');
-            return;
-        }
-        // Add existing folder
-        btn = e.target.closest('.dws-add-existing');
-        if (btn) {
-            var section = btn.closest('.dws-section');
-            btn.disabled = true;
-            fetch('listfolders.php?type=white').then(function (r) { return r.json(); }).then(function (data) {
-                btn.disabled = false;
-                if (data.error) { alert(data.result); return; }
-                if (!data.folders.length) { alert('No white page folders found. Upload a ZIP first.'); return; }
-                if (window.openFolderPicker) {
-                    window.openFolderPicker(data.folders).then(function (choice) {
-                        if (!choice) return;
-                        section.querySelector('.dws-folder-items').insertAdjacentHTML('beforeend', buildDwsFolderRow(choice));
-                    });
-                }
-            }).catch(function (err) { btn.disabled = false; alert('Error: ' + err); });
-            return;
-        }
-        // Upload ZIP
-        btn = e.target.closest('.dws-upload-zip');
-        if (btn) {
-            var section = btn.closest('.dws-section');
-            var fileInput = document.createElement('input');
-            fileInput.type = 'file'; fileInput.accept = '.zip'; fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-            fileInput.addEventListener('change', function () {
-                if (!fileInput.files.length) { fileInput.remove(); return; }
-                var folderName = prompt('Enter folder name for this white page:', fileInput.files[0].name.replace(/\.zip$/i, ''));
-                if (!folderName || !folderName.trim()) { fileInput.remove(); return; }
-                var fd = new FormData();
-                fd.append('zipfile', fileInput.files[0]);
-                fd.append('folder', folderName.trim());
-                fd.append('type', 'white');
-                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
-                btn.style.pointerEvents = 'none';
-                fetch('zipupload.php', { method: 'POST', body: fd })
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        if (data.error) { alert('Upload error: ' + data.result); }
-                        else { section.querySelector('.dws-folder-items').insertAdjacentHTML('beforeend', buildDwsFolderRow(data.folder)); }
-                    })
-                    .catch(function (err) { alert('Upload failed: ' + err); })
-                    .finally(function () {
-                        btn.innerHTML = '<i class="bi bi-upload"></i> Upload ZIP';
-                        btn.style.pointerEvents = '';
-                        fileInput.remove();
-                    });
-            });
-            fileInput.click();
-            return;
-        }
-        // Add redirect URL
-        btn = e.target.closest('.dws-add-redirect');
-        if (btn) {
-            var url = prompt('Enter redirect URL:');
-            if (!url || !url.trim()) return;
-            var section = btn.closest('.dws-section');
-            section.querySelector('.dws-redirect-items').insertAdjacentHTML('beforeend',
-                '<div class="form-group-inner dws-redirect-item"><div class="row">' +
-                '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>' +
-                '<div class="col-lg-5"><input type="text" class="form-control dws-redirect-url" value="' + url.trim().replace(/"/g, '&quot;') + '" placeholder="https://example.com" /></div>' +
-                '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm dws-remove-redirect"><i class="bi bi-trash"></i></a></div>' +
-                '</div></div>');
-            return;
-        }
-        // Add CURL URL
-        btn = e.target.closest('.dws-add-curl');
-        if (btn) {
-            var url = prompt('Enter CURL URL:');
-            if (!url || !url.trim()) return;
-            var section = btn.closest('.dws-section');
-            section.querySelector('.dws-curl-items').insertAdjacentHTML('beforeend',
-                '<div class="form-group-inner dws-curl-item"><div class="row">' +
-                '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">CURL URL:</label></div>' +
-                '<div class="col-lg-5"><input type="text" class="form-control dws-curl-url" value="' + url.trim().replace(/"/g, '&quot;') + '" placeholder="https://example.com" /></div>' +
-                '<div class="col-lg-2"><div class="btn-group btn-group-sm">' +
-                '<a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="rewrite" data-modes="rewrite,direct" title="Loading mode"><i class="bi bi-arrow-repeat"></i></a>' +
-                '<a href="javascript:void(0)" class="btn btn-danger dws-remove-curl"><i class="bi bi-trash"></i></a>' +
-                '</div></div></div></div>');
-            return;
-        }
-        // Add error code
-        btn = e.target.closest('.dws-add-error');
-        if (btn) {
-            var code = prompt('Enter HTTP code (e.g. 404):');
-            if (!code || !code.trim()) return;
-            var section = btn.closest('.dws-section');
-            section.querySelector('.dws-error-items').insertAdjacentHTML('beforeend',
-                '<div class="form-group-inner dws-error-item"><div class="row">' +
-                '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">HTTP Code:</label></div>' +
-                '<div class="col-lg-2"><input type="text" class="form-control dws-error-code" value="' + code.trim() + '" placeholder="404" /></div>' +
-                '<div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm dws-remove-error"><i class="bi bi-trash"></i></a></div>' +
-                '</div></div>');
-            return;
-        }
-    });
-
-    function buildDwsFolderRow(folderName, mode) {
-        mode = mode || 'base';
-        var info = window.LOAD_MODE_INFO || {};
-        var icon = (info[mode] || {}).icon || 'bi-house-door';
-        return '<div class="form-group-inner dws-folder-item"><div class="row">' +
-            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Folder:</label></div>' +
-            '<div class="col-lg-3"><input type="text" class="form-control dws-folder-name" value="' + folderName + '" readonly /></div>' +
-            '<div class="col-lg-4"><div class="btn-group btn-group-sm">' +
-            '<a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-mode="' + mode + '" data-modes="base,rewrite,direct" title="Loading mode"><i class="bi ' + icon + '"></i></a>' +
-            '<a href="javascript:void(0)" class="btn btn-warning dws-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a>' +
-            '<a href="javascript:void(0)" class="btn btn-danger dws-remove-folder" title="Delete"><i class="bi bi-trash"></i></a>' +
-            '</div></div></div></div>';
-    }
-
-    // ── Collect domain-specific white data for save ──
-    window.collectDomainSpecificData = function () {
-        var result = [];
-        document.querySelectorAll('section.dws-section').forEach(function (section) {
-            var domain = section.dataset.domain;
-            var action = 'folder';
-            section.querySelectorAll('.dws-action').forEach(function (r) { if (r.checked) action = r.value; });
-
-            var folders = [];
-            var loadmode = {};
-            section.querySelectorAll('.dws-folder-name').forEach(function (inp) {
-                var name = inp.value.trim();
-                if (name) {
-                    folders.push(name);
-                    var mb = inp.closest('.dws-folder-item').querySelector('.load-mode-btn');
-                    if (mb) loadmode[name] = mb.dataset.mode || 'base';
-                }
-            });
-
-            var redirectUrls = [];
-            section.querySelectorAll('.dws-redirect-url').forEach(function (inp) {
-                var u = inp.value.trim(); if (u) redirectUrls.push(u);
-            });
-            var redirectType = 302;
-            var rtSel = section.querySelector('.dws-redirect-type');
-            if (rtSel) redirectType = parseInt(rtSel.value) || 302;
-
-            var curlUrls = [];
-            section.querySelectorAll('.dws-curl-url').forEach(function (inp) {
-                var u = inp.value.trim();
-                if (u) {
-                    curlUrls.push(u);
-                    var mb = inp.closest('.dws-curl-item').querySelector('.load-mode-btn');
-                    if (mb) loadmode[u] = mb.dataset.mode || 'rewrite';
-                }
-            });
-
-            var errorCodes = [];
-            section.querySelectorAll('.dws-error-code').forEach(function (inp) {
-                var c = inp.value.trim(); if (c) errorCodes.push(parseInt(c) || 0);
-            });
-
-            result.push({
-                domain: domain,
-                action: action,
-                folders: folders,
-                redirect: { urls: redirectUrls, type: redirectType },
-                curls: curlUrls,
-                errorcodes: errorCodes,
-                loadmode: loadmode
-            });
-        });
-        return result;
-    };
-
-    // ── Auto-sync: when domains change, rebuild domain-specific sections + sidebar nav ──
-    window.syncDomainWhiteSections = function () {
-        var currentDomains = window.collectDomainsData ? window.collectDomainsData() : [];
-        var isDomainSpecific = !!document.querySelector('.white-scope-radio[value="true"]:checked');
-        // Remove sections + nav items for domains that no longer exist
-        document.querySelectorAll('section.dws-section').forEach(function (sec) {
-            if (currentDomains.indexOf(sec.dataset.domain) === -1) sec.remove();
-        });
-        document.querySelectorAll('.dws-nav-item').forEach(function (li) {
-            if (currentDomains.indexOf(li.dataset.domain) === -1) li.remove();
-        });
-        // Add sections + nav items for new domains
-        var flowsSection = document.getElementById('sec-flows');
-        currentDomains.forEach(function (domain) {
-            if (!document.querySelector('section.dws-section[data-domain="' + CSS.escape(domain) + '"]')) {
-                // Insert section before sec-flows
-                var secHtml = buildDwsSection(domain);
-                flowsSection.insertAdjacentHTML('beforebegin', secHtml);
-                // Insert sidebar nav item
-                var navHtml = '<li class="dws-nav-item" data-domain="' + domain.replace(/"/g, '&quot;') + '" style="' + (isDomainSpecific ? '' : 'display:none') + '"><a href="#sec-dws-d' + (_dwsCounter - 1) + '">&nbsp;&nbsp;' + domain.replace(/</g, '&lt;') + '</a></li>';
-                var lastDwsNav = document.querySelectorAll('.dws-nav-item');
-                if (lastDwsNav.length > 0) {
-                    lastDwsNav[lastDwsNav.length - 1].insertAdjacentHTML('afterend', navHtml);
-                } else {
-                    var safePageNav = document.querySelector('a[href="#sec-safepage"]');
-                    if (safePageNav) safePageNav.closest('li').insertAdjacentHTML('afterend', navHtml);
-                }
-            }
-        });
-    };
-
-    var _dwsCounter = <?= count($c->domains) ?>;
-    function buildDwsSection(domain) {
-        var n = _dwsCounter++;
-        var secId = 'sec-dws-d' + n;
-        var actName = 'dws_action_d' + n;
-        return '<section id="' + secId + '" class="camp-section dws-section" data-domain="' + domain.replace(/"/g, '&quot;') + '">' +
-            '<h5>' + domain.replace(/</g, '&lt;') + ' — Safe Page</h5>' +
-            '<div class="form-group-inner"><div class="row">' +
-            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Method:</label></div>' +
-            '<div class="col-lg-9"><div class="bt-df-checkbox pull-left">' +
-            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="folder" name="' + actName + '" class="dws-action" /> Local folder</label></div></div></div>' +
-            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="redirect" name="' + actName + '" class="dws-action" /> Redirect</label></div></div></div>' +
-            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="curl" name="' + actName + '" class="dws-action" /> CURL</label></div></div></div>' +
-            '<div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="error" name="' + actName + '" class="dws-action" /> HTTP Code</label></div></div></div>' +
-            '</div></div></div></div>' +
-            '<div class="dws-folder-block"><div class="dws-folder-items"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-existing"><i class="bi bi-folder-symlink"></i> Add Existing</a> ' +
-            '<a href="javascript:void(0)" class="btn btn-info btn-sm dws-upload-zip"><i class="bi bi-upload"></i> Upload ZIP</a></div>' +
-            '<div class="dws-redirect-block" style="display:none"><div class="dws-redirect-items"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-redirect">+ Add URL</a>' +
-            '<div class="form-group-inner" style="margin-top:10px"><div class="row">' +
-            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>' +
-            '<div class="col-lg-3"><select class="form-select dws-redirect-type"><option value="301">301</option><option value="302" selected>302</option><option value="303">303</option><option value="307">307</option></select></div>' +
-            '</div></div></div>' +
-            '<div class="dws-curl-block" style="display:none"><div class="dws-curl-items"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-curl">+ Add CURL</a></div>' +
-            '<div class="dws-error-block" style="display:none"><div class="dws-error-items"></div>' +
-            '<a href="javascript:void(0)" class="btn btn-primary btn-sm dws-add-error">+ Add Code</a></div>' +
-            '</section>';
-    }
-    </script>
-    <script>
-    // ── Domain management ──
-    function buildDomainRow(domain, statusHtml) {
-        return '<div class="form-group-inner domain-item"><div class="row">' +
-            '<div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Domain:</label></div>' +
-            '<div class="col-lg-3"><input type="text" class="form-control domain-name" value="' + domain + '" placeholder="domain.com" readonly /></div>' +
-            '<div class="col-lg-1 domain-status-col">' + statusHtml + '</div>' +
-            '<div class="col-lg-2"><a href="javascript:void(0)" class="btn btn-danger btn-sm remove-domain-item" title="Delete"><i class="bi bi-trash"></i></a></div>' +
-            '</div></div>';
-    }
-
-    function domainStatusIcon(data) {
-        if (data.wildcard) {
-            return '<i class="bi bi-asterisk domain-status" style="color:#f59e0b" title="Wildcard domain \u2014 DNS check skipped"></i>';
-        }
-        if (data.cloudflare) {
-            return '<span class="domain-cf-badge domain-status" title="CloudFlare detected (IP: ' + (data.ip || '?') + ')">CF</span>';
-        }
-        if (data.resolves) {
-            return '<i class="bi bi-check-circle-fill domain-status" style="color:#22c55e" title="Resolves to this server (' + (data.ip || '') + ')"></i>';
-        }
-        var errMsg = data.error || 'Domain does not resolve to this server';
-        return '<i class="bi bi-exclamation-triangle-fill domain-status" style="color:#f59e0b" title="' + errMsg.replace(/"/g, '&quot;') + '"></i>';
-    }
-
-    function checkDomain(domain) {
-        return fetch('domaincheck.php?domain=' + encodeURIComponent(domain))
-            .then(function (r) { return r.json(); });
-    }
-
-    function checkDomainStatus(row) {
-        var domain = row.querySelector('.domain-name').value.trim();
-        if (!domain) return;
-        var col = row.querySelector('.domain-status-col');
-        col.innerHTML = '<i class="bi bi-hourglass-split domain-status" style="color:#94a3b8" title="Checking..."></i>';
-        checkDomain(domain).then(function (data) {
-            col.innerHTML = domainStatusIcon(data);
-        }).catch(function () {
-            col.innerHTML = '<i class="bi bi-question-circle domain-status" style="color:#94a3b8" title="Check failed"></i>';
-        });
-    }
-
-    // Delete domain row (delegated)
-    document.addEventListener('click', function (e) {
-        var delBtn = e.target.closest('.remove-domain-item');
-        if (!delBtn) return;
-        var row = delBtn.closest('.domain-item');
-        if (row) row.remove();
-        if (window.syncDomainWhiteSections) window.syncDomainWhiteSections();
-    });
-
-    // Add domain
-    document.getElementById('add-domain-item')?.addEventListener('click', function () {
-        var domain = prompt('Enter domain (without http(s)://):');
-        if (!domain || !domain.trim()) return;
-        domain = domain.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-        if (!domain) return;
-
-        // Check for duplicates
-        var existing = document.querySelectorAll('#domains_container .domain-name');
-        for (var i = 0; i < existing.length; i++) {
-            if (existing[i].value.trim().toLowerCase() === domain.toLowerCase()) {
-                alert('Domain "' + domain + '" is already added.');
-                return;
-            }
-        }
-
-        var loadingHtml = '<i class="bi bi-hourglass-split domain-status" style="color:#94a3b8" title="Checking..."></i>';
-        var container = document.getElementById('domains_container');
-        container.insertAdjacentHTML('beforeend', buildDomainRow(domain, loadingHtml));
-        var newRow = container.querySelector('.domain-item:last-child');
-        checkDomainStatus(newRow);
-        if (window.syncDomainWhiteSections) window.syncDomainWhiteSections();
-    });
-
-    // Check all existing domains on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('#domains_container .domain-item').forEach(function (row) {
-            checkDomainStatus(row);
-        });
-    });
-
-    // Collect domains for save
-    window.collectDomainsData = function () {
-        var domains = [];
-        document.querySelectorAll('#domains_container .domain-name').forEach(function (inp) {
-            var name = inp.value.trim();
-            if (name) domains.push(name);
-        });
-        return domains;
-    };
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            document.getElementById("campsettings")?.addEventListener("submit", async (e) => {
-                e.preventDefault();
-
-                const urlParams = new URLSearchParams(window.location.search);
-                const campId = urlParams.get('campId');
-                if (campId === null) {
-                    alert("No campaign ID found!");
-                    return false;
-                }
-
-                let rules = $('#filtersbuilder').queryBuilder('getRules');
-                let flowsJson = window.collectFlowsData ? window.collectFlowsData() : '[]';
-                let whiteData = window.collectWhiteData ? window.collectWhiteData() : { folders: [], loadmode: {} };
-                let domainsData = window.collectDomainsData ? window.collectDomainsData() : [];
-                let dwsData = window.collectDomainSpecificData ? window.collectDomainSpecificData() : [];
-                let formData = new FormData(document.getElementById("campsettings"));
-                let filteredFormData = new FormData();
-                for (let [key, value] of formData.entries()) {
-                    if (!key.startsWith("filtersbuilder") && !key.startsWith("flow_") && !key.startsWith("dws_")) {
-                        filteredFormData.append(key, value);
-                    }
-                }
-                filteredFormData.append("filters", JSON.stringify(rules));
-                filteredFormData.append("flows", flowsJson);
-                filteredFormData.append("white_folders", JSON.stringify(whiteData.folders));
-                filteredFormData.append("white_loadmode", JSON.stringify(whiteData.loadmode));
-                filteredFormData.append("domains_list", JSON.stringify(domainsData));
-                filteredFormData.append("white_domainspecific", JSON.stringify(dwsData));
-                let settingsBody = new URLSearchParams(filteredFormData.entries()).toString();
-
-                let res = await fetch(`campeditor.php?action=save&campId=${campId}`, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: settingsBody
-                });
-                let js = await res.json();
-                if (js.error)
-                    alert(`An error occured: ${js.result}`);
-                else
-                    alert("Settings saved!");
-                return false;
-            });
-        });
-    </script>
+    <script type="module" src="js/campsettings/load-mode.js"></script>
+    <script type="module" src="js/campsettings/white-pages.js"></script>
+    <script type="module" src="js/campsettings/domain-specific.js"></script>
+    <script>window._dwsCounterInit = <?= count($c->domains) ?>;</script>
+    <script type="module" src="js/campsettings/dws-sync.js"></script>
+    <script type="module" src="js/campsettings/domains.js"></script>
+    <script type="module" src="js/campsettings/form-submit.js"></script>
     <script src="js/filters.js"></script>
     <script>
         var rules_basic = <?=json_encode($c->white->filters)?>;
@@ -1813,78 +1277,6 @@ global $c, $db, $campId;
         .lm-option.lm-selected{background:#1a2a45}
         .lm-desc{display:block;margin-left:26px;font-size:12px;color:#94a3b8;margin-top:2px}
     </style>
-    <script>
-    (function(){
-        var MODE_INFO = {
-            base:    { icon: 'bi-house-door',   label: 'Base',    desc: 'Adds &lt;base&gt; tag — browser resolves all relative paths. Fast, reliable, suspicious.' },
-            rewrite: { icon: 'bi-arrow-repeat',  label: 'Rewrite', desc: 'PHP rewrites all URLs in HTML to absolute paths. Medium speed, can be errors in styles, less suspicious but still.' },
-            direct:  { icon: 'bi-hdd-network',   label: 'Direct',  desc: 'All resources served via PHP catch-all. Slowest, error-prone, invisible. Multi-page sites do work!' }
-        };
-        window.LOAD_MODE_INFO = MODE_INFO;
-
-        var lmResolve = null;
-
-        window.openLoadModeModal = function(currentMode, availableModes) {
-            var body = document.getElementById('lm-body');
-            body.innerHTML = '';
-            availableModes.forEach(function(m) {
-                var info = MODE_INFO[m];
-                if (!info) return;
-                var lbl = document.createElement('label');
-                lbl.className = 'lm-option' + (m === currentMode ? ' lm-selected' : '');
-                lbl.innerHTML = '<input type="radio" name="lm-choice" value="' + m + '"' + (m === currentMode ? ' checked' : '') + ' /> ' +
-                    '<i class="bi ' + info.icon + '"></i> ' + info.label +
-                    '<span class="lm-desc">' + info.desc + '</span>';
-                lbl.querySelector('input').addEventListener('change', function() {
-                    body.querySelectorAll('.lm-option').forEach(function(el){ el.classList.remove('lm-selected'); });
-                    lbl.classList.add('lm-selected');
-                });
-                body.appendChild(lbl);
-            });
-
-            $('#lm-ok').off('click').on('click', function() {
-                var checked = document.querySelector('#lm-body input[name="lm-choice"]:checked');
-                $.modal.close();
-                if (lmResolve) lmResolve(checked ? checked.value : null);
-                lmResolve = null;
-            });
-            $('#lm-cancel').off('click').on('click', function() {
-                $.modal.close();
-                if (lmResolve) lmResolve(null);
-                lmResolve = null;
-            });
-
-            $('#loadModeModal').modal({
-                modalClass: 'ywbmodal',
-                fadeDuration: 250,
-                fadeDelay: 0.80,
-                showClose: false
-            });
-
-            return new Promise(function(resolve) {
-                lmResolve = resolve;
-            });
-        };
-
-        // Delegated click handler for all mode buttons
-        document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.load-mode-btn');
-            if (!btn) return;
-            e.preventDefault();
-            var currentMode = btn.dataset.mode || 'base';
-            var modes = (btn.dataset.modes || 'base,direct').split(',');
-            openLoadModeModal(currentMode, modes).then(function(chosen) {
-                if (!chosen || chosen === currentMode) return;
-                btn.dataset.mode = chosen;
-                var info = MODE_INFO[chosen];
-                var icon = btn.querySelector('i');
-                if (icon && info) {
-                    icon.className = 'bi ' + info.icon;
-                }
-            });
-        });
-    })();
-    </script>
 
     <script>window.LANDING_FOLDER = <?= json_encode(get_cache_path('landingFolder')) ?>;window.WHITE_FOLDER = <?= json_encode(get_cache_path('whiteFolder')) ?>;</script>
     <!-- CodeMirror 6 local bundles -->
@@ -1896,9 +1288,108 @@ global $c, $db, $campId;
     <script>window.CM6_JS = cm6;</script>
     <script src="js/cm6/php.min.js"></script>
     <script>window.CM6_PHP = cm6;</script>
-    <script src="js/fileeditor.js"></script>
-    <script src="js/flows.js"></script>
-    <script src="js/campsettings-nav.js"></script>
+    <script type="module" src="js/fileeditor.js"></script>
+    <script type="module" src="js/flows/index.js"></script>
+    <script type="module" src="js/campsettings-nav.js"></script>
+
+    <!-- ── Flow templates (used by js/flows/ modules) ── -->
+    <template id="tpl-folder-row">
+        <div class="form-group-inner flow-path-item"><div class="row">
+            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro" data-role="folder-label">Folder:</label></div>
+            <div class="col-lg-3"><input type="text" class="form-control" data-role="folder-input" value="" placeholder="folder" readonly /></div>
+            <div class="col-lg-2 flow-weight-col" style="display:none">
+                <input type="number" step="1" class="form-control" data-role="weight-input" value="" placeholder="%" style="width:70px" /></div>
+            <div class="col-lg-3"><div class="btn-group btn-group-sm">
+                <a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn" data-role="mode-btn" data-mode="base" data-modes="base,direct" title="Loading mode"><i class="bi bi-house-door"></i></a>
+                <a href="javascript:void(0)" class="btn btn-warning flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a>
+                <a href="javascript:void(0)" class="btn btn-danger" data-role="remove-btn" title="Delete"><i class="bi bi-trash"></i></a>
+            </div></div>
+        </div></div>
+    </template>
+
+    <template id="tpl-redirect-row">
+        <div class="form-group-inner flow-path-item"><div class="row">
+            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>
+            <div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="" placeholder="https://..." /></div>
+            <div class="col-lg-2 flow-weight-col" style="display:none">
+                <input type="number" step="1" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>
+            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect" title="Delete"><i class="bi bi-trash"></i></a></div>
+        </div></div>
+    </template>
+
+    <template id="tpl-flow-section">
+        <section id="sec-flow-__FI__" class="camp-section flow-section" data-flow-index="__FI__">
+        <h5 class="flow-section-title">__FLOWNAME__</h5>
+
+        <div class="flow-group"><span class="flow-group-title">Flow Filters</span>
+        <div class="form-group-inner">
+            <div class="row"><div id="flow-filters-__FI__"></div></div>
+        </div></div>
+
+        <div class="flow-group"><span class="flow-group-title">Distribution</span>
+        <div class="form-group-inner">
+            <select class="form-select flow-dist" data-fi="__FI__">
+                <option value="equal" selected>Equal</option><option value="weighted">Weighted</option><option value="thompson">Thompson Sampling</option></select></div>
+
+        <div class="flow-thompson-opts" id="flow-thompson-opts-__FI__" style="display:none">
+            <div class="form-group-inner"><label class="login2 pull-left pull-left-pro">Optimize for:</label>
+            <div class="bt-df-checkbox pull-left">
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="Lead" name="flow___FI___optimize_for" class="flow-optimize-for" data-fi="__FI__" /> Lead</label></div></div></div>
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="Purchase" name="flow___FI___optimize_for" class="flow-optimize-for" data-fi="__FI__" /> Purchase</label></div></div></div>
+            </div></div>
+            <div class="form-group-inner flow-optimize-mode-wrap" id="flow-optimize-mode-wrap-__FI__" style="display:none">
+            <label class="login2 pull-left pull-left-pro">Optimize mode:</label>
+            <div class="bt-df-checkbox pull-left">
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="funnels" name="flow___FI___optimize_mode" class="flow-optimize-mode" data-fi="__FI__" /> Funnels (preland+land combos)</label></div></div></div>
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="separate" name="flow___FI___optimize_mode" class="flow-optimize-mode" data-fi="__FI__" /> Separate (independent)</label></div></div></div>
+            </div></div></div></div>
+
+        <div class="flow-group"><span class="flow-group-title">Prelanding method</span>
+        <div class="form-group-inner">
+            <div class="bt-df-checkbox pull-left">
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                    <input type="radio" checked value="none" name="flow___FI___preland_action" class="flow-preland-action" data-fi="__FI__" /> Don't use prelanding
+                </label></div></div></div>
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                    <input type="radio" value="folder" name="flow___FI___preland_action" class="flow-preland-action" data-fi="__FI__" /> Local prelanding(s) from folder
+                </label></div></div></div>
+            </div></div>
+
+        <div class="flow-preland-folders" id="flow-preland-folders-__FI__" style="display:none">
+            <div class="flow-preland-items" id="flow-preland-items-__FI__"></div>
+            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="__FI__" data-type="preland"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+            <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="__FI__" data-type="preland"><i class="bi bi-upload"></i> Upload ZIP</a>
+        </div></div>
+
+        <div class="flow-group"><span class="flow-group-title">Landing method</span>
+        <div class="form-group-inner">
+            <div class="bt-df-checkbox pull-left">
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                    <input type="radio" checked value="folder" name="flow___FI___land_action" class="flow-land-action" data-fi="__FI__" /> Local landing(s) from folder
+                </label></div></div></div>
+                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
+                    <input type="radio" value="redirect" name="flow___FI___land_action" class="flow-land-action" data-fi="__FI__" /> Redirect(s)
+                </label></div></div></div>
+            </div></div>
+
+        <div class="flow-land-folders" id="flow-land-folders-__FI__" style="display:block">
+            <div class="flow-land-folder-items" id="flow-land-folder-items-__FI__"></div>
+            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="__FI__" data-type="land"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+            <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="__FI__" data-type="land"><i class="bi bi-upload"></i> Upload ZIP</a>
+        </div>
+
+        <div class="flow-land-redirects" id="flow-land-redirects-__FI__" style="display:none">
+            <div class="flow-land-redirect-items" id="flow-land-redirect-items-__FI__"></div>
+            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="__FI__">+ Add Redirect</a>
+            <div class="form-group-inner" style="margin-top:10px"><div class="row">
+                <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>
+                <div class="col-lg-3"><select class="form-select flow-redirect-type" data-fi="__FI__">
+                    <option value="301">301</option><option value="302" selected>302</option><option value="303">303</option><option value="307">307</option>
+                </select></div></div></div></div></div>
+
+        </section>
+    </template>
+
 </body>
 
 <?php
