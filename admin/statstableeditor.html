@@ -12,18 +12,19 @@
 
             <div class="columns-flex-container">
                 <div class="columns-section">
-                    <h5>Columns</h5>
+                    <h5>Columns
+                        <span id="selectAllMetrics" class="header-checkbox-btn" title="Select All"><input type="checkbox" checked readonly></span>
+                        <span id="deselectAllMetrics" class="header-checkbox-btn" title="Deselect All"><input type="checkbox" readonly></span>
+                    </h5>
                     <div class="columns-container">
                         <div id="metricsColumns" class="metricsColumns"></div>
-                    </div>
-                    <div class="btn-group">
-                        <button id="selectAllMetrics" class="btn btn-sm btn-outline-secondary">Select All</button>
-                        <button id="deselectAllMetrics" class="btn btn-sm btn-outline-secondary">Deselect All</button>
                     </div>
                 </div>
 
                 <div class="columns-section">
-                    <h5>GroupBy (max 3)</h5>
+                    <h5>GroupBy
+                        <button id="addParamDimension" class="btn btn-sm btn-outline-primary" style="margin-left: 8px;">+ URL Param</button>
+                    </h5>
                     <div class="columns-container">
                         <div id="dimensionsColumns" class="dimensionsColumns"></div>
                     </div>

@@ -109,9 +109,6 @@
 
 /* Filter rows */
 .filter-row {
-    display: flex;
-    gap: 6px;
-    align-items: center;
     margin-bottom: 6px;
     padding: 6px 8px;
     background: #1a2235;
@@ -119,27 +116,61 @@
     border: 1px solid #2a3245;
 }
 
-.filter-row .filter-field {
+.filter-row-main {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.filter-row-main .filter-field {
     flex: 0 0 110px;
     min-width: 0;
 }
 
-.filter-row .filter-op {
+.filter-row-main .filter-op {
     flex: 0 0 90px;
 }
 
-.filter-row .filter-value {
-    flex: 0 0 120px;
+.filter-row-main .filter-value {
+    flex: 1;
     min-width: 0;
 }
 
-.filter-row .filter-remove {
+.filter-row-main .filter-remove {
     flex: 0 0 25px;
     text-align: center;
     font-size: 16px;
     line-height: 1;
     padding: 4px 0;
-    margin-left: 7px;
+    margin-left: auto;
+}
+
+.filter-row-param {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 4px;
+    padding-left: 4px;
+}
+
+.filter-param-label {
+    color: #64748b;
+    font-size: 13px;
+    flex: 0 0 auto;
+}
+
+.filter-row-param .filter-param-key {
+    flex: 0 0 80px;
+    min-width: 0;
+}
+
+.filter-row-param .filter-op-param {
+    flex: 0 0 90px;
+}
+
+.filter-row-param .filter-value-param {
+    flex: 1;
+    min-width: 0;
 }
 
 /* Buttons */
@@ -268,4 +299,17 @@
 .btn-outline-primary:hover {
     background: #0084ff;
     color: white;
+}
+
+/* Narrower modal for clicks column editor (no GroupBy section) */
+.ywbmodal-narrow {
+    max-width: 680px !important;
+}
+
+.jquery-modal .modal.ywbmodal-narrow {
+    max-width: 680px !important;
+}
+
+.ywbmodal-narrow .columns-flex-container .columns-section {
+    flex: 0 0 260px;
 }

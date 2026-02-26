@@ -63,8 +63,6 @@ if (count($ss->tables)>0){
         </div>
         <?php if (count($ss->tables)>0){ ?>
         <div>
-            <button id="toggleFilters<?=$tName?>" title="Show/Hide header filters" class="btn btn-secondary" style="margin-left: 8px;"><i
-                    class="bi bi-funnel"></i></button>
             <button id="columnsSelect<?=$tName?>" title="Edit table" class="btn btn-info" style="margin-left: 8px;"><i
                     class="bi bi-layout-three-columns"></i></button>
             <button id="download<?=$tName?>" title="Download table as XLSX" class="btn btn-success" style="margin-left: 8px;"><i
@@ -75,13 +73,16 @@ if (count($ss->tables)>0){
         <?php } ?>
     </div>
     <?php if (count($ss->tables)>0){ ?>
+    <div class="tabulator-scroll-wrapper">
     <div id="t<?=$tName?>" style="clear: both;"></div>
+    </div>
     <script>
         let t<?=$tName?>Data = <?=$dJson?>;
         let t<?=$tName?>Columns = <?=$tColumns?>;
         let t<?=$tName?>Table = new Tabulator('#t<?=$tName?>', {
             layout: "fitData",
             columns: t<?=$tName?>Columns,
+            nestedFieldSeparator: false,
             columnCalcs: "both",
             pagination: "local",
             paginationSize: 500,
@@ -91,7 +92,6 @@ if (count($ss->tables)>0){
             dataTreeBranchElement:false,
             dataTreeStartExpanded:false,
             dataTreeChildIndent: 15,
-            height: "100%",
             data: t<?=$tName?>Data,
             columnDefaults:{
                 tooltip:true,
@@ -118,30 +118,92 @@ if (count($ss->tables)>0){
             window.location.href = newUrl.href;
         });
         
-        let filtersVisible<?=$tName?> = false;
-        $('#toggleFilters<?=$tName?>').click(function() {
-            filtersVisible<?=$tName?> = !filtersVisible<?=$tName?>;
-            let columns = t<?=$tName?>Table.getColumns();
-            
-            let newColumns = columns.map(function(column) {
-                let definition = column.getDefinition();
-                if (definition.editor!==false)
-                    definition.headerFilter = filtersVisible<?=$tName?>;
-                return definition;
-            });
-            
-            t<?=$tName?>Table.setColumns(newColumns);
-            
-            if (filtersVisible<?=$tName?>) {
-                $(this).removeClass('btn-secondary').addClass('btn-primary');
-            } else {
-                t<?=$tName?>Table.clearHeaderFilter();
-                $(this).removeClass('btn-primary').addClass('btn-secondary');
-            }
-        });
-
         document.getElementById("download<?=$tName?>").onclick = () => {
-            t<?=$tName?>Table.download("xlsx", "<?=$tName?>_data.xlsx");
+            const treeData = t<?=$tName?>Data;
+            const table = t<?=$tName?>Table;
+
+            // Get visible columns from Tabulator
+            const cols = table.getColumns().filter(c => c.isVisible() && c.getField());
+            const fields = cols.map(c => c.getField());
+            const titles = cols.map(c => c.getDefinition().title || c.getField());
+
+            // Flatten tree into rows with depth info
+            const rowDepths = [];
+            const flatRows = [];
+            function walkTree(nodes, depth) {
+                for (const node of nodes) {
+                    flatRows.push(node);
+                    rowDepths.push(depth);
+                    if (node._children && node._children.length) {
+                        walkTree(node._children, depth + 1);
+                    }
+                }
+            }
+            walkTree(treeData, 0);
+
+            // TOTAL row from Tabulator's columnCalcs (correct formulas for %, ratios, etc.)
+            const calcResults = table.getCalcResults();
+            const totalData = calcResults.bottom || {};
+            totalData[fields[0]] = 'TOTAL';
+
+            // Build AOA
+            const aoa = [titles];
+            flatRows.forEach(node => {
+                aoa.push(fields.map(f => { const v = node[f]; return v !== undefined && v !== null ? v : ''; }));
+            });
+            aoa.push(fields.map(f => {
+                const v = totalData[f];
+                if (v === undefined || v === null) return '';
+                if (typeof v === 'string' && v !== 'TOTAL') { const n = parseFloat(v); if (!isNaN(n)) return n; }
+                return v;
+            }));
+
+            // Build worksheet + workbook
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            // Set hidden rows (SheetJS community writes hidden but not outlineLevel)
+            ws['!rows'] = [{}]; // header
+            rowDepths.forEach(d => ws['!rows'].push(d > 0 ? { hidden: true } : {}));
+            ws['!rows'].push({}); // TOTAL
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+
+            // Generate xlsx as zip, patch sheet XML to add outlineLevel + outlinePr
+            const maxDepth = Math.max(0, ...rowDepths);
+            if (maxDepth > 0) {
+                const zipData = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true });
+                const zip = new JSZip();
+                zip.loadAsync(zipData).then(z => {
+                    return z.file('xl/worksheets/sheet1.xml').async('string');
+                }).then(xml => {
+                    // Add outlineLevel to <row> elements (row numbers are 1-indexed, row 1 = header)
+                    let rowIdx = 0;
+                    xml = xml.replace(/<row /g, (match) => {
+                        const dataIdx = rowIdx - 1; // -1 for header row
+                        rowIdx++;
+                        if (dataIdx >= 0 && dataIdx < rowDepths.length && rowDepths[dataIdx] > 0) {
+                            return match + 'outlineLevel="' + rowDepths[dataIdx] + '" ';
+                        }
+                        return match;
+                    });
+                    // Add <sheetPr><outlinePr summaryBelow="0"/></sheetPr> after <worksheet> tag
+                    xml = xml.replace(/<sheetPr[^>]*\/>/, '<sheetPr><outlinePr summaryBelow="0"/></sheetPr>');
+                    xml = xml.replace(/<sheetPr>/, '<sheetPr><outlinePr summaryBelow="0"/>');
+                    if (!xml.includes('outlinePr')) {
+                        xml = xml.replace(/<worksheet[^>]*>/, '$&<sheetPr><outlinePr summaryBelow="0"/></sheetPr>');
+                    }
+                    return zip.file('xl/worksheets/sheet1.xml', xml).generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                }).then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `<?=$tName?>${getDateSuffix()}.xlsx`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+            } else {
+                XLSX.writeFile(wb, `<?=$tName?>${getDateSuffix()}.xlsx`);
+            }
         };
         document.getElementById("columnsSelect<?=$tName?>").onclick = async () => {
             let selectedClmns = <?= json_encode($tSettings->columns) ?>;

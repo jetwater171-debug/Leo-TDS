@@ -155,6 +155,44 @@ body {
     transition: all 0.3s;
 }
 
+.tabulator-scroll-wrapper {
+    overflow: auto;
+    max-height: calc(100vh - 120px);
+}
+
+.tabulator-scroll-wrapper::-webkit-scrollbar {
+    height: 12px;
+}
+
+.tabulator-scroll-wrapper::-webkit-scrollbar-track {
+    background: #1b2a47;
+}
+
+.tabulator-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 6px;
+}
+
+.tabulator-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+}
+
+.tabulator-scroll-wrapper .tabulator {
+    overflow: visible;
+}
+
+.tabulator-scroll-wrapper .tabulator .tabulator-tableholder {
+    overflow: visible;
+}
+
+.tabulator-scroll-wrapper .tabulator .tabulator-header {
+    overflow: visible;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #152036;
+}
+
 .buttons-block {
     margin-bottom: 5px;
 }

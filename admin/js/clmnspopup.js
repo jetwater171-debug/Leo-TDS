@@ -1,31 +1,29 @@
 let columnsSortable = null;
 
-function addColumnsToList(selectedClmns, availableClmns, existingFilters) {
+function addColumnsToList(selectedClmns, availableClmns, existingFilters, filterType, options) {
     const $list = $('#columnsList');
     $list.empty();
-    
-    // First add selected columns in their saved order
+    const showParamButton = options?.showParamButton !== false;
+    document.getElementById('addParamColumn').style.display = showParamButton ? '' : 'none';
+
+    // Add all selected columns in their saved order (regular + param interleaved)
     selectedClmns.forEach(column => {
-        $list.append(createSortableItem(
-            typeof column === 'string' ? column : column.field,
-            formatColumnName(typeof column === 'string' ? column : column.field),
-            true
-        ));
+        const f = typeof column === 'string' ? column : column.field;
+        if (!f) return;
+        if (f.startsWith('param.')) {
+            const div = createParamItemElement('columnsList', f.substring(6));
+            if (div) $list.append(div);
+        } else {
+            $list.append(createSortableItem(f, formatColumnName(f), true));
+        }
     });
 
-    // Then add unselected columns
+    // Then add unselected regular columns
+    const selectedFields = selectedClmns.map(c => typeof c === 'string' ? c : c.field).filter(Boolean);
     availableClmns.forEach(column => {
         const columnField = typeof column === 'string' ? column : column.field;
-        const isSelected = selectedClmns.some(sc => 
-            (typeof sc === 'string' ? sc : sc.field) === columnField
-        );
-        
-        if (!isSelected) {
-            $list.append(createSortableItem(
-                columnField,
-                formatColumnName(columnField),
-                false
-            ));
+        if (!selectedFields.includes(columnField)) {
+            $list.append(createSortableItem(columnField, formatColumnName(columnField), false));
         }
     });
     
@@ -45,10 +43,25 @@ function addColumnsToList(selectedClmns, availableClmns, existingFilters) {
         updateSaveButtonState();
     });
 
-    // Initialize filters
-    initializeFilters(existingFilters || {});
+    // + Param button (event delegation for jquery-modal compatibility)
+    document.removeEventListener('click', handleAddParamColumn);
+    document.addEventListener('click', handleAddParamColumn);
+
+    // Initialize filters (pass extra fields like 'reason' for blocked clicks)
+    const extraFields = filterType === 'blocked' ? ['reason'] : [];
+    initializeFilters(existingFilters || {}, extraFields);
 
     // Initial button state
+    updateSaveButtonState();
+}
+
+function handleAddParamColumn(e) {
+    if (!e.target.closest('#addParamColumn')) return;
+    const name = prompt('URL param name:');
+    if (!name || !name.trim()) return;
+    const clean = name.trim().replace(/[^a-zA-Z0-9_]/g, '');
+    if (!clean) return;
+    addParamItem('columnsList', clean);
     updateSaveButtonState();
 }
 

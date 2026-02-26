@@ -82,6 +82,15 @@ class Tabulator
                 $tabulatorColumns[] = $columnSettings[$clmn];
             } else if (array_key_exists($clmn, $defaultColumns)) {
                 $tabulatorColumns[] = $defaultColumns[$clmn];
+            } elseif (str_starts_with($clmn, 'param.')) {
+                $paramKey = substr($clmn, 6);
+                $tabulatorColumns[] = [
+                    "title" => "$paramKey\u{1F310}",
+                    "field" => "param.$paramKey",
+                    "editor" => false,
+                    "headerFilter" => false,
+                    "headerTooltip" => "URL parameter: $paramKey",
+                ];
             } else {
                 $tabulatorColumns[] = ["title" => $clmn, "field" => $clmn];
             }
@@ -98,12 +107,9 @@ class Tabulator
     public static function get_campaigns_columns(array $columns): string
     {
         $nameWidth = 90;
-        $actionsWidth = 200;
         foreach ($columns as $col) {
             if (($col['field'] ?? '') === 'name' && isset($col['width']) && $col['width'] > 0)
                 $nameWidth = $col['width'];
-            if (($col['field'] ?? '') === 'actions' && isset($col['width']) && $col['width'] > 0)
-                $actionsWidth = $col['width'];
         }
 
         $defaultClmns = <<<JSON
@@ -115,37 +121,27 @@ class Tabulator
         },
         {
             "title": "Name",
-            "formatter": "link",
-            "formatterParams": {
-                "urlField":"id",
-                "urlPrefix":"campsettings.php?campId="
+            "formatter": function(cell) {
+                const data = cell.getRow().getData();
+                const id = data.id;
+                const name = data.name;
+                if (!id) return name || '';
+                return `<div class="camp-name-cell">
+                    <a href="campsettings.php?campId=\${id}" class="camp-name-link">\${name}</a>
+                    <button class="camp-menu-btn" title="Actions"><i class="bi bi-three-dots-vertical"></i></button>
+                </div>`;
             },
             "field": "name",
             "headerFilter": false,
             "width": $nameWidth,
             "editor":false,
+            "cellClick": campNameCellClick,
             "bottomCalc":() => "TOTAL"
-        },
-        {
-            "title": "Actions",
-            "formatter": "html",
-            "hozAlign": "center",
-            "cellClick": campActionsHandler,
-            "formatter": function() {
-                return `
-                    <button class="btn btn-camp btn-rename" title="Rename"><i class="bi bi-pencil-fill"></i></button>
-                    <button class="btn btn-camp btn-delete" title="Delete"><i class="bi bi-trash-fill"></i></button>
-                    <button class="btn btn-camp btn-clone" title="Clone"><i class="bi bi-copy"></i></button>
-                    <button class="btn btn-camp btn-stats" title="View stats"><i class="bi bi-bar-chart-fill"></i></button>
-                    <button class="btn btn-camp btn-allowed" title="View allowed clicks"><i class="bi bi-person-circle"></i></button>
-                    <button class="btn btn-camp btn-blocked" title="View blocked clicks"><i class="bi bi-ban"></i></button>
-                    <button class="btn btn-camp btn-leads" title="View leads"><i class="bi bi-coin"></i></button>`;
-            },
-            "width":$actionsWidth
         },
 JSON;
 
-        $statColumns = Tabulator::get_stats_columns($columns);
+        $filteredColumns = array_values(array_filter($columns, fn($c) => !in_array($c['field'] ?? '', ['name', 'actions'])));
+        $statColumns = Tabulator::get_stats_columns($filteredColumns);
         $defaultClmns .= substr($statColumns, 1);
         return $defaultClmns;
     }

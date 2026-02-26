@@ -15,9 +15,21 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
     const tableNameInput = document.getElementById('tableName');
     if (tableName) tableNameInput.value = tableName;
 
+    // Separate param.* dimensions from regular ones
+    const regularDimensions = selectedDimensions.filter(d => !d.startsWith('param.'));
+    const paramDimensions = selectedDimensions.filter(d => d.startsWith('param.'));
+
     // Add columns (metrics get sort toggles)
     addColumnsToList('metricsColumns', selectedMetrics, availableColumns, existingOrderby);
-    addColumnsToList('dimensionsColumns', selectedDimensions, availableDimensions);
+    addColumnsToList('dimensionsColumns', regularDimensions, availableDimensions);
+
+    // Restore saved param dimensions as items in the list
+    for (const pd of paramDimensions) {
+        addParamItem('dimensionsColumns', pd.substring(6));
+    }
+
+    // Enforce dimension limit on init (disables + Param button if already at max)
+    enforceDimensionLimit(MAX_GROUPBY_SELECTIONS);
 
     // Initialize filters
     initializeFilters(existingFilters);
@@ -41,16 +53,13 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
     // Dimensions checkbox change → enforce max selections + update save button
     document.getElementById('dimensionsColumns').addEventListener('change', (e) => {
         if (!e.target.matches('input[type="checkbox"]')) return;
-
-        const allBoxes = qsa('#dimensionsColumns input[type="checkbox"]');
-        const selectedCount = allBoxes.filter(cb => cb.checked).length;
-
-        for (const cb of allBoxes) {
-            cb.disabled = !cb.checked && selectedCount >= MAX_GROUPBY_SELECTIONS;
-        }
-
+        enforceDimensionLimit(MAX_GROUPBY_SELECTIONS);
         updateSaveButtonState();
     });
+
+    // Add param dimension button (event delegation for jquery-modal compatibility)
+    document.removeEventListener('click', handleAddParamDimension);
+    document.addEventListener('click', handleAddParamDimension);
 
     // Table name input → update save button
     tableNameInput.addEventListener('input', () => updateSaveButtonState());
@@ -185,6 +194,7 @@ function setupSelectButtons(selectAllId, deselectAllId, containerId) {
     });
 
     document.getElementById(deselectAllId).addEventListener('click', () => {
+        document.querySelectorAll(`#${containerId} .param-item`).forEach(el => el.remove());
         for (const cb of qsa(`#${containerId} input[type="checkbox"]`)) {
             cb.checked = false;
             cb.dispatchEvent(new Event('change', { bubbles: true }));
@@ -196,6 +206,20 @@ function getSelectedItems(containerId) {
     return qsa(`#${containerId} .column-item`)
         .filter(el => el.querySelector('input').checked)
         .map(el => el.dataset.field);
+}
+
+function handleAddParamDimension(e) {
+    if (!e.target.closest('#addParamDimension')) return;
+    const MAX_GROUPBY_SELECTIONS = 3;
+    const total = qsa('#dimensionsColumns input[type="checkbox"]:checked').length;
+    if (total >= MAX_GROUPBY_SELECTIONS) return;
+    const name = prompt('URL param name:');
+    if (!name || !name.trim()) return;
+    const clean = name.trim().replace(/[^a-zA-Z0-9_]/g, '');
+    if (!clean) return;
+    addParamItem('dimensionsColumns', clean);
+    enforceDimensionLimit(MAX_GROUPBY_SELECTIONS);
+    updateSaveButtonState();
 }
 
 function updateSaveButtonState() {
@@ -264,5 +288,20 @@ function collectOrderby() {
         rules.push({ field: item.dataset.field, dir: btn.dataset.sort });
     }
     return rules;
+}
+
+// ── Dimension limit helpers ──
+
+function enforceDimensionLimit(max) {
+    const total = qsa('#dimensionsColumns input[type="checkbox"]:checked').length;
+    const allBoxes = qsa('#dimensionsColumns input[type="checkbox"]');
+    for (const cb of allBoxes) {
+        cb.disabled = !cb.checked && total >= max;
+    }
+    const addBtn = document.getElementById('addParamDimension');
+    if (addBtn) {
+        addBtn.disabled = total >= max;
+        addBtn.style.opacity = total >= max ? '0.5' : '';
+    }
 }
 
