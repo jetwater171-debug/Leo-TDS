@@ -38,10 +38,10 @@ CREATE TABLE IF NOT EXISTS clicks (
     )
     REFERENCES campaigns (id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_campid ON clicks (campaign_id);
-CREATE INDEX IF NOT EXISTS idx_time ON clicks (time);
 CREATE INDEX IF NOT EXISTS idx_camp_time ON clicks (campaign_id,time);
 CREATE INDEX IF NOT EXISTS idx_camp_time_status ON clicks (campaign_id,time,status);
+CREATE INDEX IF NOT EXISTS idx_subid ON clicks (subid);
+CREATE INDEX IF NOT EXISTS idx_camp_flow ON clicks (campaign_id,flow);
 
 CREATE INDEX IF NOT EXISTS idx_country ON clicks (country);
 CREATE INDEX IF NOT EXISTS idx_lang ON clicks (lang);
@@ -55,7 +55,6 @@ CREATE INDEX IF NOT EXISTS idx_client ON clicks (client);
 CREATE INDEX IF NOT EXISTS idx_clientver ON clicks (clientver);
 CREATE INDEX IF NOT EXISTS idx_preland ON clicks (preland);
 CREATE INDEX IF NOT EXISTS idx_land ON clicks (land);
-CREATE INDEX IF NOT EXISTS idx_status ON clicks (status);
 
 CREATE TABLE IF NOT EXISTS blocked (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,6 +80,13 @@ CREATE TABLE IF NOT EXISTS blocked (
     REFERENCES campaigns (id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_bcamp_time ON blocked (campaign_id,time);
+CREATE INDEX IF NOT EXISTS idx_bcountry ON blocked (country);
+CREATE INDEX IF NOT EXISTS idx_bos ON blocked (os);
+CREATE INDEX IF NOT EXISTS idx_bdevice ON blocked (device);
+CREATE INDEX IF NOT EXISTS idx_bisp ON blocked (isp);
+CREATE INDEX IF NOT EXISTS idx_breason ON blocked (reason);
+CREATE INDEX IF NOT EXISTS idx_bip ON blocked (ip);
+CREATE INDEX IF NOT EXISTS idx_bparams ON blocked (params);
 
 CREATE TABLE IF NOT EXISTS trafficback (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +106,12 @@ CREATE TABLE IF NOT EXISTS trafficback (
 	params TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tbtime ON trafficback (time);
+CREATE INDEX IF NOT EXISTS idx_tbcountry ON trafficback (country);
+CREATE INDEX IF NOT EXISTS idx_tbos ON trafficback (os);
+CREATE INDEX IF NOT EXISTS idx_tbdevice ON trafficback (device);
+CREATE INDEX IF NOT EXISTS idx_tbisp ON trafficback (isp);
+CREATE INDEX IF NOT EXISTS idx_tbip ON trafficback (ip);
+CREATE INDEX IF NOT EXISTS idx_tbparams ON trafficback (params);
 
 CREATE TABLE IF NOT EXISTS common (
     settings TEXT
@@ -108,3 +120,5 @@ COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;
 PRAGMA journal_mode = wal;
 PRAGMA synchronous = normal;
+PRAGMA cache_size = -32000;
+PRAGMA mmap_size = 268435456;

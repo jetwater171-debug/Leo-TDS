@@ -159,6 +159,123 @@ class Db
         return $this->get_campaign_clicks($startdate, $enddate, $campId, false);
     }
 
+    public function get_clicks_paginated(string $filter, int $startdate, int $enddate, ?int $campId, int $page, int $size, string $sortField = 'time', string $sortDir = 'desc', array $filters = [], array $paramColumns = []): array
+    {
+        $allowedSort = ['id','time','ip','country','lang','os','osver','client','clientver','device','brand','model','isp','ua','subid','preland','land','flow','lpclick','status','payout','reason'];
+        // Support sorting by param.* fields via json_extract
+        $sortExpr = 'time';
+        if (in_array($sortField, $allowedSort)) {
+            $sortExpr = $sortField;
+        } elseif (str_starts_with($sortField, 'param.')) {
+            $key = substr($sortField, 6);
+            if (preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
+                $sortExpr = "json_extract(params, '\$.$key')";
+            }
+        }
+        $sortDir = strtolower($sortDir) === 'asc' ? 'ASC' : 'DESC';
+        $offset = ($page - 1) * $size;
+
+        switch ($filter) {
+            case 'blocked':
+                $table = 'blocked';
+                $where = "time BETWEEN ? AND ? AND campaign_id = ?";
+                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER];
+                break;
+            case 'leads':
+                $table = 'clicks';
+                $where = "time BETWEEN ? AND ? AND campaign_id = ? AND status IS NOT NULL";
+                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER];
+                break;
+            case 'trafficback':
+                $table = 'trafficback';
+                $where = "time BETWEEN ? AND ?";
+                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER];
+                break;
+            default: // allowed
+                $table = 'clicks';
+                $where = "time BETWEEN ? AND ? AND campaign_id = ?";
+                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER];
+                break;
+        }
+
+        // Build filter WHERE clauses (positional ? placeholders)
+        $filterWhere = '';
+        // Ordered list of [value, type] for all bind params
+        $bindList = [];
+        foreach ($bindParams as $val => $type) $bindList[] = [$val, $type];
+
+        if (!empty($filters) && !empty($filters['rules']) && is_array($filters['rules'])) {
+            $filterParts = [];
+            foreach ($filters['rules'] as $rule) {
+                $field = $rule['field'] ?? '';
+                $op = $rule['operator'] ?? '';
+                $value = $rule['value'] ?? '';
+
+                $sqlField = self::resolveFilterField($field);
+                if ($sqlField === null || !in_array($op, self::FILTER_OPERATORS)) {
+                    continue;
+                }
+
+                switch ($op) {
+                    case '=':
+                        $filterParts[] = "$sqlField = ?";
+                        $bindList[] = [$value, SQLITE3_TEXT];
+                        break;
+                    case '!=':
+                        $filterParts[] = "$sqlField != ?";
+                        $bindList[] = [$value, SQLITE3_TEXT];
+                        break;
+                    case 'in':
+                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                        $filterParts[] = "$sqlField IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
+                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        break;
+                    case 'not_in':
+                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                        $filterParts[] = "$sqlField NOT IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
+                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        break;
+                    case 'is_null':
+                        $filterParts[] = "($sqlField IS NULL OR $sqlField = '')";
+                        break;
+                    case 'is_not_null':
+                        $filterParts[] = "($sqlField IS NOT NULL AND $sqlField != '')";
+                        break;
+                }
+            }
+            $condition = ($filters['condition'] ?? 'AND') === 'OR' ? ' OR ' : ' AND ';
+            if (!empty($filterParts)) {
+                $filterWhere = ' AND (' . implode($condition, $filterParts) . ')';
+            }
+        }
+
+        $countQuery = "SELECT COUNT(*) as total FROM $table WHERE $where$filterWhere";
+        $countResult = $this->exec_bind_list_query($countQuery, $bindList, true);
+        $total = (int)($countResult['total'] ?? 0);
+
+        $dataQuery = "SELECT * FROM $table WHERE $where$filterWhere ORDER BY $sortExpr COLLATE NOCASE $sortDir LIMIT $size OFFSET $offset";
+        $clicks = $this->exec_bind_list_query($dataQuery, $bindList);
+        foreach ($clicks as &$click) {
+            if (empty($click['params'])) {
+                $click['params'] = [];
+            } else {
+                $click['params'] = json_decode($click['params'], true);
+                if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
+                    $click['params'] = [];
+                }
+            }
+            // Extract requested param columns
+            foreach ($paramColumns as $key) {
+                $click["param.$key"] = $click['params'][$key] ?? null;
+            }
+        }
+
+        return [
+            'last_page' => max(1, (int)ceil($total / $size)),
+            'data' => $clicks,
+        ];
+    }
+
     public function get_clicks_by_subid(string $subid, bool $firstOnly = false): array
     {
         if (empty($subid)) {
@@ -295,10 +412,87 @@ class Db
 
     private const FILTERABLE_FIELDS = [
         'country', 'lang', 'os', 'osver', 'brand', 'model', 'device',
-        'isp', 'client', 'clientver', 'preland', 'land', 'flow', 'status'
+        'isp', 'client', 'clientver', 'preland', 'land', 'flow', 'status', 'reason'
     ];
 
     private const FILTER_OPERATORS = ['=', '!=', 'in', 'not_in', 'is_null', 'is_not_null'];
+
+    private static function resolveFilterField(string $field): ?string {
+        if (in_array($field, self::FILTERABLE_FIELDS)) {
+            return $field;
+        }
+        if (str_starts_with($field, 'param.')) {
+            $key = substr($field, 6);
+            if (preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
+                return "json_extract(params, '\$.$key')";
+            }
+        }
+        return null;
+    }
+
+    private function buildFilterWhere(array $filters): array {
+        $filterWhere = '';
+        $filterBinds = [];
+        if (empty($filters) || !isset($filters['rules']) || !is_array($filters['rules'])) {
+            return [$filterWhere, $filterBinds];
+        }
+
+        $filterParts = [];
+        foreach ($filters['rules'] as $i => $rule) {
+            $field = $rule['field'] ?? '';
+            $op = $rule['operator'] ?? '';
+            $value = $rule['value'] ?? '';
+
+            $sqlField = self::resolveFilterField($field);
+            if ($sqlField === null || !in_array($op, self::FILTER_OPERATORS)) {
+                continue;
+            }
+
+            $paramName = ":filter_{$i}";
+            switch ($op) {
+                case '=':
+                    $filterParts[] = "$sqlField = $paramName";
+                    $filterBinds[$paramName] = $value;
+                    break;
+                case '!=':
+                    $filterParts[] = "$sqlField != $paramName";
+                    $filterBinds[$paramName] = $value;
+                    break;
+                case 'in':
+                    $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                    $placeholders = [];
+                    foreach ($vals as $vi => $v) {
+                        $p = ":filter_{$i}_{$vi}";
+                        $placeholders[] = $p;
+                        $filterBinds[$p] = $v;
+                    }
+                    $filterParts[] = "$sqlField IN (" . implode(',', $placeholders) . ")";
+                    break;
+                case 'not_in':
+                    $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                    $placeholders = [];
+                    foreach ($vals as $vi => $v) {
+                        $p = ":filter_{$i}_{$vi}";
+                        $placeholders[] = $p;
+                        $filterBinds[$p] = $v;
+                    }
+                    $filterParts[] = "$sqlField NOT IN (" . implode(',', $placeholders) . ")";
+                    break;
+                case 'is_null':
+                    $filterParts[] = "$sqlField IS NULL";
+                    break;
+                case 'is_not_null':
+                    $filterParts[] = "$sqlField IS NOT NULL";
+                    break;
+            }
+        }
+        $condition = ($filters['condition'] ?? 'AND') === 'OR' ? ' OR ' : ' AND ';
+        if (!empty($filterParts)) {
+            $filterWhere = ' AND (' . implode($condition, $filterParts) . ')';
+        }
+
+        return [$filterWhere, $filterBinds];
+    }
 
     public function get_statistics(
         array $selectedFields,
@@ -318,63 +512,7 @@ class Db
 
         $selectParts = $this->get_stats_select_parts($selectedFields);
 
-        // Build filter WHERE clauses
-        $filterWhere = '';
-        $filterBinds = [];
-        if (!empty($filters) && isset($filters['rules']) && is_array($filters['rules'])) {
-            $filterParts = [];
-            foreach ($filters['rules'] as $i => $rule) {
-                $field = $rule['field'] ?? '';
-                $op = $rule['operator'] ?? '';
-                $value = $rule['value'] ?? '';
-
-                if (!in_array($field, self::FILTERABLE_FIELDS) || !in_array($op, self::FILTER_OPERATORS)) {
-                    continue;
-                }
-
-                $paramName = ":filter_{$i}";
-                switch ($op) {
-                    case '=':
-                        $filterParts[] = "$field = $paramName";
-                        $filterBinds[$paramName] = $value;
-                        break;
-                    case '!=':
-                        $filterParts[] = "$field != $paramName";
-                        $filterBinds[$paramName] = $value;
-                        break;
-                    case 'in':
-                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
-                        $placeholders = [];
-                        foreach ($vals as $vi => $v) {
-                            $p = ":filter_{$i}_{$vi}";
-                            $placeholders[] = $p;
-                            $filterBinds[$p] = $v;
-                        }
-                        $filterParts[] = "$field IN (" . implode(',', $placeholders) . ")";
-                        break;
-                    case 'not_in':
-                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
-                        $placeholders = [];
-                        foreach ($vals as $vi => $v) {
-                            $p = ":filter_{$i}_{$vi}";
-                            $placeholders[] = $p;
-                            $filterBinds[$p] = $v;
-                        }
-                        $filterParts[] = "$field NOT IN (" . implode(',', $placeholders) . ")";
-                        break;
-                    case 'is_null':
-                        $filterParts[] = "$field IS NULL";
-                        break;
-                    case 'is_not_null':
-                        $filterParts[] = "$field IS NOT NULL";
-                        break;
-                }
-            }
-            $condition = ($filters['condition'] ?? 'AND') === 'OR' ? ' OR ' : ' AND ';
-            if (!empty($filterParts)) {
-                $filterWhere = ' AND (' . implode($condition, $filterParts) . ')';
-            }
-        }
+        [$filterWhere, $filterBinds] = $this->buildFilterWhere($filters);
 
         // Process group by fields
         foreach ($groupByFields as $field) {
@@ -397,11 +535,14 @@ class Db
                 $groupByParts[] = $field;
                 $orderByParts[] = $field;
             } else {
-                // JSON fields
-                $jsonExtract = "COALESCE(json_extract(params, '$." . $field . "'), 'unknown') AS " . $field;
+                // JSON fields — strip param. prefix if present
+                $jsonKey = str_starts_with($field, 'param.') ? substr($field, 6) : $field;
+                if (!preg_match('/^[a-zA-Z0-9_]+$/', $jsonKey)) continue;
+                $alias = $jsonKey;
+                $jsonExtract = "COALESCE(json_extract(params, '$." . $jsonKey . "'), 'unknown') AS " . $alias;
                 $selectParts[] = $jsonExtract;
-                $groupByParts[] = $field;
-                $orderByParts[] = $field;
+                $groupByParts[] = $alias;
+                $orderByParts[] = $alias;
             }
         }
 
@@ -438,8 +579,13 @@ class Db
             $rows[] = $row;
         }
 
+        // Normalize groupby field names: strip param. prefix so they match SQL aliases
+        $normalizedGroupBy = array_map(function($f) {
+            return str_starts_with($f, 'param.') ? substr($f, 6) : $f;
+        }, $groupByFields);
+
         // Build the tree structure
-        $tree = $this->build_tree($rows, $groupByFields, $selectedFields, 0, $orderby);
+        $tree = $this->build_tree($rows, $normalizedGroupBy, $selectedFields, 0, $orderby);
         return $tree;
     }
 
@@ -843,18 +989,70 @@ class Db
         return $this->exec_write_query($query, [$id => SQLITE3_INTEGER]);
     }
 
-    public function get_campaigns($startDate, $endDate, array $selectFields): array
+    public function get_campaigns($startDate, $endDate, array $selectFields, array $filters = []): array
     {
-        $query = "
-        SELECT cmp.id, cmp.name, %s
-        FROM campaigns cmp
-        LEFT JOIN clicks c ON c.campaign_id=cmp.id AND c.time BETWEEN :startDate AND :endDate
-        GROUP BY cmp.id";
+        $bindList = [];
+        $bindList[] = [$startDate, SQLITE3_INTEGER];
+        $bindList[] = [$endDate, SQLITE3_INTEGER];
+
+        $filterJoin = '';
+        if (!empty($filters) && !empty($filters['rules']) && is_array($filters['rules'])) {
+            $filterParts = [];
+            foreach ($filters['rules'] as $rule) {
+                $field = $rule['field'] ?? '';
+                $op = $rule['operator'] ?? '';
+                $value = $rule['value'] ?? '';
+
+                $sqlField = self::resolveFilterField($field);
+                if ($sqlField === null || !in_array($op, self::FILTER_OPERATORS)) continue;
+
+                if (str_starts_with($sqlField, "json_extract(")) {
+                    $sqlField = str_replace("json_extract(params,", "json_extract(c.params,", $sqlField);
+                } else {
+                    $sqlField = "c.$sqlField";
+                }
+
+                switch ($op) {
+                    case '=':
+                        $filterParts[] = "$sqlField = ?";
+                        $bindList[] = [$value, SQLITE3_TEXT];
+                        break;
+                    case '!=':
+                        $filterParts[] = "$sqlField != ?";
+                        $bindList[] = [$value, SQLITE3_TEXT];
+                        break;
+                    case 'in':
+                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                        $filterParts[] = "$sqlField IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
+                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        break;
+                    case 'not_in':
+                        $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
+                        $filterParts[] = "$sqlField NOT IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
+                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        break;
+                    case 'is_null':
+                        $filterParts[] = "($sqlField IS NULL OR $sqlField = '')";
+                        break;
+                    case 'is_not_null':
+                        $filterParts[] = "($sqlField IS NOT NULL AND $sqlField != '')";
+                        break;
+                }
+            }
+            $condition = ($filters['condition'] ?? 'AND') === 'OR' ? ' OR ' : ' AND ';
+            if (!empty($filterParts)) {
+                $filterJoin = ' AND (' . implode($condition, $filterParts) . ')';
+            }
+        }
 
         $selectClause = implode(',', $this->get_stats_select_parts($selectFields));
-        $query = sprintf($query, $selectClause);
+        $query = "
+        SELECT cmp.id, cmp.name, $selectClause
+        FROM campaigns cmp
+        LEFT JOIN clicks c ON c.campaign_id=cmp.id AND c.time BETWEEN ? AND ?$filterJoin
+        GROUP BY cmp.id";
 
-        $campaigns = $this->exec_read_query($query, [$startDate => SQLITE3_INTEGER, $endDate => SQLITE3_INTEGER]);
+        $campaigns = $this->exec_bind_list_query($query, $bindList);
         foreach ($campaigns as &$campaign) {
             if (empty($campaign['settings']))
                 continue;
@@ -951,6 +1149,38 @@ class Db
         } catch (Exception $e) {
             add_log("errors", $e->getMessage());
             return false;
+        }
+    }
+
+    private function exec_bind_list_query(string $query, array $bindList, bool $firstOnly = false): array
+    {
+        try {
+            $db = $this->open_db(true);
+            $stmt = $db->prepare($query);
+            if ($stmt === false) {
+                throw new Exception("Error preparing $query: " . $db->lastErrorMsg());
+            }
+
+            foreach ($bindList as $index => $pair) {
+                $bound = $stmt->bindValue($index + 1, $pair[0], $pair[1]);
+                if ($bound === false) {
+                    throw new Exception("Error binding param " . ($index + 1) . " to $query: " . $db->lastErrorMsg());
+                }
+            }
+
+            $result = $stmt->execute();
+            if ($result === false) {
+                throw new Exception("Error executing $query: " . $db->lastErrorMsg());
+            }
+
+            $arr = [];
+            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+                $arr[] = $row;
+            }
+            return $firstOnly ? $arr[0] ?? [] : $arr;
+        } catch (Exception $e) {
+            add_error_log($e->getMessage());
+            return [];
         }
     }
 
