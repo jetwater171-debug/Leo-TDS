@@ -46,8 +46,15 @@ switch ($action) {
             return send_clmnseditor_result("Error: missing columns data", true);
         }
 
-        $newColumns = get_new_columns($currentColumns, $data);
+        // Support both old format (plain array) and new format ({columns, filters})
+        $columnNames = isset($data['columns']) ? $data['columns'] : $data;
+        $filters = $data['filters'] ?? [];
+
+        $newColumns = get_new_columns($currentColumns, $columnNames);
         $saved = save_columns_for_type($newColumns, $table, $campId);
+        if ($saved) {
+            save_filters_for_type($filters, $table, $campId);
+        }
         return $saved? 
             send_clmnseditor_result("OK"):
             send_clmnseditor_result("Error saving settings!",true);
@@ -204,6 +211,50 @@ function save_columns_for_type(array $columns, string $table, ?int $campId = nul
             trigger_error($errMsg, E_USER_ERROR);
             exit;
     }
+}
+
+function save_filters_for_type(array $filters, string $table, ?int $campId = null): bool {
+    global $db;
+    $filterKey = match($table) {
+        'allowed', 'single' => 'allowedFilters',
+        'blocked' => 'blockedFilters',
+        'leads' => 'leadsFilters',
+        'trafficback' => 'trafficBackFilters',
+        'campaigns' => 'campaignsFilters',
+        default => null,
+    };
+    if (!$filterKey) return false;
+
+    if ($table === 'trafficback' || $table === 'campaigns') {
+        $s = $db->get_common_settings();
+        $s['statistics'][$filterKey] = $filters;
+        return $db->set_common_settings($s);
+    }
+
+    $s = $db->get_campaign_settings($campId);
+    $s['statistics'][$filterKey] = $filters;
+    return $db->save_campaign_settings($campId, $s);
+}
+
+function get_filters_for_type(string $table, ?int $campId = null): array {
+    global $db;
+    $filterKey = match($table) {
+        'allowed', 'single' => 'allowedFilters',
+        'blocked' => 'blockedFilters',
+        'leads' => 'leadsFilters',
+        'trafficback' => 'trafficBackFilters',
+        'campaigns' => 'campaignsFilters',
+        default => null,
+    };
+    if (!$filterKey) return [];
+
+    if ($table === 'trafficback' || $table === 'campaigns') {
+        $s = $db->get_common_settings();
+        return $s['statistics'][$filterKey] ?? [];
+    }
+
+    $s = $db->get_campaign_settings($campId);
+    return $s['statistics'][$filterKey] ?? [];
 }
 
 function save_stats_columns(array $columns, string $name, int $campId): bool
