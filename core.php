@@ -264,7 +264,16 @@ class FiltrationCore
     {
         try {
             DebugMethods::start("YWBCoreCheck");
-            if (empty($filters) || !array_key_exists('rules', $filters)) {
+            $this->matched_filters = [];
+            $this->block_reason = '';
+
+            if (
+                empty($filters) ||
+                !array_key_exists('rules', $filters) ||
+                !is_array($filters['rules']) ||
+                empty($filters['rules'])
+            ) {
+                $this->block_reason = 'no-filters';
                 return true;
             }
             
