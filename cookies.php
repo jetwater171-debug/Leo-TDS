@@ -1,18 +1,24 @@
 <?php
-function set_cookie($name, $value, $path = '/'): void
+
+function set_cookie($name, $value, $sessionOnly = false): void
 {
-    $expires = time() + 60 * 60 * 24 * 5; //time to live for cookies - 5 days
-    header("Set-Cookie: {$name}={$value}; Expires={$expires}; Path={$path}; SameSite=None; Secure", false);
+    if (!$sessionOnly) {
+        $path = '/';
+        $expires = time() + 60 * 60 * 24 * 5; //time to live for cookies - 5 days
+        header("Set-Cookie: {$name}={$value}; Expires={$expires}; Path={$path}; SameSite=None; Secure", false);
+    }
     session_write($name, $value);
 }
 
-function session_write($name, $value){
+function session_write($name, $value)
+{
     get_session();
     $_SESSION[$name] = $value;
     session_write_close();
 }
 
-function session_read($name){
+function session_read($name)
+{
     get_session(true);
     return $_SESSION[$name] ?? null;
 }
@@ -29,27 +35,35 @@ function get_cookie($name): string
     return $_COOKIE[$name] ?? $_SESSION[$name] ?? '';
 }
 
-function get_subid(): string
+function get_userid(): string
 {
-    return get_cookie('subid');
+    return get_cookie('userid');
 }
 
-function set_subid(): string
+function set_userid(): string
 {
-    //giving each user a unique ID - subid and saving it to cookies
-    //or getting it from cookies if exists
-    $cursubid = get_subid();
-    if (empty($cursubid))
-        $cursubid = uniqid();
-    set_cookie('subid', $cursubid);
-    return $cursubid;
+    $uid = get_userid();
+    if (empty($uid)) {
+        $uid = uniqid();
+    }
+    set_cookie('userid', $uid);
+    return $uid;
 }
 
-function set_px(): void
+function generate_clickid(string $userid): string
 {
-    $curpx = $_GET['px'] ?? '';
-    if (empty($curpx)) return;
-    set_cookie('px', $curpx);
+    $raw = hash('xxh128', $userid . microtime(true), true);
+    return substr(strtr(rtrim(base64_encode($raw), '='), '+/', '-_'), 0, 12);
+}
+
+function set_clickid(string $clickid): void
+{
+    session_write('clickid', $clickid);
+}
+
+function get_clickid(): string
+{
+    return session_read('clickid') ?? '';
 }
 
 //if the user has already converted before with the same data return true
@@ -89,16 +103,20 @@ function set_conversion_cookies(array $data): void
 
 function get_session($readOnly = false)
 {
-    if (session_status() === PHP_SESSION_ACTIVE) return;
-    
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+
     $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
     session_set_cookie_params([
         "SameSite" => $isSecure ? "None" : "Lax",
         "Secure"   => $isSecure,
         "HttpOnly" => false,
     ]);
-    if ($readOnly)
+    
+    if ($readOnly) {
         session_start(['read_and_close' => true]);
-    else 
+    } else {
         session_start();
+    }
 }
