@@ -73,28 +73,20 @@
         "distribution": "equal",
         "optimize_for": "Lead",
         "optimize_mode": "funnels",
-        "prelanding": {
-          "action": "none",
-          "folders": [
-            "preland"
-          ],
-          "distribution": "equal",
-          "weights": []
-        },
-        "landing": {
-          "action": "redirect",
-          "folders": [
-            "land"
-          ],
-          "redirect": {
-            "urls": [
-              "https://www.rolltrk.com/DHSF7PS/2QM39NQ/"
-            ],
-            "type": 302
-          },
-          "distribution": "equal",
-          "weights": []
-        }
+        "steps": [
+          {
+            "action": "redirect",
+            "folders": [],
+            "redirect": {
+              "urls": [
+                {"url": "https://www.rolltrk.com/DHSF7PS/2QM39NQ/", "label": "rolltrk.com"}
+              ],
+              "type": 302
+            },
+            "weights": [],
+            "folderloadtypes": {}
+          }
+        ]
       }
     ]
   },
@@ -179,7 +171,11 @@
     ],
     "allowed": [
       {
-        "field": "subid",
+        "field": "userid",
+        "width": -1
+      },
+      {
+        "field": "clickid",
         "width": -1
       },
       {
@@ -235,19 +231,15 @@
         "width": -1
       },
       {
-        "field": "preland",
-        "width": -1
-      },
-      {
-        "field": "land",
-        "width": -1
-      },
-      {
         "field": "flow",
         "width": -1
       },
       {
-        "field": "lpclick",
+        "field": "path",
+        "width": -1
+      },
+      {
+        "field": "step",
         "width": -1
       },
       {
@@ -265,7 +257,11 @@
     ],
     "leads": [
       {
-        "field": "subid",
+        "field": "userid",
+        "width": -1
+      },
+      {
+        "field": "clickid",
         "width": -1
       },
       {
@@ -321,19 +317,15 @@
         "width": -1
       },
       {
-        "field": "preland",
-        "width": -1
-      },
-      {
-        "field": "land",
-        "width": -1
-      },
-      {
         "field": "flow",
         "width": -1
       },
       {
-        "field": "lpclick",
+        "field": "path",
+        "width": -1
+      },
+      {
+        "field": "step",
         "width": -1
       },
       {

@@ -23,24 +23,25 @@ CREATE TABLE IF NOT EXISTS clicks (
 	client TEXT,
 	clientver REAL,
 	ua TEXT,
-	subid TEXT NOT NULL,
-	preland TEXT,
-	land TEXT,
+	userid TEXT NOT NULL,
+	clickid TEXT NOT NULL DEFAULT '',
 	flow TEXT,
+	path TEXT DEFAULT '[]',
+	step INTEGER DEFAULT 0,
 	params TEXT,
 	leaddata TEXT,
-	lpclick BOOLEAN,
 	status TEXT,
 	cost NUMERIC DEFAULT 0,
 	payout NUMERIC DEFAULT 0,
-	FOREIGN KEY (
+    FOREIGN KEY (
         campaign_id
     )
     REFERENCES campaigns (id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_camp_time ON clicks (campaign_id,time);
 CREATE INDEX IF NOT EXISTS idx_camp_time_status ON clicks (campaign_id,time,status);
-CREATE INDEX IF NOT EXISTS idx_subid ON clicks (subid);
+CREATE INDEX IF NOT EXISTS idx_userid ON clicks (userid);
+CREATE INDEX IF NOT EXISTS idx_clickid ON clicks (clickid);
 CREATE INDEX IF NOT EXISTS idx_camp_flow ON clicks (campaign_id,flow);
 
 CREATE INDEX IF NOT EXISTS idx_country ON clicks (country);
@@ -53,8 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_device ON clicks (device);
 CREATE INDEX IF NOT EXISTS idx_isp ON clicks (isp);
 CREATE INDEX IF NOT EXISTS idx_client ON clicks (client);
 CREATE INDEX IF NOT EXISTS idx_clientver ON clicks (clientver);
-CREATE INDEX IF NOT EXISTS idx_preland ON clicks (preland);
-CREATE INDEX IF NOT EXISTS idx_land ON clicks (land);
+CREATE INDEX IF NOT EXISTS idx_step ON clicks (step);
 
 CREATE TABLE IF NOT EXISTS blocked (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,

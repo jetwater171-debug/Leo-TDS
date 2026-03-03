@@ -159,9 +159,9 @@ class Db
         return $this->get_campaign_clicks($startdate, $enddate, $campId, false);
     }
 
-    public function get_clicks_paginated(string $filter, int $startdate, int $enddate, ?int $campId, int $page, int $size, string $sortField = 'time', string $sortDir = 'desc', array $filters = [], array $paramColumns = []): array
+    public function get_clicks_paginated(string $filter, int $startdate, int $enddate, ?int $campId, int $page, int $size, string $sortField = 'time', string $sortDir = 'desc', array $filters = [], array $paramColumns = [], string $searchTerm = ''): array
     {
-        $allowedSort = ['id','time','ip','country','lang','os','osver','client','clientver','device','brand','model','isp','ua','subid','preland','land','flow','lpclick','status','payout','reason'];
+        $allowedSort = ['id','time','ip','country','lang','os','osver','client','clientver','device','brand','model','isp','ua','userid','clickid','flow','path','step','status','payout','reason'];
         // Support sorting by param.* fields via json_extract
         $sortExpr = 'time';
         if (in_array($sortField, $allowedSort)) {
@@ -197,6 +197,11 @@ class Db
                 $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER];
                 break;
         }
+        $tableFilterFields = match ($table) {
+            'blocked' => ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'reason'],
+            'trafficback' => ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver'],
+            default => ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'flow', 'step', 'path', 'status'],
+        };
 
         // Build filter WHERE clauses (positional ? placeholders)
         $filterWhere = '';
@@ -210,6 +215,9 @@ class Db
                 $field = $rule['field'] ?? '';
                 $op = $rule['operator'] ?? '';
                 $value = $rule['value'] ?? '';
+                if (!str_starts_with($field, 'param.') && !in_array($field, $tableFilterFields, true)) {
+                    continue;
+                }
 
                 $sqlField = self::resolveFilterField($field);
                 if ($sqlField === null || !in_array($op, self::FILTER_OPERATORS)) {
@@ -249,11 +257,21 @@ class Db
             }
         }
 
-        $countQuery = "SELECT COUNT(*) as total FROM $table WHERE $where$filterWhere";
+        $searchTerm = trim($searchTerm);
+        $searchWhere = '';
+        if ($searchTerm !== '' && in_array($filter, ['allowed', 'leads'], true)) {
+            $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm);
+            $likePattern = '%' . $escapedSearch . '%';
+            $searchWhere = " AND (userid LIKE ? ESCAPE '\\' OR clickid LIKE ? ESCAPE '\\')";
+            $bindList[] = [$likePattern, SQLITE3_TEXT];
+            $bindList[] = [$likePattern, SQLITE3_TEXT];
+        }
+
+        $countQuery = "SELECT COUNT(*) as total FROM $table WHERE $where$filterWhere$searchWhere";
         $countResult = $this->exec_bind_list_query($countQuery, $bindList, true);
         $total = (int)($countResult['total'] ?? 0);
 
-        $dataQuery = "SELECT * FROM $table WHERE $where$filterWhere ORDER BY $sortExpr COLLATE NOCASE $sortDir LIMIT $size OFFSET $offset";
+        $dataQuery = "SELECT * FROM $table WHERE $where$filterWhere$searchWhere ORDER BY $sortExpr COLLATE NOCASE $sortDir LIMIT $size OFFSET $offset";
         $clicks = $this->exec_bind_list_query($dataQuery, $bindList);
         foreach ($clicks as &$click) {
             if (empty($click['params'])) {
@@ -276,27 +294,57 @@ class Db
         ];
     }
 
-    public function get_clicks_by_subid(string $subid, bool $firstOnly = false): array
+    public function get_click_by_clickid(string $clickid): array
     {
-        if (empty($subid)) {
-            add_log("trace", "Skipping clicks retrieval - empty subid provided");
+        if (empty($clickid)) {
+            add_log("trace", "Skipping click retrieval - empty clickid provided");
             return [];
         }
 
-        $query = "SELECT * FROM clicks WHERE subid = :subid ORDER BY time DESC";
-        if ($firstOnly)
-            $query .= " LIMIT 1";
-        $clicks = $this->exec_read_query($query, [$subid => SQLITE3_TEXT]);
+        $query = "SELECT * FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1";
+        $clicks = $this->exec_read_query($query, [$clickid => SQLITE3_TEXT]);
         foreach ($clicks as &$click) {
             if (empty($click['params']))
                 continue;
             $click['params'] = json_decode($click['params'], true);
             if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                add_log("errors", "Failed to parse trafficback params JSON for row " . $click['id'] . ": " . json_last_error_msg());
+                add_log("errors", "Failed to parse params JSON for row " . $click['id'] . ": " . json_last_error_msg());
                 $click['params'] = [];
             }
+            if (!empty($click['path']) && is_string($click['path'])) {
+                $click['path'] = json_decode($click['path'], true) ?? [];
+            }
         }
-        return $firstOnly ? $clicks[0] ?? [] : $clicks;
+        return $clicks[0] ?? [];
+    }
+
+    public function get_clicks_by_userid(string $userid, int $campId = 0): array
+    {
+        if (empty($userid)) {
+            add_log("trace", "Skipping clicks retrieval - empty userid provided");
+            return [];
+        }
+
+        $query = "SELECT * FROM clicks WHERE userid = :userid";
+        $params = [$userid => SQLITE3_TEXT];
+        if ($campId > 0) {
+            $query .= " AND campaign_id = :cid";
+            $params[$campId] = SQLITE3_INTEGER;
+        }
+        $query .= " ORDER BY time DESC LIMIT 1";
+        $clicks = $this->exec_read_query($query, $params);
+        foreach ($clicks as &$click) {
+            if (empty($click['params']))
+                continue;
+            $click['params'] = json_decode($click['params'], true);
+            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
+                $click['params'] = [];
+            }
+            if (!empty($click['path']) && is_string($click['path'])) {
+                $click['path'] = json_decode($click['path'], true) ?? [];
+            }
+        }
+        return $clicks[0] ?? [];
     }
 
     public function get_leads($startdate, $enddate, $campId): array
@@ -327,16 +375,10 @@ class Db
                     $selectParts[] = "COUNT(c.id) AS clicks";
                     break;
                 case 'uniques':
-                    $selectParts[] = "COUNT(DISTINCT subid) AS uniques";
+                    $selectParts[] = "COUNT(DISTINCT userid) AS uniques";
                     break;
                 case 'uniques_ratio':
-                    $selectParts[] = "(COUNT(DISTINCT subid)*1.0/COUNT(*) * 100.0) AS uniques_ratio";
-                    break;
-                case 'lpclicks':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN lpclick = 1 THEN c.id END) AS lpclicks";
-                    break;
-                case 'lpctr':
-                    $selectParts[] = "(COUNT(DISTINCT CASE WHEN lpclick = 1 THEN c.id END) * 100.0 / COUNT(*)) AS lpctr";
+                    $selectParts[] = "(COUNT(DISTINCT userid)*1.0/COUNT(*) * 100.0) AS uniques_ratio";
                     break;
                 case 'cra':
                     $selectParts[] = "(COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN c.id END) * 100.0 / COUNT(*)) AS cra";
@@ -348,13 +390,13 @@ class Db
                     $selectParts[] = "(SUM(payout) * 1.0 / COUNT(c.id)) AS epc";
                     break;
                 case 'uepc':
-                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(DISTINCT(subid))) AS uepc";
+                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(DISTINCT(userid))) AS uepc";
                     break;
                 case 'cpc':
                     $selectParts[] = "(SUM(cost) * 1.0 / COUNT(c.id)) AS cpc";
                     break;
                 case 'ucpc':
-                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(DISTINCT(subid))) AS ucpc";
+                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(DISTINCT(userid))) AS ucpc";
                     break;
                 case 'appt':
                     $selectParts[] = "CASE
@@ -373,25 +415,25 @@ class Db
                        END AS app";
                     break;
                 case 'conversion':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN subid END) AS conversion";
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN clickid END) AS conversion";
                     break;
                 case 'purchase':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Purchase' THEN subid END) AS purchase";
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Purchase' THEN clickid END) AS purchase";
                     break;
                 case 'hold':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Lead' THEN subid END) AS hold";
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Lead' THEN clickid END) AS hold";
                     break;
                 case 'reject':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Reject' THEN subid END) AS reject";
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Reject' THEN clickid END) AS reject";
                     break;
                 case 'trash':
-                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Trash' THEN subid END) AS trash";
+                    $selectParts[] = "COUNT(DISTINCT CASE WHEN status = 'Trash' THEN clickid END) AS trash";
                     break;
                 case 'ec':
-                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN subid END)) AS ec";
+                    $selectParts[] = "(SUM(payout) * 1.0 / COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN clickid END)) AS ec";
                     break;
                 case 'cpa':
-                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN subid END)) AS cpa";
+                    $selectParts[] = "(SUM(cost) * 1.0 / COUNT(DISTINCT CASE WHEN status IS NOT NULL THEN clickid END)) AS cpa";
                     break;
                 case 'revenue':
                     $selectParts[] = "SUM(payout) AS revenue";
@@ -412,7 +454,7 @@ class Db
 
     private const FILTERABLE_FIELDS = [
         'country', 'lang', 'os', 'osver', 'brand', 'model', 'device',
-        'isp', 'client', 'clientver', 'preland', 'land', 'flow', 'status', 'reason'
+        'isp', 'client', 'clientver', 'flow', 'step', 'path', 'status', 'reason'
     ];
 
     private const FILTER_OPERATORS = ['=', '!=', 'in', 'not_in', 'is_null', 'is_not_null'];
@@ -530,7 +572,7 @@ class Db
                     "strftime('%Y-%m-%d', datetime(time, 'unixepoch', '{$offsetFormatted}')) AS date";
                 $groupByParts[] = "date";
                 $orderByParts[] = "date";
-            } elseif (in_array($field, ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'preland', 'land', 'flow'])) {
+            } elseif (in_array($field, ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'flow', 'step'])) {
                 $selectParts[] = $field;
                 $groupByParts[] = $field;
                 $orderByParts[] = $field;
@@ -668,8 +710,6 @@ class Db
         // Percentage metrics: round to 4 decimals (frontend trims to 2)
         if (in_array('uniques_ratio', $selectedFields))
             $totals['uniques_ratio'] = $totals['clicks'] === 0 ? 0 : round($totals['uniques'] * 100.0 / $totals['clicks'], 4);
-        if (in_array('lpctr', $selectedFields))
-            $totals['lpctr'] = $totals['clicks'] === 0 ? 0 : round($totals['lpclicks'] * 100.0 / $totals['clicks'], 4);
         if (in_array('cra', $selectedFields))
             $totals['cra'] = $totals['clicks'] === 0 ? 0 : round($totals['conversion'] * 100.0 / $totals['clicks'], 4);
         if (in_array('crs', $selectedFields))
@@ -750,41 +790,41 @@ class Db
         return $this->add_click($query, $click);
     }
 
-    public function add_black_click($subid, $data, $preland, $land, $flow, $campId): bool
+    public function add_black_click(string $userid, string $clickid, $data, array $path, int $step, string $flow, int $campId): bool
     {
         $click = $this->prepare_click_data($data, $campId);
-        $click['subid'] = $subid;
-        $click['preland'] = empty($preland) ? 'unknown' : $preland;
-        $click['land'] = empty($land) ? 'unknown' : $land;
+        $click['userid'] = $userid;
+        $click['clickid'] = $clickid;
         $click['flow'] = empty($flow) ? 'unknown' : $flow;
-        $click['lpclick'] = 0;
+        $click['path'] = json_encode($path);
+        $click['step'] = $step;
         $click['status'] = null;
 
-        $query = "INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, subid, preland, land, flow, params, cost, lpclick, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :subid, :preland, :land, :flow, :params, :cpc, 0, NULL)";
+        $query = "INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, userid, clickid, flow, path, step, params, cost, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :userid, :clickid, :flow, :path, :step, :params, :cpc, NULL)";
 
         return $this->add_click($query, $click);
     }
 
-    public function add_lead(string $subid, array $leaddata, string $status = 'Lead'): bool
+    public function add_lead(string $clickid, array $leaddata, string $status = 'Lead'): bool
     {
-        if (empty($subid)) {
-            add_log("warning", "Skipping lead addition - empty subid provided");
+        if (empty($clickid)) {
+            add_log("warning", "Skipping lead addition - empty clickid provided");
             return false;
         }
 
-        $updateQuery = "UPDATE clicks SET status = :status, leaddata = :leaddata WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
-        return $this->exec_update_query($updateQuery, [$status => SQLITE3_TEXT, $leaddata => SQLITE3_TEXT, $subid => SQLITE3_TEXT]);
+        $updateQuery = "UPDATE clicks SET status = :status, leaddata = :leaddata WHERE id = (SELECT id FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1)";
+        return $this->exec_update_query($updateQuery, [$status => SQLITE3_TEXT, $leaddata => SQLITE3_TEXT, $clickid => SQLITE3_TEXT]);
     }
 
-    public function update_status(string $subid, string $status, float $payout): bool
+    public function update_status(string $clickid, string $status, float $payout): bool
     {
-        if (empty($subid)) {
-            add_log("warning", "Skipping status update - empty subid provided");
+        if (empty($clickid)) {
+            add_log("warning", "Skipping status update - empty clickid provided");
             return false;
         }
 
-        if (!$this->subid_exists($subid)) {
-            add_log("warning", "Skipping status update - subid not found: $subid");
+        if (!$this->clickid_exists($clickid)) {
+            add_log("warning", "Skipping status update - clickid not found: $clickid");
             return false;
         }
 
@@ -792,24 +832,8 @@ class Db
             throw new Exception("Invalid payout value: $payout");
         }
 
-        $updateQuery = "UPDATE clicks SET status = :status, payout = :payout WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
-        return $this->exec_update_query($updateQuery, [$subid => SQLITE3_TEXT, $status => SQLITE3_TEXT, $payout => SQLITE3_FLOAT]);
-    }
-
-    public function add_lpctr($subid): bool
-    {
-        if (empty($subid)) {
-            add_log("warning", "Skipping lpctr update - empty subid provided");
-            return false;
-        }
-
-        if (!$this->subid_exists($subid)) {
-            add_log("warning", "Skipping lpctr update - subid not found: $subid");
-            return false;
-        }
-
-        $updateQuery = "UPDATE clicks SET lpclick = 1 WHERE id = (SELECT id FROM clicks WHERE subid = :subid ORDER BY time DESC LIMIT 1)";
-        return $this->exec_update_query($updateQuery, [$subid => SQLITE3_TEXT]);
+        $updateQuery = "UPDATE clicks SET status = :status, payout = :payout WHERE id = (SELECT id FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1)";
+        return $this->exec_update_query($updateQuery, [$clickid => SQLITE3_TEXT, $status => SQLITE3_TEXT, $payout => SQLITE3_FLOAT]);
     }
 
     public function update_click_params(int $clickId, array $params): bool
@@ -831,26 +855,24 @@ class Db
 
     public function get_funnel_stats(int $campId, string $flowName, string $status): array
     {
-        $query = "SELECT preland, land, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow GROUP BY preland, land";
+        $query = "SELECT path, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow AND step = 0 GROUP BY path";
         return $this->exec_read_query($query, [$status => SQLITE3_TEXT, $campId => SQLITE3_INTEGER, $flowName => SQLITE3_TEXT]);
     }
 
-    public function get_variant_stats(int $campId, string $flowName, string $column, string $status): array
+    public function get_variant_stats(int $campId, string $flowName, int $stepIndex, string $status): array
     {
-        $allowed = ['preland', 'land'];
-        if (!in_array($column, $allowed, true)) return [];
-        $query = "SELECT $column AS variant, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow GROUP BY $column";
+        $query = "SELECT json_extract(path, '\$[" . intval($stepIndex) . "]') AS variant, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow AND step = 0 GROUP BY variant";
         return $this->exec_read_query($query, [$status => SQLITE3_TEXT, $campId => SQLITE3_INTEGER, $flowName => SQLITE3_TEXT]);
     }
 
-    private function subid_exists($subid): bool
+    private function clickid_exists(string $clickid): bool
     {
-        if (empty($subid)) {
-            add_log("warning", "Empty subid provided for existence check");
+        if (empty($clickid)) {
+            add_log("warning", "Empty clickid provided for existence check");
             return false;
         }
-        $query = "SELECT COUNT(*) AS count FROM clicks WHERE subid = :subid";
-        $res = $this->exec_read_query($query, [$subid => SQLITE3_TEXT], true);
+        $query = "SELECT COUNT(*) AS count FROM clicks WHERE clickid = :clickid";
+        $res = $this->exec_read_query($query, [$clickid => SQLITE3_TEXT], true);
         return $res['count'] > 0;
     }
 
@@ -915,6 +937,13 @@ class Db
         $query = "INSERT INTO campaigns (name, settings)
                   SELECT name || ' (Clone)', settings FROM campaigns WHERE id = :id";
         return $this->exec_write_query($query, [$id => SQLITE3_INTEGER], true);
+    }
+
+    public function get_campaign_name(int $id): string
+    {
+        $query = "SELECT name FROM campaigns WHERE id = :id";
+        $arr = $this->exec_read_query($query, [$id => SQLITE3_INTEGER], true);
+        return $arr['name'] ?? '';
     }
 
     public function get_campaign_settings(int $id): array
