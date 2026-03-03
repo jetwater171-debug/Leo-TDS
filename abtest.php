@@ -95,52 +95,62 @@ class AbTest
     }
 
     /**
-     * Thompson Sampling: pick best preland+land combo (funnel mode).
-     * @return array [preland, land]
+     * Thompson Sampling: pick best combination across all steps (funnel mode).
+     * @param array $allStepItems [stepIndex => [item1, item2, ...], ...]
+     * @return array planned path [chosenItem0, chosenItem1, ...]
      */
-    public function select_thompson_funnel(array $prelands, array $lands, string $flowName, string $status): array
+    public function select_thompson_funnel_multi(array $allStepItems, string $flowName, string $status): array
     {
         global $db;
         $stats = $db->get_funnel_stats($this->campaign->campaignId, $flowName, $status);
 
+        // Build statsMap keyed by path JSON string
         $statsMap = [];
         foreach ($stats as $row) {
-            $key = $row['preland'] . '|' . $row['land'];
+            $key = $row['path'];
             $statsMap[$key] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
         }
 
-        $bestScore = -1;
-        $bestPreland = $prelands[0] ?? '';
-        $bestLand = $lands[0] ?? '';
-
-        foreach ($prelands as $p) {
-            foreach ($lands as $l) {
-                $key = $p . '|' . $l;
-                $imp = $statsMap[$key]['imp'] ?? 0;
-                $conv = $statsMap[$key]['conv'] ?? 0;
-                $score = self::random_beta($conv + 1, $imp - $conv + 1);
-                if ($score > $bestScore) {
-                    $bestScore = $score;
-                    $bestPreland = $p;
-                    $bestLand = $l;
+        // Generate all combinations using cartesian product
+        $combos = [[]];
+        foreach ($allStepItems as $stepItems) {
+            $newCombos = [];
+            foreach ($combos as $combo) {
+                foreach ($stepItems as $item) {
+                    $newCombos[] = array_merge($combo, [$item]);
                 }
+            }
+            $combos = $newCombos;
+        }
+
+        $bestScore = -1;
+        $bestCombo = $combos[0] ?? [];
+
+        foreach ($combos as $combo) {
+            $key = json_encode($combo);
+            $imp = $statsMap[$key]['imp'] ?? 0;
+            $conv = $statsMap[$key]['conv'] ?? 0;
+            $score = self::random_beta($conv + 1, $imp - $conv + 1);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestCombo = $combo;
             }
         }
 
-        return [$bestPreland, $bestLand];
+        return $bestCombo;
     }
 
     /**
      * Thompson Sampling: pick best single variant (separate mode).
-     * @param string $column 'preland' or 'land'
+     * @param string|int $stepIndex step index or label
      * @return string winning variant name
      */
-    public function select_thompson_variant(array $items, string $column, string $flowName, string $status): string
+    public function select_thompson_variant(array $items, string|int $stepIndex, string $flowName, string $status): string
     {
         if (empty($items)) return '';
 
         global $db;
-        $stats = $db->get_variant_stats($this->campaign->campaignId, $flowName, $column, $status);
+        $stats = $db->get_variant_stats($this->campaign->campaignId, $flowName, (int)$stepIndex, $status);
 
         $statsMap = [];
         foreach ($stats as $row) {
