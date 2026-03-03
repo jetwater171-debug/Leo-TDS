@@ -192,8 +192,8 @@ class FlowSettings implements JsonSerializable
 {
     public string $name;
     public array $filters;
-    public PrelandSettings $preland;
-    public LandingSettings $land;
+    /** @var StepSettings[] */
+    public array $steps;
     public string $distribution;
     public string $optimize_for;
     public string $optimize_mode;
@@ -203,8 +203,10 @@ class FlowSettings implements JsonSerializable
         $fs = new FlowSettings();
         $fs->name = $arr['name'] ?? 'Flow';
         $fs->filters = $arr['filters'] ?? [];
-        $fs->preland = PrelandSettings::fromArray($arr['prelanding']);
-        $fs->land = LandingSettings::fromArray($arr['landing']);
+        $fs->steps = [];
+        foreach (($arr['steps'] ?? []) as $s) {
+            $fs->steps[] = StepSettings::fromArray($s);
+        }
         $fs->distribution = $arr['distribution'] ?? 'equal';
         $fs->optimize_for = $arr['optimize_for'] ?? 'Lead';
         $fs->optimize_mode = $arr['optimize_mode'] ?? 'funnels';
@@ -216,82 +218,88 @@ class FlowSettings implements JsonSerializable
         return [
             "name" => $this->name,
             "filters" => $this->filters,
-            "prelanding" => $this->preland,
-            "landing" => $this->land,
+            "steps" => $this->steps,
             "distribution" => $this->distribution,
             "optimize_for" => $this->optimize_for,
             "optimize_mode" => $this->optimize_mode
         ];
     }
 
-    public function hasPrelanding(): bool
+    public function hasMultipleSteps(): bool
     {
-        return $this->preland->action !== 'none';
+        return count($this->steps) > 1;
+    }
+
+    public function lastStep(): ?StepSettings
+    {
+        return empty($this->steps) ? null : end($this->steps);
     }
 }
 
-class PrelandSettings implements JsonSerializable
+class StepSettings implements JsonSerializable
 {
     public string $action;
     public array $folderNames;
-    public string $distribution;
-    public array $weights;
-    public array $directLoad;
-
-    public static function fromArray($arr): PrelandSettings
-    {
-        $pls = new PrelandSettings();
-        $pls->action = $arr['action'];
-        $pls->folderNames = $arr['folders'];
-        $pls->distribution = $arr['distribution'] ?? 'equal';
-        $pls->weights = $arr['weights'] ?? [];
-        $pls->directLoad = $arr['directload'] ?? [];
-        return $pls;
-    }
-
-    public function isDirectLoad(string $folderName): bool
-    {
-        return ($this->directLoad[$folderName] ?? '') === 'direct';
-    }
-
-    public function jsonSerialize(): array
-    {
-        return [
-            "action" => $this->action,
-            "folders" => $this->folderNames,
-            "distribution" => $this->distribution,
-            "weights" => $this->weights,
-            "directload" => $this->directLoad
-        ];
-    }
-}
-
-class LandingSettings implements JsonSerializable
-{
-    public string $action;
-    public array $folderNames;
+    /** @var array<array{url: string, label: string}> */
     public array $redirectUrls;
     public int $redirectType;
-    public string $distribution;
     public array $weights;
-    public array $directLoad;
+    public array $folderLoadTypes;
 
-    public static function fromArray($arr): LandingSettings
+    public static function fromArray($arr): StepSettings
     {
-        $ls = new LandingSettings();
-        $ls->action = $arr['action'];
-        $ls->folderNames = $arr['folders'];
-        $ls->redirectUrls = $arr['redirect']['urls'];
-        $ls->redirectType = $arr['redirect']['type'];
-        $ls->distribution = $arr['distribution'] ?? 'equal';
-        $ls->weights = $arr['weights'] ?? [];
-        $ls->directLoad = $arr['directload'] ?? [];
-        return $ls;
+        $ss = new StepSettings();
+        $ss->action = $arr['action'] ?? 'folder';
+        $ss->folderNames = $arr['folders'] ?? [];
+        $ss->redirectUrls = $arr['redirect']['urls'] ?? [];
+        $ss->redirectType = $arr['redirect']['type'] ?? 302;
+        $ss->weights = $arr['weights'] ?? [];
+        $ss->folderLoadTypes = $arr['folderloadtypes'] ?? [];
+        return $ss;
     }
 
     public function isDirectLoad(string $folderName): bool
     {
-        return ($this->directLoad[$folderName] ?? '') === 'direct';
+        return ($this->folderLoadTypes[$folderName] ?? '') === 'direct';
+    }
+
+    public function getLoadMode(string $folderName): string
+    {
+        return $this->folderLoadTypes[$folderName] ?? 'base';
+    }
+
+    public function isRedirect(): bool
+    {
+        return $this->action === 'redirect';
+    }
+
+    public function isFolder(): bool
+    {
+        return $this->action === 'folder';
+    }
+
+    public function getItems(): array
+    {
+        if ($this->isRedirect()) {
+            return array_map(fn($r) => $r['label'] ?? $r['url'] ?? '', $this->redirectUrls);
+        }
+        return $this->folderNames;
+    }
+
+    public function getRedirectUrlByLabel(string $label): string
+    {
+        foreach ($this->redirectUrls as $r) {
+            if (($r['label'] ?? '') === $label) {
+                return $r['url'];
+            }
+        }
+        return !empty($this->redirectUrls) ? $this->redirectUrls[0]['url'] : '';
+    }
+
+    public static function generateRedirectLabel(string $url): string
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        return $host ? preg_replace('/^www\./', '', $host) : 'redirect';
     }
 
     public function jsonSerialize(): array
@@ -303,9 +311,8 @@ class LandingSettings implements JsonSerializable
                 "urls" => $this->redirectUrls,
                 "type" => $this->redirectType
             ],
-            "distribution" => $this->distribution,
             "weights" => $this->weights,
-            "directload" => $this->directLoad
+            "folderloadtypes" => $this->folderLoadTypes
         ];
     }
 }
