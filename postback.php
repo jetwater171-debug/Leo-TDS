@@ -10,10 +10,10 @@ require_once __DIR__ . '/currency.php';
 global $db;
 
 $curLink = (is_https() ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']. $_SERVER['REQUEST_URI'];
-$subid = $_REQUEST['subid'] ?? '';
-if ($subid === '') {
+$clickid = $_REQUEST['clickid'] ?? '';
+if ($clickid === '') {
     http_response_code(500);
-    $msg = "No subid found! Url: $curLink";
+    $msg = "No clickid found! Url: $curLink";
     add_log("postback", $msg);
     echo $msg;
     exit;
@@ -35,11 +35,10 @@ if ($payout === '') {
     exit;
 }
 
-$click = $db->get_clicks_by_subid($subid,true);
-if (empty($click))
-{
+$click = $db->get_click_by_clickid($clickid);
+if (empty($click)) {
     http_response_code(500);
-    $msg = "No click data for subid $subid found! Url: $curLink";
+    $msg = "No click data for clickid $clickid found! Url: $curLink";
     add_log("postback", $msg);
     echo $msg;
     exit;
@@ -47,7 +46,7 @@ if (empty($click))
 $cs = $db->get_campaign_settings($click['campaign_id']);
 $c = new Campaign($click['campaign_id'],$cs);
 
-$inner_status = match(strtolower($status)) {
+$inner_status = match (strtolower($status)) {
     strtolower($c->postback->leadStatusName) => 'Lead',
     strtolower($c->postback->purchaseStatusName) => 'Purchase',
     strtolower($c->postback->rejectStatusName) => 'Reject',
@@ -67,25 +66,25 @@ if ($inner_status === '') {
 $currency = strtoupper($_REQUEST['currency'] ?? 'USD');
 $payout = CurrencyConverter::convert($payout, $currency);
 
-$updated = $db->update_status($subid, $inner_status, $payout);
+$updated = $db->update_status($clickid, $inner_status, $payout);
 
 if ($updated) {
-    process_s2s_posbacks($c->postback->s2sPostbacks, $inner_status, $subid);
+    process_s2s_posbacks($c->postback->s2sPostbacks, $inner_status, $clickid);
     http_response_code(200);
-    $msg = "Postback for subid $subid with status $status and payout $payout $currency accepted.";
+    $msg = "Postback for clickid $clickid with status $status and payout $payout $currency accepted.";
     add_log("postback", $msg);
     echo $msg;
 } else {
     http_response_code(404);
-    $msg = "Postback for subid $subid with status $status and payout $payout $currency NOT accepted! Subid NOT FOUND.";
+    $msg = "Postback for clickid $clickid with status $status and payout $payout $currency NOT accepted! Clickid NOT FOUND.";
     add_log("postback", $msg);
     echo $msg;
 }
 
 
-function process_s2s_posbacks(array $s2s_postbacks, string $inner_status, string $subid): void
+function process_s2s_posbacks(array $s2s_postbacks, string $inner_status, string $clickid): void
 {
-    $mp = new MacrosProcessor($subid);
+    $mp = new MacrosProcessor();
     foreach ($s2s_postbacks as $s2s) {
         if (empty($s2s->url)) continue;
         if (!in_array($inner_status, $s2s->events)) continue;
