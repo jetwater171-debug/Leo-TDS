@@ -4,7 +4,7 @@ require_once __DIR__ . '/../bases/lang/AcceptLanguage.php';
 require_once __DIR__ . '/../bases/lang/Language.php';
 require_once __DIR__ . '/../bases/lang/LanguageDetector.php';
 
-use Sinergi\BrowserDetector\Language;
+use Sinergi\BrowserDetector\Language as BrowserLanguage;
 
 class ThankyouTemplate
 {
@@ -18,12 +18,12 @@ class ThankyouTemplate
 
     public function __construct()
     {
-        if (isset($_REQUEST['lang']))
+        if (isset($_REQUEST['lang'])) {
             $this->lang = strtolower($_REQUEST['lang']);
-        elseif (isset($_REQUEST['country']))
+        } elseif (isset($_REQUEST['country'])) {
             $this->lang = CountryFuncs::get_language($_REQUEST['country']);
-        else {
-            $this->lang = (new Language())->getLanguage();
+        } else {
+            $this->lang = (new BrowserLanguage())->getLanguage();
         }
 
         if (isset($_REQUEST['template'])) {
@@ -39,11 +39,13 @@ class ThankyouTemplate
             $this->template = substr($directories[$r], strlen($this->dir) + 1);
         }
 
-        if (!is_dir(__DIR__ . '/' . $this->cache_dir))
+        if (!is_dir(__DIR__ . '/' . $this->cache_dir)) {
             mkdir(__DIR__ . '/' . $this->cache_dir);
+        }
 
-        if (!is_dir(__DIR__ . '/' . $this->cache_dir . '/' . $this->template))
+        if (!is_dir(__DIR__ . '/' . $this->cache_dir . '/' . $this->template)) {
             mkdir(__DIR__ . '/' . $this->cache_dir . '/' . $this->template);
+        }
     }
 
     public function processTemplate()
@@ -84,12 +86,18 @@ class ThankyouTemplate
     public function processMacros()
     {
         $thankyou = $this->pageContent;
-        if (isset($_REQUEST['subid']))
-            $thankyou = str_replace('{SUBID}', $_REQUEST['subid'], $thankyou);
-        if (isset($_GET['name']))
+        if (isset($_REQUEST['clickid'])) {
+            $thankyou = str_replace('{CLICKID}', $_REQUEST['clickid'], $thankyou);
+        }
+        if (isset($_REQUEST['userid'])) {
+            $thankyou = str_replace('{USERID}', $_REQUEST['userid'], $thankyou);
+        }
+        if (isset($_GET['name'])) {
             $thankyou = str_replace('{NAME}', $_GET['name'], $thankyou);
-        if (isset($_GET['phone']))
+        }
+        if (isset($_GET['phone'])) {
             $thankyou = str_replace('{PHONE}', $_GET['phone'], $thankyou);
+        }
         $this->pageContent = $thankyou;
     }
 
@@ -101,15 +109,18 @@ class ThankyouTemplate
 
     public function addPixelCode()
     {
-        if (!isset($pixel_sub))
+        if (!isset($pixel_sub)) {
             $pixel_sub = 'px'; //The GET/POST parameter that will have a Facebook's pixel ID as it's value
+        }
         if (!isset($pixel_event)) {
             $pixel_event = 'Lead';
-            if (isset($_REQUEST['pixelevent']))
+            if (isset($_REQUEST['pixelevent'])) {
                 $pixel_event = $_REQUEST['pixelevent'];
+            }
         }
-        if (isset($_REQUEST[$pixel_sub]))
+        if (isset($_REQUEST[$pixel_sub])) {
             $pixel_code = '<img height="1" width="1" src="https://www.facebook.com/tr?id=' . $_REQUEST[$pixel_sub] . '&ev=' . $pixel_event . '&noscript=1">';
+        }
         if (isset($pixel_code)) {
             include_once __DIR__ . '/htmlinject.php';
             $this->pageContent = insert_after_tag($this->pageContent, '<body', $pixel_code);
