@@ -7,6 +7,26 @@ var isDirty = false;
 var cmInstance = null;
 var initialContent = '';
 
+function normalizeEditorContent(text) {
+    if (typeof text !== 'string') return '';
+    return text.replace(/\r\n?/g, '\n');
+}
+
+function showEditorLoading(message) {
+    var container = document.getElementById('fe-editor');
+    if (!container) return;
+    if (editorView) {
+        editorView.destroy();
+        editorView = null;
+    }
+    var safe = escHtml(message || 'Loading...');
+    container.innerHTML =
+        '<div class="fe-loading">' +
+            '<div class="fe-loading-spinner" aria-hidden="true"></div>' +
+            '<div class="fe-loading-text">' + safe + '</div>' +
+        '</div>';
+}
+
 // ── Pick the right cm6 bundle for a file extension ──
 function getCm6Bundle(ext) {
     switch (ext) {
@@ -96,8 +116,11 @@ function renderTree(tree, container, depth) {
             el.innerHTML = '<i class="bi ' + icon + ' fe-icon-file"></i> ' + escHtml(item.name);
             el.addEventListener('click', function (e) {
                 e.stopPropagation();
-                selectTreeItem(el);
-                openFile(item.path);
+                openFile(item.path).then(function (opened) {
+                    if (opened) {
+                        selectTreeItem(el);
+                    }
+                });
             });
             container.appendChild(el);
         }
@@ -192,14 +215,27 @@ function loadTree() {
         // Auto-open index file if no file is currently open
         if (!currentFile) {
             var indexFile = findIndexFile(data.tree);
-            if (indexFile) openFile(indexFile);
+            if (indexFile) {
+                openFile(indexFile).then(function (opened) {
+                    if (!opened) return;
+                    var items = treeEl.querySelectorAll('.fe-tree-item');
+                    for (var i = 0; i < items.length; i++) {
+                        var el = items[i];
+                        if (el.dataset.type === 'file' && el.dataset.path === indexFile) {
+                            selectTreeItem(el);
+                            break;
+                        }
+                    }
+                });
+            }
         }
     });
 }
 
 // ── Open file ──
 function openFile(filePath) {
-    if (isDirty && !confirm('You have unsaved changes. Discard?')) return;
+    if (hasUnsavedChanges() && !confirm('You have unsaved changes. Discard?')) return Promise.resolve(false);
+    showEditorLoading('Loading file...');
 
     var ext = filePath.split('.').pop().toLowerCase();
 
@@ -215,25 +251,30 @@ function openFile(filePath) {
             'style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;" />' +
             '</div>';
         isDirty = false;
-        return;
+        initialContent = '';
+        return Promise.resolve(true);
     }
 
     // Other binary files
     var binaryExts = ['woff', 'woff2', 'ttf', 'eot', 'otf', 'zip', 'gz', 'tar', 'pdf', 'mp3', 'mp4', 'avi', 'mov'];
     if (binaryExts.indexOf(ext) !== -1) {
         alert('Binary file — cannot edit: ' + filePath);
-        return;
+        return Promise.resolve(false);
     }
 
-    apiCall('read', { file: filePath }, 'GET').then(function (data) {
+    return apiCall('read', { file: filePath }, 'GET').then(function (data) {
         if (data.error) {
             alert('Error reading file: ' + data.result);
-            return;
+            return false;
         }
         currentFile = filePath;
         document.getElementById('fe-current-file').textContent = filePath;
         setEditorContent(data.content, ext);
         isDirty = false;
+        return true;
+    }).catch(function (err) {
+        alert('Error reading file: ' + err);
+        return false;
     });
 }
 
@@ -252,9 +293,28 @@ function setEditorContent(content, ext) {
     }
     cmInstance = bundle.load();
     editorView = cmInstance.newEditor(container, content, { dark: true, lineWrapping: true });
-    initialContent = content;
+    showSearchPanelByDefault();
+    initialContent = normalizeEditorContent(content);
     isDirty = false;
-    container.onkeydown = function () { isDirty = true; };
+}
+
+function hasUnsavedChanges() {
+    if (!editorView || !currentFile) return false;
+    return normalizeEditorContent(editorView.state.doc.toString()) !== normalizeEditorContent(initialContent);
+}
+
+function showSearchPanelByDefault() {
+    if (!editorView || !editorView.contentDOM) return;
+    setTimeout(function () {
+        if (!editorView || !editorView.contentDOM) return;
+        editorView.focus();
+        editorView.contentDOM.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'f',
+            ctrlKey: true,
+            bubbles: true,
+            cancelable: true,
+        }));
+    }, 0);
 }
 
 // ── Save file ──
@@ -269,6 +329,7 @@ function saveFile() {
             alert('Save error: ' + data.result);
         } else {
             isDirty = false;
+            initialContent = normalizeEditorContent(content);
             alert('Saved successfully!');
         }
     });
@@ -279,12 +340,17 @@ function setupToolbar() {
     document.getElementById('fe-save-btn').addEventListener('click', saveFile);
 
     document.getElementById('fe-close-btn').addEventListener('click', function () {
-        if (isDirty && !confirm('You have unsaved changes. Close anyway?')) return;
+        if (hasUnsavedChanges() && !confirm('You have unsaved changes. Close anyway?')) return;
         document.getElementById('fe-modal').style.display = 'none';
         document.body.classList.remove('fe-modal-open');
         currentFolder = '';
         currentFile = '';
         isDirty = false;
+        initialContent = '';
+        selectedTreeEl = null;
+        document.getElementById('fe-tree').innerHTML = '';
+        document.getElementById('fe-current-file').textContent = '';
+        document.getElementById('fe-editor').innerHTML = '';
         if (editorView) {
             editorView.destroy();
             editorView = null;
@@ -429,10 +495,13 @@ export function openFileEditor(folderName, type) {
     document.getElementById('fe-folder-name').textContent = folderName;
     document.getElementById('fe-current-file').textContent = '';
     document.getElementById('fe-editor').innerHTML = '';
+    document.getElementById('fe-tree').innerHTML = '';
+    selectedTreeEl = null;
+    initialContent = '';
 
     modal.style.display = 'flex';
     document.body.classList.add('fe-modal-open');
-    setEditorContent('', 'html');
+    showEditorLoading('Loading files...');
     loadTree();
 }
 

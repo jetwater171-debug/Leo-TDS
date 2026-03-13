@@ -161,3 +161,29 @@ body.fe-modal-open {
 #fe-editor .cm-scroller {
     overflow: auto;
 }
+
+.fe-loading {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #a6adc8;
+    font-size: 13px;
+}
+
+.fe-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #313244;
+    border-top-color: #89b4fa;
+    border-radius: 50%;
+    animation: fe-spin 0.9s linear infinite;
+}
+
+@keyframes fe-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
