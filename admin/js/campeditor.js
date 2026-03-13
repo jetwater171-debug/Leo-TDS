@@ -70,10 +70,12 @@ document.addEventListener('DOMContentLoaded', function() {
         closeCampMenu();
 
         if (menuItem.classList.contains('btn-rename')) {
-            const newName = prompt("Enter new campaign name:");
+            const currentName = campaignName ?? '';
+            const newName = prompt("Enter new campaign name:", currentName);
             if (newName == null) return;
-            if (newName) {
-                await campEditor('ren', campaignId, newName);
+            const trimmedName = newName.trim();
+            if (trimmedName) {
+                await campEditor('ren', campaignId, trimmedName);
             } else {
                 alert('Campaign name can not be empty!');
             }
@@ -88,7 +90,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (menuItem.classList.contains('btn-clone')) {
-            await campEditor('dup', campaignId);
+            const defaultCloneName = `${campaignName ?? ''} (Clone)`;
+            const newName = prompt("Enter cloned campaign name:", defaultCloneName);
+            if (newName == null) return;
+            const trimmedName = newName.trim();
+            if (!trimmedName) {
+                alert('Campaign name can not be empty!');
+                return;
+            }
+            await campEditor('dup', campaignId, trimmedName);
             return;
         }
 
@@ -99,17 +109,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (menuItem.classList.contains('btn-allowed')) {
-            window.location.href = `clicks.php?campId=${campaignId}&filter=allowed${startDateEndDateParams}`;
+            window.location.href = `clicks.php?campId=${campaignId}&view=allowed${startDateEndDateParams}`;
             return;
         }
 
         if (menuItem.classList.contains('btn-blocked')) {
-            window.location.href = `clicks.php?campId=${campaignId}&filter=blocked${startDateEndDateParams}`;
+            window.location.href = `clicks.php?campId=${campaignId}&view=blocked${startDateEndDateParams}`;
             return;
         }
 
         if (menuItem.classList.contains('btn-leads')) {
-            window.location.href = `clicks.php?campId=${campaignId}&filter=leads${startDateEndDateParams}`;
+            window.location.href = `clicks.php?campId=${campaignId}&view=leads${startDateEndDateParams}`;
             return;
         }
     });
