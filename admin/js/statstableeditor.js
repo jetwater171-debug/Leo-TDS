@@ -28,6 +28,9 @@ function initializeStatsTableEditor(availableColumns, selectedMetrics, available
         addParamItem('dimensionsColumns', pd.substring(6));
     }
 
+    // Keep exact saved GroupBy order (including param.* positions)
+    reorderItemsByFields('dimensionsColumns', selectedDimensions);
+
     // Enforce dimension limit on init (disables + Param button if already at max)
     enforceDimensionLimit(MAX_GROUPBY_SELECTIONS);
 
@@ -241,6 +244,24 @@ function initializeSortable(containerId, group) {
     });
 }
 
+function reorderItemsByFields(containerId, orderedFields) {
+    const container = document.getElementById(containerId);
+    if (!container || !Array.isArray(orderedFields) || orderedFields.length === 0) return;
+
+    const byField = new Map();
+    qsa(`#${containerId} .column-item`).forEach((el) => {
+        byField.set(el.dataset.field, el);
+    });
+
+    orderedFields.forEach((field) => {
+        const el = byField.get(field);
+        if (el) {
+            container.appendChild(el);
+            byField.delete(field);
+        }
+    });
+}
+
 // ── Sort toggle (3-state) on metric columns ──
 
 function getSortToggleIcon(state) {
@@ -304,4 +325,3 @@ function enforceDimensionLimit(max) {
         addBtn.style.opacity = total >= max ? '0.5' : '';
     }
 }
-

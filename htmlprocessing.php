@@ -37,47 +37,143 @@ function load_content_with_include($url): string
     return $html;
 }
 
-//Load content of black landing from another folder
-function load_prelanding(Campaign $c, string $url, bool $directLoad = false): string
+function get_next_step_url(string $clickid, int $stepIndex): string
 {
-    $path = get_landing_path($url);
-    $fullpath = get_abs_from_rel($path);
+    $cloaker = get_cloaker_relative_path();
+    return $cloaker . 'next.php?' . http_build_query(['clickid' => $clickid, 'step' => $stepIndex]);
+}
 
-    $html = load_content_with_include($path);
+function get_directload_step_url(string $clickid, int $stepIndex, string $relativePath = ''): string
+{
+    $cloaker = get_cloaker_relative_path();
+    $base = $cloaker . '__dl/' . rawurlencode($clickid) . '/' . $stepIndex . '/';
+    $relativePath = ltrim($relativePath, '/');
+    if ($relativePath === '') {
+        return $base;
+    }
+
+    $parts = array_filter(explode('/', $relativePath), fn($p) => $p !== '');
+    return $base . implode('/', array_map('rawurlencode', $parts));
+}
+
+function build_send_action_url(string $originalAction, string $clickid, string $folderName): string
+{
+    $cloaker = get_cloaker_relative_path();
+    $query = http_build_query([
+        'original_action' => $originalAction,
+        'clickid' => $clickid,
+        'folder' => $folderName,
+    ]);
+    return $cloaker . 'send.php?' . $query;
+}
+
+function get_cloaker_relative_path(): string
+{
+    $scriptPath = array_values(array_filter(explode('/', (string)($_SERVER['SCRIPT_NAME'] ?? '')), 'strlen'));
+    array_pop($scriptPath);
+
+    if (!empty($scriptPath) && in_array(end($scriptPath), ['js', 'api'], true)) {
+        array_pop($scriptPath);
+    }
+
+    $path = '/' . implode('/', $scriptPath);
+    if ($path === '/') {
+        return '/';
+    }
+    if (!str_ends_with($path, '/')) {
+        $path .= '/';
+    }
+    return $path;
+}
+
+function load_step(Campaign $c, FlowSettings $flow, int $stepIndex, string $folderName, string $clickid, bool $directLoad = false, string $relativePath = ''): string
+{
+    if (!isset($flow->steps[$stepIndex])) {
+        return '';
+    }
+
+    $steps = $flow->steps;
+    $step = $steps[$stepIndex];
+    $isLastStep = $stepIndex === (count($steps) - 1);
+
+    $basePath = get_landing_path($folderName);
+    $relativePath = ltrim($relativePath, '/');
+    $targetPath = $relativePath === '' ? $basePath : ($basePath . '/' . $relativePath);
+
+    $html = load_content_with_include($targetPath);
     $html = remove_scrapbook($html);
 
     if ($directLoad) {
-        set_cookie('dl', 'preland');
+        $directBase = get_directload_step_url($clickid, $stepIndex);
+        $html = fix_head_add_base($html, $directBase);
+        $html = fix_root_relative_urls($html);
     } else {
-        set_cookie('dl', '');
-        //cleaning <head>
+        $fullpath = get_abs_from_rel($basePath);
         $html = fix_head_add_base($html, $fullpath);
         $html = fix_src($html);
     }
 
-    $mp = new MacrosProcessor();
+    global $db;
+    $click = $db->get_click_by_clickid($clickid);
+    $userid = $click['userid'] ?? null;
+    $mp = new MacrosProcessor($c, null, $clickid, $userid);
+
+    if ($isLastStep) {
+        $html = preg_replace_callback(
+            '/\saction=[\'\"]([^\'\"]+)[\'\"]/',
+            function ($matches) use ($clickid, $folderName) {
+                $sendUrl = build_send_action_url($matches[1], $clickid, $folderName);
+                return ' action="' . $sendUrl . '"';
+            },
+            $html
+        );
+
+        $submitRedirectRule = $c->scripts->getSubmitRedirectRule($flow->name, $stepIndex);
+        if ($submitRedirectRule !== null) {
+            $redirectUrl = $mp->replace_url_macros($submitRedirectRule['url']);
+            $html = insert_file_content(
+                $html,
+                'submitredirect.js',
+                '</body>',
+                true,
+                true,
+                ['{REDIRECT_URL_JSON}'],
+                [json_encode($redirectUrl)]
+            );
+        }
+
+        $html = insert_file_content($html, 'fixanchors.js', '<body', false, true);
+    } else {
+        $html = preg_replace('/(<a[^>]+)(target="_blank")/i', "\\1", $html);
+
+        $replacement = get_next_step_url($clickid, $stepIndex);
+        $nextRedirectRule = $c->scripts->getNextRedirectRule($flow->name, $stepIndex);
+        if ($nextRedirectRule !== null) {
+            $redirectUrl = $mp->replace_url_macros($nextRedirectRule['url']);
+            $html = insert_file_content(
+                $html,
+                'nextredirect.js',
+                '</body>',
+                true,
+                true,
+                ['{NEXT_URL_JSON}', '{REDIRECT_URL_JSON}'],
+                [json_encode($replacement), json_encode($redirectUrl)]
+            );
+        }
+
+        $html = preg_replace('/\{next\}/', $replacement, $html);
+        $html = preg_replace('/\{offer\}/', $replacement, $html);
+
+        if ($c->scripts->backfix) {
+            $urls = array_map(fn($u) => $mp->replace_url_macros($u), $c->scripts->backfixUrls);
+            $html = add_backfix($html, $urls);
+        }
+    }
+
     $html = $mp->replace_html_macros($html);
     $html = fix_phone_and_name($html);
 
-    //removing target=_blank
-    $html = preg_replace('/(<a[^>]+)(target="_blank")/i', "\\1", $html);
-
-    $cloaker = get_cloaker_path();
-    $querystr = $_SERVER['QUERY_STRING'] ?? '';
-    $replacement = $cloaker . 'landing.php' . (!empty($querystr) ? '?' . $querystr : '');
-
-
-    //if we will be replacing the prelanding with the landing, then the landing should be opened in a new window
-    if ($c->scripts->replacePrelanding) {
-        $replacement .= '" target="_blank"';
-        $url = $mp->replace_url_macros($c->scripts->replacePrelandingAddress); //replacing macros
-        $html = insert_file_content($html, 'replaceprelanding.js', '</body>', true, true, '{REDIRECT}', $url);
-    }
-
-    // replace the default {offer} macro
-    $html = preg_replace('/\{offer\}/', $replacement, $html);
-
-    if ($c->scripts->backfix) {
+    if ($isLastStep && !$flow->hasMultipleSteps() && $c->scripts->backfix) {
         $urls = array_map(fn($u) => $mp->replace_url_macros($u), $c->scripts->backfixUrls);
         $html = add_backfix($html, $urls);
     }
@@ -85,70 +181,33 @@ function load_prelanding(Campaign $c, string $url, bool $directLoad = false): st
     if ($c->scripts->imagesLazyLoad) {
         $html = add_images_lazy_load($html);
     }
+
+    $html = add_event_tracking($html, $c->scripts, $clickid);
+
     return $html;
 }
 
-//Load content of black landing from another folder
-function load_landing(Campaign $c, bool $hasPrelanding, string $url, bool $directLoad = false)
+function add_event_tracking(string $html, ScriptsSettings $scripts, string $clickid): string
 {
-    $path = get_landing_path($url);
-    $fullpath = get_abs_from_rel($path);
-
-    $html = load_content_with_include($path);
-    $html = remove_scrapbook($html);
-    if ($directLoad) {
-        set_cookie('dl', 'land');
-    } else {
-        set_cookie('dl', '');
-        $html = fix_head_add_base($html, $fullpath);
-        $html = fix_src($html);
+    if (!$scripts->scrollTrackingUse && !$scripts->timeTrackingUse) {
+        return $html;
     }
 
-    $query = http_build_query($_GET);
-    $cloaker = get_cloaker_path();
-    $sendPath = $directLoad ? $cloaker . 'send.php' : '../send.php';
-    $html = preg_replace_callback(
-        '/\saction=[\'\"]([^\'\"]+)[\'\"]/',
-        function ($matches) use ($query, $sendPath) {
-            $originalAction = urlencode($matches[1]);
-            $send = " action=\"{$sendPath}?original_action={$originalAction}";
-            if ($query !== '') {
-                $send .= "&" . $query;
-            }
-            $send .= "\"";
-            return $send;
-        },
-        $html
+    $eventApiUrl = get_cloaker_relative_path() . 'api/events.php';
+    return insert_file_content(
+        $html,
+        'eventtracking.js',
+        '</body>',
+        true,
+        true,
+        ['{EVENT_API_URL_JSON}', '{CLICK_ID_JSON}', '{SCROLL_THRESHOLDS_JSON}', '{TIME_THRESHOLDS_JSON}'],
+        [
+            json_encode($eventApiUrl),
+            json_encode($clickid),
+            json_encode($scripts->scrollTrackingUse ? $scripts->scrollTrackingThresholds : []),
+            json_encode($scripts->timeTrackingUse ? $scripts->timeTrackingThresholds : []),
+        ]
     );
-
-    $mp = new MacrosProcessor();
-    //if we will be replacing the landing when going to the Thank You page,
-    //then the Thank You page should open in a new window
-    if ($c->scripts->replaceLanding) {
-        $replacelandurl = $mp->replace_url_macros($c->scripts->replaceLandingAddress); //replace macros
-        $html = insert_file_content($html, 'replacelanding.js', '</body>', true, true, '{REDIRECT}', $replacelandurl);
-    }
-
-    $html = insert_file_content($html, "fixanchors.js", "<body", false, true);
-
-    $html = $mp->replace_html_macros($html);
-    //replace phone field with more convenient type - tel + add autocomplete
-    $html = fix_phone_and_name($html);
-
-
-    //adding backfix ONLY if we don't have a prelanding, cause prelanding will have it
-    if (!$hasPrelanding) {
-        if ($c->scripts->backfix) {
-            $urls = array_map(fn($u) => $mp->replace_url_macros($u), $c->scripts->backfixUrls);
-            $html = add_backfix($html, $urls);
-        }
-    }
-
-    if ($c->scripts->imagesLazyLoad) {
-        $html = add_images_lazy_load($html);
-    }
-
-    return $html;
 }
 
 function fix_head_add_base($html, $fullpath)
@@ -162,6 +221,26 @@ function fix_src($html): string
 {
     $src_regex = '/(<[^>]+src=[\'\"])\/([^\/][^>]*>)/';
     return preg_replace($src_regex, "\\1\\2", $html);
+}
+
+function fix_root_relative_urls(string $html): string
+{
+    $cloakerBase = rtrim(get_cloaker_relative_path(), '/');
+    $html = preg_replace_callback(
+        '/(\s(?:src|href|action)=[\'\"])(\/(?!\/)[^\'\"]*)/i',
+        function ($matches) use ($cloakerBase) {
+            $attrPrefix = $matches[1];
+            $url = $matches[2];
+
+            if ($cloakerBase !== '' && str_starts_with($url, $cloakerBase . '/')) {
+                return $attrPrefix . $url;
+            }
+
+            return $attrPrefix . ltrim($url, '/');
+        },
+        $html
+    );
+    return $html;
 }
 
 function add_input_attribute($html, $regex, $attribute)
@@ -214,6 +293,7 @@ function load_white_content($url, string $mode = 'base'): string
     switch ($mode) {
         case 'direct':
             session_write('dl', 'white');
+            $html = fix_root_relative_urls($html);
             break;
         case 'rewrite':
             $baseurl = get_cloaker_path() . $path . '/';

@@ -17,7 +17,7 @@ if (__FILE__ === $_SERVER['SCRIPT_FILENAME'] ||
 }
 
 define("YC_API_KEY", "test");
-define("YC_API_URL", "http://localhost:8080/fromfolder/phpconnect.php");
+define("YC_API_URL", "http://localhost:8080/fromfolder/api/phpconnect.php");
 define("YC_DEBUG", true);
 
 class YellowCloakerClient 

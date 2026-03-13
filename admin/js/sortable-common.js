@@ -111,7 +111,7 @@ function handleCheckboxChange() {
 
 // ── Shared filter constants & functions ──
 
-const FILTER_FIELDS = ['country','lang','os','osver','brand','model','device','isp','client','clientver','preland','land','flow','status','param'];
+const FILTER_FIELDS = ['country','lang','os','osver','brand','model','device','isp','client','clientver','flow','step','path','status','param'];
 let _extraFilterFields = [];
 const FILTER_OPERATORS = [
     { value: '=', label: '=' },

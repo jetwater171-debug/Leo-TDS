@@ -83,6 +83,17 @@ switch ($action) {
         return $deleted?
             send_clmnseditor_result("Stats table deleted successfully"):
             send_clmnseditor_result("Error deleting table",true);
+    case 'sharestats':
+        $data = json_decode($postData, true);
+        if (!isset($data['name']) || !isset($data['targetCampIds']) || !is_array($data['targetCampIds'])) {
+            return send_clmnseditor_result("Error: invalid share payload", true);
+        }
+
+        $copied = share_stats_table((int)$campId, $data['name'], $data['targetCampIds']);
+        if ($copied === false) {
+            return send_clmnseditor_result("Error sharing table", true);
+        }
+        return send_clmnseditor_result("Table shared to {$copied} campaign(s)");
     default:
         return send_clmnseditor_result("Error: unknown action", true);
 }
@@ -339,4 +350,62 @@ function delete_stats_table($campId, $tableName): bool {
 
     // Save settings
     return $db->save_campaign_settings($campId, $s);
+}
+
+function share_stats_table(int $sourceCampId, string $tableName, array $targetCampIds): bool|int
+{
+    global $db;
+
+    $sourceSettings = $db->get_campaign_settings($sourceCampId);
+    if (empty($sourceSettings['statistics']['tables']) || !is_array($sourceSettings['statistics']['tables'])) {
+        return false;
+    }
+
+    $sourceTable = null;
+    foreach ($sourceSettings['statistics']['tables'] as $table) {
+        if (($table['name'] ?? '') === $tableName) {
+            $sourceTable = $table;
+            break;
+        }
+    }
+    if ($sourceTable === null) {
+        return false;
+    }
+
+    $copied = 0;
+    foreach ($targetCampIds as $targetCampIdRaw) {
+        $targetCampId = (int)$targetCampIdRaw;
+        if ($targetCampId <= 0 || $targetCampId === $sourceCampId) {
+            continue;
+        }
+
+        $targetSettings = $db->get_campaign_settings($targetCampId);
+        if (empty($targetSettings)) {
+            continue;
+        }
+        if (!isset($targetSettings['statistics']) || !is_array($targetSettings['statistics'])) {
+            $targetSettings['statistics'] = [];
+        }
+        if (!isset($targetSettings['statistics']['tables']) || !is_array($targetSettings['statistics']['tables'])) {
+            $targetSettings['statistics']['tables'] = [];
+        }
+
+        $replaced = false;
+        foreach ($targetSettings['statistics']['tables'] as $i => $table) {
+            if (($table['name'] ?? '') === $tableName) {
+                $targetSettings['statistics']['tables'][$i] = $sourceTable;
+                $replaced = true;
+                break;
+            }
+        }
+        if (!$replaced) {
+            $targetSettings['statistics']['tables'][] = $sourceTable;
+        }
+
+        if ($db->save_campaign_settings($targetCampId, $targetSettings)) {
+            $copied++;
+        }
+    }
+
+    return $copied;
 }

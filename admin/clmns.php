@@ -20,7 +20,8 @@ class AvailableColumns
     ];
 
     static $allowedColumns = [
-        "subid",
+        "userid",
+        "clickid",
         "time",
         "ip",
         "country",
@@ -35,17 +36,17 @@ class AvailableColumns
         "clientver",
         "ua",
         "params",
-        "preland",
-        "land",
         "flow",
-        "lpclick",
+        "path",
+        "step",
         "status",
         "cost",
         "payout"
     ];
 
     static $leadsColumns = [
-        "subid",
+        "userid",
+        "clickid",
         "time",
         "ip",
         "country",
@@ -60,10 +61,9 @@ class AvailableColumns
         "clientver",
         "ua",
         "params",
-        "preland",
-        "land",
         "flow",
-        "lpclick",
+        "path",
+        "step",
         "status",
         "payout",
         "name",
@@ -97,17 +97,14 @@ class AvailableColumns
         "model",
         "client",
         "clientver",
-        "preland",
-        "land",
-        "flow"
+        "flow",
+        "step"
     ];
 
     static $statsColumns = [
         "clicks",
         "uniques",
         "uniques_ratio",
-        "lpclicks",
-        "lpctr",
         "cra",
         "crs",
         "epc",
@@ -131,9 +128,37 @@ class AvailableColumns
 
     public static function get_columns_for_type($type)
     {
-        if ($type === 'single') $type = 'allowed';
         $clmnsName = $type . 'Columns';
         return self::$$clmnsName;
+    }
+
+    public static function get_stats_columns_for_campaign(Campaign $campaign, Db $db, int $campId): array
+    {
+        $columns = self::$statsColumns;
+        $eventFields = array_merge($campaign->scripts->getConfiguredEventMetricFields(), array_map(
+            fn(string $name): string => 'event.' . $name,
+            $db->get_event_names($campId)
+        ));
+
+        $seen = [];
+        foreach ($eventFields as $field) {
+            if (!is_string($field) || !str_starts_with($field, 'event.') || isset($seen[$field])) {
+                continue;
+            }
+            $seen[$field] = true;
+            $columns[] = [
+                'field' => $field,
+                'title' => self::format_event_metric_title($field),
+            ];
+        }
+
+        return $columns;
+    }
+
+    private static function format_event_metric_title(string $field): string
+    {
+        $eventName = substr($field, 6);
+        return ucwords(str_replace('_', ' ', $eventName));
     }
 }
 
@@ -236,19 +261,36 @@ class TableColumns
                 "tooltip" => "FSTARTfunction(e, cell, onRendered){ var data = cell.getValue(); var keys = Object.keys(data).sort(); var formattedData = ''; keys.forEach(function(key) { if (data.hasOwnProperty(key)) { formattedData += key + '=' + data[key] + '<br>'; } }); return formattedData;}FEND",
                 "formatter" => "FSTARTfunction(cell, formatterParams, onRendered){var data = cell.getValue();var keys = Object.keys(data).sort();var formattedData = ''; keys.forEach(function(key) { if (data.hasOwnProperty(key)) { formattedData += key + '=' + data[key] + '<br>';}}); return formattedData;}FEND"
             ],
-            "preland"=>[
-                "title" => "Preland",
-                "field" => "preland",
-                "headerTooltip" => "Chosen prelanding",
+            "userid"=>[
+                "title" => "UserID",
+                "field" => "userid",
+                "headerTooltip" => "Persistent user identifier",
                 "editor" => false,
                 "headerFilter" => false,
             ],
-            "land"=>[
-                "title" => "Land",
-                "field" => "land",
-                "headerTooltip" => "Chosen landing",
+            "clickid"=>[
+                "title" => "ClickID",
+                "field" => "clickid",
+                "headerTooltip" => "Click identifier for full funnel pass",
                 "editor" => false,
                 "headerFilter" => false,
+            ],
+            "path"=>[
+                "title" => "Path",
+                "field" => "path",
+                "headerTooltip" => "Funnel path (selected variants)",
+                "editor" => false,
+                "headerFilter" => false,
+                "formatter" => "FSTARTfunction(cell){var v=cell.getValue();if(!v||!Array.isArray(v))return '';return v.join(' → ');}FEND",
+            ],
+            "step"=>[
+                "title" => "Step",
+                "field" => "step",
+                "headerTooltip" => "Current funnel step index",
+                "editor" => false,
+                "headerFilter" => false,
+                "sorter" => "number",
+                "hozAlign" => "center",
             ],
             "flow"=>[
                 "title" => "Flow",
@@ -266,21 +308,15 @@ class TableColumns
                 "editor" => false,
                 "headerFilter" => false,
             ],
-            "lpclick"=>[
-                "title" => "LpClick",
-                "field" => "lpclick",
-                "sorter" => "boolean",
-                "formatter" => "tickCross",
-                "formatterParams" => [
-                    "tristate" => true,
-                ],
-                "hozAlign" => "center",
-                "headerFilter" => false,
-                "editor" => false,
-            ],
             "status"=>[
                 "title" => "Status",
                 "field" => "status",
+                "headerFilter" => false,
+                "editor" => false,
+            ],
+            "cost"=>[
+                "title" => "Cost",
+                "field" => "cost",
                 "headerFilter" => false,
                 "editor" => false,
             ],
@@ -303,17 +339,12 @@ class TableColumns
             "cellClick"=>"FSTARTfunction(e,cell){var row=cell.getRow();if(row.getTreeChildren().length){row.treeToggle();}}FEND",
             "bottomCalc"=>"FSTARTfunction(values, data, calcParams){return 'TOTAL';}FEND",
         ],
-        'preland' => [
-            "title" => "Preland",
-            "headerTooltip" => "Chosen prelanding",
-            "field" => "preland",
+        'step' => [
+            "title" => "Step",
+            "headerTooltip" => "Funnel step index",
+            "field" => "step",
             "headerFilter" => "input",
-        ],
-        'land' => [
-            "title" => "Land",
-            "headerTooltip" => "Chosen landing",
-            "field" => "land",
-            "headerFilter" => "input",
+            "sorter" => "number",
         ],
         'flow' => [
             "title" => "Flow",
@@ -433,39 +464,6 @@ class TableColumns
             "sorter" => "number",
             "hozAlign" => "right",
             "bottomCalc" => "sum"
-        ],
-        'lpclicks' => [
-            "title" => "LPClicks",
-            "headerTooltip" => "Landing page visitors",
-            "field" => "lpclicks",
-            "sorter" => "number",
-            "hozAlign" => "right",
-            "bottomCalc" => "sum"
-        ],
-        'lpctr' => [
-            "title" => "LPCTR",
-            "headerTooltip" => "Landing page visitors percentage",
-            "field" => "lpctr",
-            "sorter" => "number",
-            "hozAlign" => "right",
-            "width" => 76,
-            "formatter" => "money",
-            "formatterParams" => [
-                "decimal" => ".",
-                "thousand" => ",",
-                "symbol" => "%",
-                "symbolAfter" => true,
-                "precision" => 2,
-            ],
-            "bottomCalc" => "FSTARTfunction(v,d){var lp=0,c=0;d.forEach(function(r){lp+=r.lpclicks||0;c+=r.clicks||0;});return c===0?0:Math.round(lp/c*10000)/100;}FEND",
-            "bottomCalcFormatter" => "money",
-            "bottomCalcFormatterParams" => [
-                "decimal" => ".",
-                "thousand" => ",",
-                "symbol" => "%",
-                "symbolAfter" => true,
-                "precision" => 2,
-            ],
         ],
         'cra' => [
             "title" => "CRa",

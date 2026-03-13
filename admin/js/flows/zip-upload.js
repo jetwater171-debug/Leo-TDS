@@ -4,11 +4,13 @@ import { buildFolderRow } from './templates.js';
 // ── Upload ZIP: pick file, prompt folder name, upload, insert row ──
 export function handleZipUpload(btn) {
     var fi = btn.dataset.fi;
-    var type = btn.dataset.type;
-    if (!fi || !type) return;
+    if (!fi) return;
 
-    var containerId = type === 'preland' ? 'flow-preland-items-' + fi : 'flow-land-folder-items-' + fi;
-    var container = document.getElementById(containerId);
+    // Find the step section's folder items container
+    var stepSec = btn.closest('.step-section');
+    if (!stepSec) return;
+    var container = stepSec.querySelector('.flow-step-folder-items');
+    if (!container) return;
     var showWeight = getFlowDist(fi) === 'weighted';
 
     // Pick file first (preserves user gesture), then ask for folder name
@@ -22,7 +24,7 @@ export function handleZipUpload(btn) {
         if (!fileInput.files.length) { fileInput.remove(); return; }
         var file = fileInput.files[0];
 
-        var folderName = prompt('Enter folder name for the new landing:');
+        var folderName = prompt('Enter folder name for uploaded files:');
         if (!folderName || !folderName.trim()) { fileInput.remove(); return; }
         folderName = folderName.trim();
         if (!/^[a-zA-Z0-9_\-\.]+$/.test(folderName)) {
@@ -44,10 +46,9 @@ export function handleZipUpload(btn) {
                 if (data.error) {
                     alert('Upload error: ' + data.result);
                 } else {
-                    container.appendChild(buildFolderRow(type, data.folder, showWeight));
+                    container.appendChild(buildFolderRow(data.folder, showWeight));
                     if (showWeight) {
-                        var weightClass = type === 'preland' ? '.flow-preland-weight' : '.flow-land-weight';
-                        redistributeWeights(container.querySelectorAll(weightClass));
+                        redistributeWeights(container.querySelectorAll('.flow-step-weight'));
                     }
                 }
             })

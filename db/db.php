@@ -20,6 +20,58 @@ class Db
             if (!$created)
                 die("Couldn't create the SQLite database! Read logs for additional info.");
         }
+        $this->ensure_schema_migrations();
+    }
+
+    private function ensure_schema_migrations(): void
+    {
+        $db = new SQLite3($this->dbPath, SQLITE3_OPEN_READWRITE);
+        $db->busyTimeout(5000);
+
+        $columns = [];
+        $result = $db->query("PRAGMA table_info(clicks)");
+        while ($row = $result?->fetchArray(SQLITE3_ASSOC)) {
+            $columns[] = $row['name'] ?? '';
+        }
+
+        if (!in_array('events', $columns, true)) {
+            $db->exec("ALTER TABLE clicks ADD COLUMN events TEXT DEFAULT '{}'");
+        }
+
+        $db->exec(
+            "CREATE TABLE IF NOT EXISTS click_event_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clickid TEXT NOT NULL,
+                time INTEGER NOT NULL,
+                step_index INTEGER NOT NULL,
+                event_name TEXT NOT NULL,
+                event_value NUMERIC NOT NULL,
+                FOREIGN KEY (clickid) REFERENCES clicks (clickid) ON DELETE CASCADE
+            )"
+        );
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_event_clickid_time ON click_event_log (clickid,time)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_event_name_time ON click_event_log (event_name,time)');
+        $db->close();
+    }
+
+    private static function decode_click_row(array &$click): void
+    {
+        if (array_key_exists('path', $click) && is_string($click['path']) && $click['path'] !== '') {
+            $decodedPath = json_decode($click['path'], true);
+            $click['path'] = is_array($decodedPath) ? $decodedPath : [];
+        }
+
+        foreach (['params', 'events'] as $jsonField) {
+            if (!array_key_exists($jsonField, $click)) {
+                continue;
+            }
+            if (empty($click[$jsonField])) {
+                $click[$jsonField] = [];
+                continue;
+            }
+            $decoded = json_decode($click[$jsonField], true);
+            $click[$jsonField] = is_array($decoded) ? $decoded : [];
+        }
     }
 
     private function create_new_db(): bool
@@ -92,6 +144,7 @@ class Db
         $db->busyTimeout(5000);
 
         // Optimizations
+        $db->exec('PRAGMA foreign_keys = ON');
         $db->exec('PRAGMA journal_mode = wal');
         $db->exec('PRAGMA mmap_size = 268435456');    // 256MB memory mapping
         $db->exec('PRAGMA cache_size = -64000');      // 64MB cache pages  
@@ -139,12 +192,14 @@ class Db
         $query = "SELECT * FROM " . ($blocked ? "blocked" : "clicks") . " WHERE time BETWEEN :startDate AND :endDate AND campaign_id = :campid ORDER BY time DESC";
         $clicks = $this->exec_read_query($query, [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER]);
         foreach ($clicks as &$click) {
-            if (empty($click['params']))
-                continue;
-            $click['params'] = json_decode($click['params'], true);
-            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                add_log("errors", "Failed to parse trafficback params JSON for row " . $click['id'] . ": " . json_last_error_msg());
-                $click['params'] = [];
+            if (!$blocked) {
+                self::decode_click_row($click);
+            } elseif (!empty($click['params'])) {
+                $click['params'] = json_decode($click['params'], true);
+                if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
+                    add_log("errors", "Failed to parse trafficback params JSON for row " . $click['id'] . ": " . json_last_error_msg());
+                    $click['params'] = [];
+                }
             }
         }
         return $clicks;
@@ -274,14 +329,7 @@ class Db
         $dataQuery = "SELECT * FROM $table WHERE $where$filterWhere$searchWhere ORDER BY $sortExpr COLLATE NOCASE $sortDir LIMIT $size OFFSET $offset";
         $clicks = $this->exec_bind_list_query($dataQuery, $bindList);
         foreach ($clicks as &$click) {
-            if (empty($click['params'])) {
-                $click['params'] = [];
-            } else {
-                $click['params'] = json_decode($click['params'], true);
-                if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                    $click['params'] = [];
-                }
-            }
+            self::decode_click_row($click);
             // Extract requested param columns
             foreach ($paramColumns as $key) {
                 $click["param.$key"] = $click['params'][$key] ?? null;
@@ -304,16 +352,7 @@ class Db
         $query = "SELECT * FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1";
         $clicks = $this->exec_read_query($query, [$clickid => SQLITE3_TEXT]);
         foreach ($clicks as &$click) {
-            if (empty($click['params']))
-                continue;
-            $click['params'] = json_decode($click['params'], true);
-            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                add_log("errors", "Failed to parse params JSON for row " . $click['id'] . ": " . json_last_error_msg());
-                $click['params'] = [];
-            }
-            if (!empty($click['path']) && is_string($click['path'])) {
-                $click['path'] = json_decode($click['path'], true) ?? [];
-            }
+            self::decode_click_row($click);
         }
         return $clicks[0] ?? [];
     }
@@ -334,15 +373,7 @@ class Db
         $query .= " ORDER BY time DESC LIMIT 1";
         $clicks = $this->exec_read_query($query, $params);
         foreach ($clicks as &$click) {
-            if (empty($click['params']))
-                continue;
-            $click['params'] = json_decode($click['params'], true);
-            if ($click['params'] === null && json_last_error() !== JSON_ERROR_NONE) {
-                $click['params'] = [];
-            }
-            if (!empty($click['path']) && is_string($click['path'])) {
-                $click['path'] = json_decode($click['path'], true) ?? [];
-            }
+            self::decode_click_row($click);
         }
         return $clicks[0] ?? [];
     }
@@ -446,6 +477,14 @@ class Db
                     break;
                 case 'roi':
                     $selectParts[] = "((SUM(payout) - SUM(cost))*1.0 / SUM(cost) * 100.0) as roi";
+                    break;
+                default:
+                    if (str_starts_with($field, 'event.')) {
+                        $eventName = substr($field, 6);
+                        if (preg_match('/^[a-z0-9_]+$/', $eventName)) {
+                            $selectParts[] = "COALESCE(SUM(CAST(json_extract(events, '$.$eventName') AS REAL)), 0) AS \"$field\"";
+                        }
+                    }
                     break;
             }
         }
@@ -572,7 +611,7 @@ class Db
                     "strftime('%Y-%m-%d', datetime(time, 'unixepoch', '{$offsetFormatted}')) AS date";
                 $groupByParts[] = "date";
                 $orderByParts[] = "date";
-            } elseif (in_array($field, ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'flow', 'step'])) {
+            } elseif (in_array($field, ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'flow', 'step', 'path'])) {
                 $selectParts[] = $field;
                 $groupByParts[] = $field;
                 $orderByParts[] = $field;
@@ -790,19 +829,86 @@ class Db
         return $this->add_click($query, $click);
     }
 
-    public function add_black_click(string $userid, string $clickid, $data, array $path, int $step, string $flow, int $campId): bool
+    public function add_black_click(string $userid, string $clickid, $data, array $path, string $flow, int $campId): bool
     {
         $click = $this->prepare_click_data($data, $campId);
         $click['userid'] = $userid;
         $click['clickid'] = $clickid;
         $click['flow'] = empty($flow) ? 'unknown' : $flow;
         $click['path'] = json_encode($path);
-        $click['step'] = $step;
+        $click['step'] = 0;
         $click['status'] = null;
 
         $query = "INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, client, clientver, device, brand, model, isp, ua, userid, clickid, flow, path, step, params, cost, status) VALUES (:campaign_id, :time, :ip, :country, :lang, :os, :osver, :client, :clientver, :device, :brand, :model, :isp, :ua, :userid, :clickid, :flow, :path, :step, :params, :cpc, NULL)";
 
         return $this->add_click($query, $click);
+    }
+
+    public function add_click_step(string $clickid, int $step, string $variant): bool
+    {
+        if (empty($clickid)) {
+            add_log("warning", "Skipping step insertion - empty clickid provided");
+            return false;
+        }
+        if ($step < 0) {
+            add_log("warning", "Skipping step insertion - invalid step provided: $step");
+            return false;
+        }
+
+        if (!$this->clickid_exists($clickid)) {
+            add_log("warning", "Skipping step insertion - clickid not found: $clickid");
+            return false;
+        }
+
+        try {
+            $db = $this->open_db();
+            $db->exec('BEGIN IMMEDIATE');
+
+            $insertStmt = $db->prepare("INSERT OR IGNORE INTO click_steps (clickid, step, variant, time) VALUES (:clickid, :step, :variant, :time)");
+            if ($insertStmt === false) {
+                throw new Exception('Failed to prepare click_steps insert: ' . $db->lastErrorMsg());
+            }
+            $insertStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
+            $insertStmt->bindValue(':step', $step, SQLITE3_INTEGER);
+            $insertStmt->bindValue(':variant', $variant, SQLITE3_TEXT);
+            $insertStmt->bindValue(':time', time(), SQLITE3_INTEGER);
+            if ($insertStmt->execute() === false) {
+                throw new Exception('Failed to insert click step: ' . $db->lastErrorMsg());
+            }
+
+            $updateStmt = $db->prepare("UPDATE clicks SET step = MAX(step, :newStep) WHERE clickid = :clickid");
+            if ($updateStmt === false) {
+                throw new Exception('Failed to prepare click step update: ' . $db->lastErrorMsg());
+            }
+            $updateStmt->bindValue(':newStep', $step, SQLITE3_INTEGER);
+            $updateStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
+            if ($updateStmt->execute() === false) {
+                throw new Exception('Failed to update click current step: ' . $db->lastErrorMsg());
+            }
+
+            $db->exec('COMMIT');
+            return true;
+        } catch (Exception $e) {
+            $this->writeDb?->exec('ROLLBACK');
+            add_log('errors', $e->getMessage());
+            return false;
+        }
+    }
+
+    public function update_click_path(string $clickid, array $path): bool
+    {
+        if (empty($clickid)) {
+            add_log("warning", "Skipping path update - empty clickid provided");
+            return false;
+        }
+        $pathJson = json_encode(array_values($path));
+        if ($pathJson === false) {
+            add_log("warning", "Skipping path update - invalid path JSON for clickid: $clickid");
+            return false;
+        }
+
+        $query = "UPDATE clicks SET path = :path WHERE clickid = :clickid";
+        return $this->exec_update_query($query, [$pathJson => SQLITE3_TEXT, $clickid => SQLITE3_TEXT]);
     }
 
     public function add_lead(string $clickid, array $leaddata, string $status = 'Lead'): bool
@@ -833,7 +939,7 @@ class Db
         }
 
         $updateQuery = "UPDATE clicks SET status = :status, payout = :payout WHERE id = (SELECT id FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1)";
-        return $this->exec_update_query($updateQuery, [$clickid => SQLITE3_TEXT, $status => SQLITE3_TEXT, $payout => SQLITE3_FLOAT]);
+        return $this->exec_update_query($updateQuery, [$status => SQLITE3_TEXT, $payout => SQLITE3_FLOAT, $clickid => SQLITE3_TEXT]);
     }
 
     public function update_click_params(int $clickId, array $params): bool
@@ -853,16 +959,102 @@ class Db
         return $this->exec_update_query($updateQuery, [$paramsJson => SQLITE3_TEXT, $clickId => SQLITE3_INTEGER]);
     }
 
+    public function add_click_event(string $clickid, string $eventName, float $eventValue): bool
+    {
+        if ($clickid === '' || !preg_match('/^[a-z0-9_]+$/', $eventName) || !is_finite($eventValue)) {
+            return false;
+        }
+
+        $db = $this->open_db();
+        try {
+            $db->exec('BEGIN IMMEDIATE');
+
+            $clickStmt = $db->prepare('SELECT id, step, events FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1');
+            if ($clickStmt === false) {
+                throw new Exception('Failed to prepare click lookup: ' . $db->lastErrorMsg());
+            }
+            $clickStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
+            $clickRow = $clickStmt->execute()?->fetchArray(SQLITE3_ASSOC) ?: null;
+            if (!is_array($clickRow)) {
+                throw new Exception('Click not found for clickid ' . $clickid);
+            }
+
+            $events = [];
+            if (!empty($clickRow['events'])) {
+                $decoded = json_decode((string)$clickRow['events'], true);
+                if (is_array($decoded)) {
+                    $events = $decoded;
+                }
+            }
+            $events[$eventName] = round(((float)($events[$eventName] ?? 0)) + $eventValue, 6);
+            $eventsJson = json_encode($events);
+            if ($eventsJson === false) {
+                throw new Exception('Failed to encode events JSON');
+            }
+
+            $insertStmt = $db->prepare('INSERT INTO click_event_log (clickid, time, step_index, event_name, event_value) VALUES (:clickid, :time, :step_index, :event_name, :event_value)');
+            if ($insertStmt === false) {
+                throw new Exception('Failed to prepare event insert: ' . $db->lastErrorMsg());
+            }
+            $insertStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
+            $insertStmt->bindValue(':time', time(), SQLITE3_INTEGER);
+            $insertStmt->bindValue(':step_index', max(0, (int)($clickRow['step'] ?? 0)), SQLITE3_INTEGER);
+            $insertStmt->bindValue(':event_name', $eventName, SQLITE3_TEXT);
+            $insertStmt->bindValue(':event_value', $eventValue, SQLITE3_FLOAT);
+            if ($insertStmt->execute() === false) {
+                throw new Exception('Failed to insert event: ' . $db->lastErrorMsg());
+            }
+
+            $updateStmt = $db->prepare('UPDATE clicks SET events = :events WHERE id = :id');
+            if ($updateStmt === false) {
+                throw new Exception('Failed to prepare events update: ' . $db->lastErrorMsg());
+            }
+            $updateStmt->bindValue(':events', $eventsJson, SQLITE3_TEXT);
+            $updateStmt->bindValue(':id', (int)$clickRow['id'], SQLITE3_INTEGER);
+            if ($updateStmt->execute() === false) {
+                throw new Exception('Failed to update click events: ' . $db->lastErrorMsg());
+            }
+
+            $db->exec('COMMIT');
+            return true;
+        } catch (Exception $e) {
+            $db->exec('ROLLBACK');
+            add_log('errors', 'Failed to add click event: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function get_event_names(int $campId): array
+    {
+        $query = 'SELECT DISTINCT cel.event_name AS event_name FROM click_event_log cel INNER JOIN clicks c ON c.clickid = cel.clickid WHERE c.campaign_id = :campid ORDER BY cel.event_name';
+        $rows = $this->exec_read_query($query, [$campId => SQLITE3_INTEGER]);
+        return array_values(array_filter(array_map(fn($row) => $row['event_name'] ?? null, $rows)));
+    }
+
     public function get_funnel_stats(int $campId, string $flowName, string $status): array
     {
-        $query = "SELECT path, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow AND step = 0 GROUP BY path";
+        $query = "SELECT path, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow GROUP BY path";
         return $this->exec_read_query($query, [$status => SQLITE3_TEXT, $campId => SQLITE3_INTEGER, $flowName => SQLITE3_TEXT]);
     }
 
     public function get_variant_stats(int $campId, string $flowName, int $stepIndex, string $status): array
     {
-        $query = "SELECT json_extract(path, '\$[" . intval($stepIndex) . "]') AS variant, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow AND step = 0 GROUP BY variant";
-        return $this->exec_read_query($query, [$status => SQLITE3_TEXT, $campId => SQLITE3_INTEGER, $flowName => SQLITE3_TEXT]);
+        $query = "
+            SELECT
+                cs.variant AS variant,
+                COUNT(*) AS impressions,
+                COUNT(CASE WHEN c.status = :status THEN 1 END) AS conversions
+            FROM click_steps cs
+            INNER JOIN clicks c ON c.clickid = cs.clickid
+            WHERE c.campaign_id = :cid AND c.flow = :flow AND cs.step = :step
+            GROUP BY cs.variant
+        ";
+        return $this->exec_read_query($query, [
+            $status => SQLITE3_TEXT,
+            $campId => SQLITE3_INTEGER,
+            $flowName => SQLITE3_TEXT,
+            $stepIndex => SQLITE3_INTEGER,
+        ]);
     }
 
     private function clickid_exists(string $clickid): bool
@@ -944,6 +1136,12 @@ class Db
         $query = "SELECT name FROM campaigns WHERE id = :id";
         $arr = $this->exec_read_query($query, [$id => SQLITE3_INTEGER], true);
         return $arr['name'] ?? '';
+    }
+
+    public function get_campaigns_list(): array
+    {
+        $query = "SELECT id, name FROM campaigns ORDER BY name COLLATE NOCASE ASC";
+        return $this->exec_read_query($query, []);
     }
 
     public function get_campaign_settings(int $id): array

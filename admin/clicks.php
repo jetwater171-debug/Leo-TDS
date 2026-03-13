@@ -21,9 +21,13 @@ $timeRange = Dates::get_time_range($tz);
 $startDate = $timeRange[0];
 $endDate = $timeRange[1];
 
-$filter = $_GET['filter'] ?? 'allowed';
+$view = $_GET['view'] ?? 'allowed';
+$allowedViews = ['allowed', 'blocked', 'leads', 'trafficback'];
+if (!in_array($view, $allowedViews, true)) {
+    $view = 'allowed';
+}
 $defaults = json_decode(file_get_contents(__DIR__ . '/../db/default.json'), true)['statistics'] ?? [];
-switch ($filter) {
+switch ($view) {
     case 'trafficback':
         $tableColumns = $gs['statistics']['trafficBack'];
         break;
@@ -35,33 +39,31 @@ switch ($filter) {
         $tableColumns = $c->statistics->blocked;
         if (empty($tableColumns)) $tableColumns = $defaults['blocked'] ?? [];
         break;
-    case 'single':
-        $tableColumns = $c->statistics->allowed;
-        if (empty($tableColumns)) $tableColumns = $defaults['allowed'] ?? [];
-        break;
     default:
         $tableColumns = $c->statistics->allowed;
         if (empty($tableColumns)) $tableColumns = $defaults['allowed'] ?? [];
         break;
 }
 
-$tName = empty($filter) ? 'allowed' : $filter;
+$tName = empty($view) ? 'allowed' : $view;
 $tColumns = Tabulator::get_clicks_columns($campId, $tz, $tableColumns);
 
 // Load saved filters for this table type
-$filterKeyMap = ['allowed' => 'allowedFilters', 'single' => 'allowedFilters', 'blocked' => 'blockedFilters', 'leads' => 'leadsFilters', 'trafficback' => 'trafficBackFilters'];
-$filterKey = $filterKeyMap[$filter] ?? 'allowedFilters';
-if ($filter === 'trafficback') {
+$filterKeyMap = ['allowed' => 'allowedFilters', 'blocked' => 'blockedFilters', 'leads' => 'leadsFilters', 'trafficback' => 'trafficBackFilters'];
+$filterKey = $filterKeyMap[$view] ?? 'allowedFilters';
+if ($view === 'trafficback') {
     $savedFilters = $gs['statistics'][$filterKey] ?? [];
 } else {
     $s = $db->get_campaign_settings($campId);
     $savedFilters = $s['statistics'][$filterKey] ?? [];
 }
 $hasActiveFilters = !empty($savedFilters) && !empty($savedFilters['rules']);
+$searchTerm = trim((string)($_GET['search'] ?? ''));
+$showIdSearch = in_array($view, ['allowed', 'leads'], true);
 
-$ajaxParams = ['filter' => $filter];
+$ajaxParams = ['view' => $view];
 if ($campId !== null) $ajaxParams['campId'] = $campId;
-if ($filter === 'single') $ajaxParams['subid'] = $_GET['subid'] ?? '';
+if ($showIdSearch && $searchTerm !== '') $ajaxParams['search'] = $searchTerm;
 if (isset($_GET['startdate'])) $ajaxParams['startdate'] = $_GET['startdate'];
 if (isset($_GET['enddate'])) $ajaxParams['enddate'] = $_GET['enddate'];
 $ajaxUrl = 'clicksdata.php?' . http_build_query($ajaxParams);
@@ -74,16 +76,41 @@ $ajaxUrl = 'clicksdata.php?' . http_build_query($ajaxParams);
     <?php include "header.php" ?>
     <div class="all-content-wrapper">
         <div class="buttons-block" style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-            <?php if ($filter !== 'trafficback'):?>
+            <div style="display:flex; align-items:flex-end; gap: 12px;">
+            <?php if ($view !== 'trafficback'):?>
                 <span style="display: inline-block;">
-                    <label for="filterSelector" style="color: white; font-weight: bold;">Filter:</label>
-                    <select id="filterSelector" class="form-select" style="width: 140px; display: inline-block; margin-left: 10px;">
-                        <option value="allowed"<?= $filter == 'allowed' ? ' selected' : '' ?>>Allowed</option>
-                        <option value="blocked"<?= $filter == 'blocked' ? ' selected' : '' ?>>Blocked</option>
-                        <option value="leads"<?= $filter == 'leads' ? ' selected' : '' ?>>Leads</option>
+                    <label for="viewSelector" style="color: white; font-weight: bold;">View:</label>
+                    <select id="viewSelector" class="form-select" style="width: 140px; display: inline-block; margin-left: 10px;">
+                        <option value="allowed"<?= $view == 'allowed' ? ' selected' : '' ?>>Allowed</option>
+                        <option value="blocked"<?= $view == 'blocked' ? ' selected' : '' ?>>Blocked</option>
+                        <option value="leads"<?= $view == 'leads' ? ' selected' : '' ?>>Leads</option>
                     </select>
                 </span>
+            <?php endif; ?>
+            <?php if ($showIdSearch): ?>
+                <form id="idSearchForm" method="get" action="clicks.php" style="display:inline-flex; align-items:flex-end; gap:8px; margin-left: 8px;">
+                    <?php if ($campId !== null): ?>
+                        <input type="hidden" name="campId" value="<?= (int)$campId ?>">
+                    <?php endif; ?>
+                    <input type="hidden" name="view" value="<?= htmlspecialchars($view, ENT_QUOTES) ?>">
+                    <?php if (isset($_GET['startdate'])): ?>
+                        <input type="hidden" name="startdate" value="<?= htmlspecialchars((string)$_GET['startdate'], ENT_QUOTES) ?>">
+                    <?php endif; ?>
+                    <?php if (isset($_GET['enddate'])): ?>
+                        <input type="hidden" name="enddate" value="<?= htmlspecialchars((string)$_GET['enddate'], ENT_QUOTES) ?>">
+                    <?php endif; ?>
+                    <span style="display:inline-flex; align-items:center; gap:6px;">
+                        <label for="idSearchInput" style="color: white; font-weight: bold; margin-bottom:0;">Search:</label>
+                        <input
+                            id="idSearchInput"
+                            name="search"
+                            type="text"
+                            class="form-control"
+                            value="<?= htmlspecialchars($searchTerm, ENT_QUOTES) ?>"
+                            placeholder="User ID / Click ID"
+                            style="width: 240px;">
+                    </span>
+                </form>
             <?php endif; ?>
             </div>
             <div>
@@ -99,15 +126,39 @@ $ajaxUrl = 'clicksdata.php?' . http_build_query($ajaxParams);
         <div id="t<?=$tName?>" style="clear: both;"></div>
         </div>
         <script>
-            $('#filterSelector').change(function() {
+            $('#viewSelector').change(function() {
                 let newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('filter', $(this).val());
+                newUrl.searchParams.set('view', $(this).val());
+                if (!['allowed', 'leads'].includes($(this).val())) {
+                    newUrl.searchParams.delete('search');
+                }
                 window.location.href = newUrl.href;
             });
+
+            const idSearchInput = document.getElementById('idSearchInput');
+            if (idSearchInput) {
+                let debounceTimer = null;
+                let lastValue = idSearchInput.value.trim();
+                idSearchInput.addEventListener('input', function () {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        const currentValue = idSearchInput.value.trim();
+                        if (currentValue === lastValue) return;
+                        lastValue = currentValue;
+                        const newUrl = new URL(window.location.href);
+                        if (currentValue === '') {
+                            newUrl.searchParams.delete('search');
+                        } else {
+                            newUrl.searchParams.set('search', currentValue);
+                        }
+                        window.location.href = newUrl.toString();
+                    }, 500);
+                });
+            }
             
             $('#resetFilters').click(async function() {
                 try {
-                    await fetch("clmnseditor.php?action=savecolumns&table=<?=$filter?><?=is_null($campId)?'':'&campid='.$campId?>", {
+                    await fetch("clmnseditor.php?action=savecolumns&table=<?=$view?><?=is_null($campId)?'':'&campid='.$campId?>", {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ columns: <?= json_encode(array_map(fn($c) => is_array($c) ? $c['field'] : $c, $tableColumns)) ?>, filters: {} })
@@ -149,7 +200,7 @@ $ajaxUrl = 'clicksdata.php?' . http_build_query($ajaxParams);
 
             t<?=$tName?>Table.on("columnResized", async function (column) {
                 let updatedColumn = { field: column.getField(), width: column.getWidth() };
-                await fetch("clmnseditor.php?action=width&table=<?=$filter?><?=is_null($campId)?'':'&campid='.$campId?>", {
+                await fetch("clmnseditor.php?action=width&table=<?=$view?><?=is_null($campId)?'':'&campid='.$campId?>", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -166,11 +217,11 @@ $ajaxUrl = 'clicksdata.php?' . http_build_query($ajaxParams);
             };
 
             document.getElementById("columnsSelect").onclick = async () => {
-                let availableClmns = <?= json_encode(AvailableColumns::get_columns_for_type($filter)) ?>;
+                let availableClmns = <?= json_encode(AvailableColumns::get_columns_for_type($view)) ?>;
                 let selectedClmns = <?= json_encode($tableColumns) ?>;
                 let existingFilters = <?= json_encode($savedFilters) ?>;
-                addColumnsToList(selectedClmns, availableClmns, existingFilters, '<?= $filter ?>');
-                setSaveButtonHandler("clmnseditor.php?action=savecolumns&table=<?= $filter ?><?= is_null($campId) ? '' : '&campid=' . $campId ?>");
+                addColumnsToList(selectedClmns, availableClmns, existingFilters, '<?= $view ?>');
+                setSaveButtonHandler("clmnseditor.php?action=savecolumns&table=<?= $view ?><?= is_null($campId) ? '' : '&campid=' . $campId ?>");
                 $('#columnModal').modal({
                     modalClass: 'ywbmodal',
                     fadeDuration: 250,

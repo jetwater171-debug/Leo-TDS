@@ -16,6 +16,7 @@ global $c, $db, $campId;
     <div class="all-content-wrapper">
         <div class="camp-layout">
             <nav class="camp-sidebar">
+                <div class="camp-name"><?= htmlspecialchars($campName) ?></div>
                 <ul>
                     <li><a href="#sec-domains" class="active">Domains</a></li>
                     <li><a href="#sec-safepage">Safe Page</a></li>
@@ -25,6 +26,9 @@ global $c, $db, $campId;
                     <li><a href="#sec-flows">Flows</a></li>
                     <?php foreach ($c->black->flows as $fi => $flow) { ?>
                     <li class="flow-nav-item" data-flow-index="<?= $fi ?>"><a href="#sec-flow-<?= $fi ?>">&nbsp;&nbsp;<?= htmlspecialchars($flow->name) ?></a></li>
+                    <?php foreach ($flow->steps as $si => $step) { ?>
+                    <li class="step-nav-item" data-flow-index="<?= $fi ?>" data-step-index="<?= $si ?>"><a href="#sec-step-<?= $fi ?>-<?= $si ?>">&nbsp;&nbsp;&nbsp;&nbsp;Step <?= $si + 1 ?></a></li>
+                    <?php } ?>
                     <?php } ?>
                     <li><a href="#sec-scripts">Scripts</a></li>
                     <li><a href="#sec-statistics">Statistics</a></li>
@@ -38,8 +42,8 @@ global $c, $db, $campId;
             <div class="form-group-inner">
             <div class="row">
                 <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                <label class="login2 pull-left pull-left-pro">
-                    <img src="img/info.ico" title="Add all of the campaign's domains WITHOUT HTTP(S)! You can use *.xxx.com to match ALL subdomains."/> Domains list
+                    <label class="login2 pull-left pull-left-pro"> 
+                        <i class="bi bi-info-circle admin-info-icon" title="Add all of the campaign's domains WITHOUT HTTP(S)! You can use *.xxx.com to match ALL subdomains."></i> Domains list
                 </label>
                 </div>
             </div>
@@ -65,7 +69,7 @@ global $c, $db, $campId;
             <span class="flow-group-title">Filters</span>
             <div class="form-group-inner">
                 <p>
-                Traffic matching these filters will be shown the <strong>safe page</strong>. Everyone else goes to the black flows.
+                Traffic matching these filters will be shown the <strong>safe page</strong>. Everyone else goes to the Flows section.
                 </p>
                 <div class="row">
                     <div id="filtersbuilder"></div>
@@ -79,13 +83,9 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">White page mode:</label></div>
                     <div class="col-lg-9">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= !$c->white->domainFilterEnabled ? 'checked' : '' ?> value="false" name="white.domainfilter.use" class="white-scope-radio" /> Global (same white page for all domains)
-                            </label></div></div></div>
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= $c->white->domainFilterEnabled ? 'checked' : '' ?> value="true" name="white.domainfilter.use" class="white-scope-radio" /> Domain-Specific (each domain gets its own config)
-                            </label></div></div></div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= !$c->white->domainFilterEnabled ? 'checked' : '' ?> value="false" name="white.domainfilter.use" class="white-scope-radio" /> Global (same white page for all domains)</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->white->domainFilterEnabled ? 'checked' : '' ?> value="true" name="white.domainfilter.use" class="white-scope-radio" /> Domain-Specific (each domain gets its own config)</label>
                         </div>
                     </div>
                 </div>
@@ -102,49 +102,11 @@ global $c, $db, $campId;
                             method:</label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->white->action === 'folder' ? 'checked' : '' ?> value="folder" name="white.action" onclick="(document.getElementById('b_2').style.display = 'block'); (document.getElementById('b_3').style.display = 'none'); (document.getElementById('b_4').style.display = 'none'); (document.getElementById('b_5').style.display = 'none')" />
-                                            Local safe page from folder
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->white->action === 'redirect' ? 'checked' : '' ?> value="redirect" name="white.action" onclick="(document.getElementById('b_2').style.display = 'none'); (document.getElementById('b_3').style.display = 'block'); (document.getElementById('b_4').style.display = 'none'); (document.getElementById('b_5').style.display = 'none')" />
-                                            Redirect
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->white->action === 'curl' ? 'checked' : '' ?> value="curl" name="white.action" onclick="(document.getElementById('b_2').style.display = 'none'); (document.getElementById('b_3').style.display = 'none'); (document.getElementById('b_4').style.display = 'block'); (document.getElementById('b_5').style.display = 'none')" />
-                                            Load a website using CURL
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->white->action === 'error' ? 'checked' : '' ?> value="error" name="white.action" onclick="(document.getElementById('b_2').style.display = 'none'); (document.getElementById('b_3').style.display = 'none'); (document.getElementById('b_4').style.display = 'none'); (document.getElementById('b_5').style.display = 'block')" />
-                                            Return HTTP-code <small>(for example,
-                                                404 for NotFound or 200 for
-                                                OK)</small>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->white->action === 'folder' ? 'checked' : '' ?> value="folder" name="white.action" onclick="(document.getElementById('b_2').style.display = 'block'); (document.getElementById('b_3').style.display = 'none'); (document.getElementById('b_4').style.display = 'none'); (document.getElementById('b_5').style.display = 'none')" /> Local safe page from folder</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->white->action === 'redirect' ? 'checked' : '' ?> value="redirect" name="white.action" onclick="(document.getElementById('b_2').style.display = 'none'); (document.getElementById('b_3').style.display = 'block'); (document.getElementById('b_4').style.display = 'none'); (document.getElementById('b_5').style.display = 'none')" /> Redirect</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->white->action === 'curl' ? 'checked' : '' ?> value="curl" name="white.action" onclick="(document.getElementById('b_2').style.display = 'none'); (document.getElementById('b_3').style.display = 'none'); (document.getElementById('b_4').style.display = 'block'); (document.getElementById('b_5').style.display = 'none')" /> Load a website using CURL</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->white->action === 'error' ? 'checked' : '' ?> value="error" name="white.action" onclick="(document.getElementById('b_2').style.display = 'none'); (document.getElementById('b_3').style.display = 'none'); (document.getElementById('b_4').style.display = 'none'); (document.getElementById('b_5').style.display = 'block')" /> Return HTTP-code <small>(404 NotFound, 200 OK)</small></label>
                         </div>
                     </div>
                 </div>
@@ -269,19 +231,11 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Method:</label></div>
                     <div class="col-lg-9">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= $dwAction === 'folder' ? 'checked' : '' ?> value="folder" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> Local folder
-                            </label></div></div></div>
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= $dwAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> Redirect
-                            </label></div></div></div>
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= $dwAction === 'curl' ? 'checked' : '' ?> value="curl" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> CURL
-                            </label></div></div></div>
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= $dwAction === 'error' ? 'checked' : '' ?> value="error" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> HTTP Code
-                            </label></div></div></div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $dwAction === 'folder' ? 'checked' : '' ?> value="folder" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> Local folder</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $dwAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> Redirect</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $dwAction === 'curl' ? 'checked' : '' ?> value="curl" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> CURL</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $dwAction === 'error' ? 'checked' : '' ?> value="error" name="dws_action_<?= $di ?>" class="dws-action" data-di="<?= $di ?>" /> HTTP Code</label>
                         </div>
                     </div>
                 </div>
@@ -377,7 +331,7 @@ global $c, $db, $campId;
                         <input type="text" class="form-control flow-name-label" value="<?= htmlspecialchars($flow->name) ?>" readonly style="display:inline-block;width:200px;cursor:default;" />
                         <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-up" title="Move Up">&uarr;</a>
                         <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-move-down" title="Move Down">&darr;</a>
-                        <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete">✕ Delete</a>
+                        <a href="javascript:void(0)" class="btn btn-danger btn-sm flow-delete" title="Delete"><i class="bi bi-trash"></i></a>
                     </div>
                 <?php } ?>
                 </div>
@@ -388,22 +342,14 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="If Yes then the user will always be shown the same content on every visit" />
+                            <i class="bi bi-info-circle admin-info-icon" title="If Yes then the user will always be shown the same content on every visit"></i>
                             Save user flow (Sticky):
                         </label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row">
-                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                    <input type="radio" <?= $c->saveUserFlow === false ? 'checked' : '' ?> value="false" name="saveuserflow" /> No
-                                </label></div></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                    <input type="radio" <?= $c->saveUserFlow === true ? 'checked' : '' ?> value="true" name="saveuserflow" /> Yes
-                                </label></div></div>
-                            </div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->saveUserFlow === false ? 'checked' : '' ?> value="false" name="saveuserflow" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->saveUserFlow === true ? 'checked' : '' ?> value="true" name="saveuserflow" /> Yes</label>
                         </div>
                     </div>
                 </div>
@@ -416,18 +362,14 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="If enabled, the user will first see a safe page. Only after browser-side checks confirm a real human will they see the money page." />
+                            <i class="bi bi-info-circle admin-info-icon" title="If enabled, the user will first see a safe page. Only after browser-side checks confirm a real human will they see the money page."></i>
                             Enable JS Bot Detection:
                         </label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= !$jbd->enabled ? 'checked' : '' ?> value="false" name="black.jsbotdetection.enabled" onclick="(document.getElementById('jbd-settings').style.display = 'none')" /> No
-                            </label></div></div></div>
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="radio" <?= $jbd->enabled ? 'checked' : '' ?> value="true" name="black.jsbotdetection.enabled" onclick="(document.getElementById('jbd-settings').style.display = 'block')" /> Yes
-                            </label></div></div></div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= !$jbd->enabled ? 'checked' : '' ?> value="false" name="black.jsbotdetection.enabled" onclick="(document.getElementById('jbd-settings').style.display = 'none')" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $jbd->enabled ? 'checked' : '' ?> value="true" name="black.jsbotdetection.enabled" onclick="(document.getElementById('jbd-settings').style.display = 'block')" /> Yes</label>
                         </div>
                     </div>
                 </div>
@@ -442,13 +384,9 @@ global $c, $db, $campId;
                 <div class="form-group-inner">
                     <div class="row">
                         <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Tests:</label></div>
-                        <div class="col-lg-9"><div class="bt-df-checkbox pull-left">
+                        <div class="col-lg-9"><div class="ywb-radios">
                             <?php foreach (['pointerdown' => 'Mouse click / Touch start', 'keydown' => 'Text typing', 'devicemotion' => 'Device motion (Android only)', 'deviceorientation' => 'Device orientation (Android only)', 'audiocontext' => 'Audio engine existence', 'timezone' => 'Time zone'] as $ev => $evLabel) { ?>
-                            <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                <input type="checkbox" name="black.jsbotdetection.events[]" value="<?= $ev ?>" <?= in_array($ev, $jbd->events) ? 'checked' : '' ?>
-                                    <?= $ev === 'timezone' ? 'onchange="(document.getElementById(\'jbd-tz\').style.display = this.checked ? \'block\' : \'none\')"' : '' ?> />
-                                <?= $evLabel ?>
-                            </label></div></div></div>
+                            <label class="ywb-radio-label"><input type="checkbox" name="black.jsbotdetection.events[]" value="<?= $ev ?>" <?= in_array($ev, $jbd->events) ? 'checked' : '' ?> <?= $ev === 'timezone' ? 'onchange="(document.getElementById(\'jbd-tz\').style.display = this.checked ? \'block\' : \'none\')"' : '' ?> /> <?= $evLabel ?></label>
                             <?php } ?>
                         </div></div>
                     </div>
@@ -470,27 +408,15 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
-                            <img src="img/info.ico" title="You can connect any website to the cloaker using &lt;script src='https://yourwebsite.com/js/index.php'&gt;&lt;/script&gt;" />
+                            <i class="bi bi-info-circle admin-info-icon" title="You can connect any website to the cloaker using &lt;script src='https://yourwebsite.com/js/index.php'&gt;&lt;/script&gt;"></i>
                             Javascript Connect Action:
                         </label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-                            <div class="row">
-                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                    <input type="radio" <?= $c->black->jsconnectAction === 'replace' ? 'checked' : '' ?> value="replace" name="black_jsconnect" /> Content replace
-                                </label></div></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                    <input type="radio" <?= $c->black->jsconnectAction === 'iframe' ? 'checked' : '' ?> value="iframe" name="black_jsconnect" /> IFrame
-                                </label></div></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12"><div class="i-checks pull-left"><label>
-                                    <input type="radio" <?= $c->black->jsconnectAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="black_jsconnect" /> Redirect
-                                </label></div></div>
-                            </div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'replace' ? 'checked' : '' ?> value="replace" name="black_jsconnect" /> Content replace</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'iframe' ? 'checked' : '' ?> value="iframe" name="black_jsconnect" /> IFrame</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="black_jsconnect" /> Redirect</label>
                         </div>
                     </div>
                 </div>
@@ -522,73 +448,56 @@ global $c, $db, $campId;
             <div class="flow-thompson-opts" id="flow-thompson-opts-<?= $fi ?>" style="display:<?= $flow->distribution === 'thompson' ? 'block' : 'none' ?>">
                 <div class="form-group-inner">
                     <label class="login2 pull-left pull-left-pro">Optimize for:</label>
-                    <div class="bt-df-checkbox pull-left">
-                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                            <input type="radio" <?= $flow->optimize_for === 'Lead' ? 'checked' : '' ?> value="Lead" name="flow_<?= $fi ?>_optimize_for" class="flow-optimize-for" data-fi="<?= $fi ?>" /> Lead
-                        </label></div></div></div>
-                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                            <input type="radio" <?= $flow->optimize_for === 'Purchase' ? 'checked' : '' ?> value="Purchase" name="flow_<?= $fi ?>_optimize_for" class="flow-optimize-for" data-fi="<?= $fi ?>" /> Purchase
-                        </label></div></div></div>
+                    <div class="ywb-radios">
+                        <label class="ywb-radio-label"><input type="radio" <?= $flow->optimize_for === 'Lead' ? 'checked' : '' ?> value="Lead" name="flow_<?= $fi ?>_optimize_for" class="flow-optimize-for" data-fi="<?= $fi ?>" /> Lead</label>
+                        <label class="ywb-radio-label"><input type="radio" <?= $flow->optimize_for === 'Purchase' ? 'checked' : '' ?> value="Purchase" name="flow_<?= $fi ?>_optimize_for" class="flow-optimize-for" data-fi="<?= $fi ?>" /> Purchase</label>
                     </div>
                 </div>
-                <div class="form-group-inner flow-optimize-mode-wrap" id="flow-optimize-mode-wrap-<?= $fi ?>" style="display:<?= $flow->hasPrelanding() ? 'block' : 'none' ?>">
+                <div class="form-group-inner flow-optimize-mode-wrap" id="flow-optimize-mode-wrap-<?= $fi ?>" style="display:<?= $flow->hasMultipleSteps() ? 'block' : 'none' ?>">
                     <label class="login2 pull-left pull-left-pro">Optimize mode:</label>
-                    <div class="bt-df-checkbox pull-left">
-                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                            <input type="radio" <?= $flow->optimize_mode === 'funnels' ? 'checked' : '' ?> value="funnels" name="flow_<?= $fi ?>_optimize_mode" class="flow-optimize-mode" data-fi="<?= $fi ?>" /> Funnels (preland+land combos)
-                        </label></div></div></div>
-                        <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                            <input type="radio" <?= $flow->optimize_mode === 'separate' ? 'checked' : '' ?> value="separate" name="flow_<?= $fi ?>_optimize_mode" class="flow-optimize-mode" data-fi="<?= $fi ?>" /> Separate (independent)
-                        </label></div></div></div>
+                    <div class="ywb-radios">
+                        <label class="ywb-radio-label"><input type="radio" <?= $flow->optimize_mode === 'funnels' ? 'checked' : '' ?> value="funnels" name="flow_<?= $fi ?>_optimize_mode" class="flow-optimize-mode" data-fi="<?= $fi ?>" /> Funnels (step combos)</label>
+                        <label class="ywb-radio-label"><input type="radio" <?= $flow->optimize_mode === 'separate' ? 'checked' : '' ?> value="separate" name="flow_<?= $fi ?>_optimize_mode" class="flow-optimize-mode" data-fi="<?= $fi ?>" /> Separate (independent per step)</label>
                     </div>
                 </div>
                 <?php
                 // ── Win Probability computation ──
                 if ($flow->distribution === 'thompson') {
-                    $winProbData = [];
                     $totalImp = 0;
-                    $isFunnel = $flow->hasPrelanding() && $flow->optimize_mode === 'funnels';
-
-                    // Current variants from flow settings
-                    $curPrelands = $flow->hasPrelanding() ? $flow->preland->folderNames : [];
-                    $curLands = $flow->land->action === 'redirect' ? $flow->land->redirectUrls : $flow->land->folderNames;
+                    $isFunnel = $flow->hasMultipleSteps() && $flow->optimize_mode === 'funnels';
 
                     if ($isFunnel) {
                         $stats = $db->get_funnel_stats($campId, $flow->name, $flow->optimize_for);
                         $statsMap = [];
                         foreach ($stats as $row) {
-                            if (!in_array($row['preland'], $curPrelands, true) || !in_array($row['land'], $curLands, true)) continue;
-                            $key = $row['preland'] . ' + ' . $row['land'];
+                            $pathArr = json_decode($row['path'], true);
+                            $key = is_array($pathArr) ? implode(' → ', $pathArr) : $row['path'];
                             $statsMap[$key] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
                             $totalImp += (int)$row['impressions'];
                         }
                         $winProbData = AbTest::compute_win_probabilities($statsMap);
                     } else {
-                        // Separate mode: show preland probabilities (if any) + land probabilities
-                        if ($flow->hasPrelanding()) {
-                            $pStats = $db->get_variant_stats($campId, $flow->name, 'preland', $flow->optimize_for);
-                            $pMap = [];
-                            foreach ($pStats as $row) {
-                                if (!in_array($row['variant'], $curPrelands, true)) continue;
-                                $pMap[$row['variant']] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
+                        // Separate mode: per-step probabilities
+                        $stepWinProbs = [];
+                        foreach ($flow->steps as $si => $step) {
+                            $curItems = $step->getItems();
+                            if (count($curItems) < 2) continue;
+                            $sStats = $db->get_variant_stats($campId, $flow->name, $si, $flow->optimize_for);
+                            $sMap = [];
+                            foreach ($sStats as $row) {
+                                if (!in_array($row['variant'], $curItems, true)) continue;
+                                $sMap[$row['variant']] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
                                 $totalImp += (int)$row['impressions'];
                             }
-                            $winProbPreland = AbTest::compute_win_probabilities($pMap);
+                            $probs = AbTest::compute_win_probabilities($sMap);
+                            if (!empty($probs)) $stepWinProbs[$si] = $probs;
                         }
-                        $lStats = $db->get_variant_stats($campId, $flow->name, 'land', $flow->optimize_for);
-                        $lMap = [];
-                        foreach ($lStats as $row) {
-                            if (!in_array($row['variant'], $curLands, true)) continue;
-                            $lMap[$row['variant']] = ['imp' => (int)$row['impressions'], 'conv' => (int)$row['conversions']];
-                            $totalImp += (int)$row['impressions'];
-                        }
-                        $winProbLand = AbTest::compute_win_probabilities($lMap);
                     }
                 ?>
                 <div class="flow-winprob">
                     <?php if ($totalImp < 10) { ?>
                         <div class="winprob-empty">Not enough data yet (<?= $totalImp ?> impressions)</div>
-                    <?php } elseif ($isFunnel) { ?>
+                    <?php } elseif ($isFunnel && !empty($winProbData)) { ?>
                         <div class="winprob-section-title">Funnel Win Probability</div>
                         <?php $isFirst = true; foreach ($winProbData as $variant => $prob) { ?>
                         <div class="winprob-row <?= $isFirst ? 'winprob-leader' : '' ?>">
@@ -599,125 +508,127 @@ global $c, $db, $campId;
                             <span class="winprob-pct"><?= $prob ?>%</span>
                         </div>
                         <?php $isFirst = false; } ?>
+                    <?php } elseif (!$isFunnel && !empty($stepWinProbs)) { ?>
+                        <?php foreach ($stepWinProbs as $si => $probs) { ?>
+                        <div class="winprob-section-title">Step <?= $si + 1 ?> Win Probability</div>
+                        <?php $isFirst = true; foreach ($probs as $variant => $prob) { ?>
+                        <div class="winprob-row <?= $isFirst ? 'winprob-leader' : '' ?>">
+                            <span class="winprob-name"><?= htmlspecialchars($variant) ?></span>
+                            <div class="winprob-bar-wrap">
+                                <div class="winprob-bar" style="width: <?= max($prob, 2) ?>%"></div>
+                            </div>
+                            <span class="winprob-pct"><?= $prob ?>%</span>
+                        </div>
+                        <?php $isFirst = false; } ?>
+                        <?php } ?>
                     <?php } else { ?>
-                        <?php if ($flow->hasPrelanding() && !empty($winProbPreland)) { ?>
-                        <div class="winprob-section-title">Prelanding Win Probability</div>
-                        <?php $isFirst = true; foreach ($winProbPreland as $variant => $prob) { ?>
-                        <div class="winprob-row <?= $isFirst ? 'winprob-leader' : '' ?>">
-                            <span class="winprob-name"><?= htmlspecialchars($variant) ?></span>
-                            <div class="winprob-bar-wrap">
-                                <div class="winprob-bar" style="width: <?= max($prob, 2) ?>%"></div>
-                            </div>
-                            <span class="winprob-pct"><?= $prob ?>%</span>
-                        </div>
-                        <?php $isFirst = false; } ?>
-                        <?php } ?>
-                        <?php if (!empty($winProbLand)) { ?>
-                        <div class="winprob-section-title">Landing Win Probability</div>
-                        <?php $isFirst = true; foreach ($winProbLand as $variant => $prob) { ?>
-                        <div class="winprob-row <?= $isFirst ? 'winprob-leader' : '' ?>">
-                            <span class="winprob-name"><?= htmlspecialchars($variant) ?></span>
-                            <div class="winprob-bar-wrap">
-                                <div class="winprob-bar" style="width: <?= max($prob, 2) ?>%"></div>
-                            </div>
-                            <span class="winprob-pct"><?= $prob ?>%</span>
-                        </div>
-                        <?php $isFirst = false; } ?>
-                        <?php } ?>
-                        <?php if (empty($winProbPreland ?? []) && empty($winProbLand)) { ?>
                         <div class="winprob-empty">No variant data collected yet</div>
-                        <?php } ?>
                     <?php } ?>
                 </div>
                 <?php } ?>
             </div>
             </div>
 
+            <?php $hasRedirect = false; foreach ($flow->steps as $s) { if ($s->action === 'redirect') { $hasRedirect = true; break; } } ?>
             <div class="flow-group">
-            <span class="flow-group-title">Prelanding method</span>
-            <div class="form-group-inner">
-                <div class="bt-df-checkbox pull-left">
-                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                        <input type="radio" <?= $flow->preland->action === 'none' ? 'checked' : '' ?> value="none" name="flow_<?= $fi ?>_preland_action" class="flow-preland-action" data-fi="<?= $fi ?>" /> Don't use prelanding
-                    </label></div></div></div>
-                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                        <input type="radio" <?= $flow->preland->action === 'folder' ? 'checked' : '' ?> value="folder" name="flow_<?= $fi ?>_preland_action" class="flow-preland-action" data-fi="<?= $fi ?>" /> Local prelanding(s) from folder
-                    </label></div></div></div>
+            <span class="flow-group-title">Steps</span>
+            <div id="steps-list-<?= $fi ?>" class="steps-list">
+                <?php $lastSi = count($flow->steps) - 1; foreach ($flow->steps as $si => $step) { $isStepRedirect = ($step->action === 'redirect'); ?>
+                <div class="step-list-row" data-flow-index="<?= $fi ?>" data-step-index="<?= $si ?>">
+                    <span class="step-list-label">Step <?= $si + 1 ?></span>
+                    <span class="step-list-info"><?php
+                        if ($step->action === 'redirect' && !empty($step->redirectUrls)) {
+                            $hosts = array_map(function($ru) {
+                                $u = is_array($ru) ? ($ru['url'] ?? '') : $ru;
+                                try { $h = parse_url($u, PHP_URL_HOST); return $h ? preg_replace('/^www\./', '', $h) : 'redirect'; } catch (\Exception $e) { return 'redirect'; }
+                            }, $step->redirectUrls);
+                            echo htmlspecialchars(implode(', ', $hosts));
+                        } elseif ($step->action === 'redirect') {
+                            echo 'redirect';
+                        } else {
+                            echo count($step->folderNames) ? htmlspecialchars(implode(', ', $step->folderNames)) : 'empty';
+                        }
+                    ?></span>
+                    <a href="javascript:void(0)" class="btn btn-primary btn-xs flow-move-step-up" title="Move Up"<?= $isStepRedirect ? ' style="pointer-events:none;opacity:0.3"' : '' ?>>&uarr;</a>
+                    <a href="javascript:void(0)" class="btn btn-primary btn-xs flow-move-step-down" title="Move Down"<?= $isStepRedirect ? ' style="pointer-events:none;opacity:0.3"' : '' ?>>&darr;</a>
+                    <a href="javascript:void(0)" class="btn btn-danger btn-xs flow-remove-step" title="Delete"><i class="bi bi-trash"></i></a>
                 </div>
-            </div>
-            <div class="flow-preland-folders" id="flow-preland-folders-<?= $fi ?>" style="display:<?= $flow->preland->action === 'folder' ? 'block' : 'none' ?>">
-                <div class="flow-preland-items" id="flow-preland-items-<?= $fi ?>">
-                <?php foreach ($flow->preland->folderNames as $pi => $pf) { ?>
-                    <div class="form-group-inner flow-path-item">
-                        <div class="row">
-                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Prelanding folder:</label></div>
-                            <div class="col-lg-3"><input type="text" class="form-control flow-preland-folder" value="<?= htmlspecialchars($pf) ?>" placeholder="preland1" readonly /></div>
-                            <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
-                                <input type="number" step="1" class="form-control flow-preland-weight" value="<?= $flow->preland->weights[$pi] ?? '' ?>" placeholder="%" style="width:70px" />
-                            </div>
-                            <div class="col-lg-3"><div class="btn-group btn-group-sm"><a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn flow-preland-mode" data-mode="<?= $flow->preland->isDirectLoad($pf) ? 'direct' : 'base' ?>" data-modes="base,direct" title="Loading mode"><i class="bi <?= $flow->preland->isDirectLoad($pf) ? 'bi-hdd-network' : 'bi-house-door' ?>"></i></a><a href="javascript:void(0)" class="btn btn-warning flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a><a href="javascript:void(0)" class="btn btn-danger flow-remove-preland" title="Delete"><i class="bi bi-trash"></i></a></div></div>
-                        </div>
-                    </div>
                 <?php } ?>
+            </div>
+            <div style="margin-top:10px;">
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-step" data-fi="<?= $fi ?>"<?= $hasRedirect ? ' style="pointer-events:none;opacity:0.5" aria-disabled="true"' : '' ?>><i class="bi bi-plus-circle"></i> Add Step</a>
+            </div>
+            </div>
+            </section>
+
+            <?php $lastSi = count($flow->steps) - 1; foreach ($flow->steps as $si => $step) { $isLast = ($si === $lastSi); ?>
+            <section id="sec-step-<?= $fi ?>-<?= $si ?>" class="camp-section step-section" data-flow-index="<?= $fi ?>" data-step-index="<?= $si ?>">
+            <h5 class="flow-section-title"><?= htmlspecialchars($flow->name) ?> &rsaquo; Step <?= $si + 1 ?></h5>
+
+            <div class="flow-group">
+            <span class="flow-group-title">Action</span>
+            <div class="form-group-inner">
+                <div class="ywb-radios">
+                    <label class="ywb-radio-label">
+                        <input type="radio" <?= ($step->action === 'folder' || !$isLast) ? 'checked' : '' ?> value="folder" name="flow_<?= $fi ?>_step_<?= $si ?>_action" class="flow-step-action" data-fi="<?= $fi ?>" data-si="<?= $si ?>" <?= !$isLast ? 'disabled' : '' ?> /> Local page(s) from folder
+                    </label>
+                    <label class="ywb-radio-label">
+                        <input type="radio" <?= ($step->action === 'redirect' && $isLast) ? 'checked' : '' ?> value="redirect" name="flow_<?= $fi ?>_step_<?= $si ?>_action" class="flow-step-action" data-fi="<?= $fi ?>" data-si="<?= $si ?>" <?= !$isLast ? 'disabled' : '' ?> /> Redirect(s)
+                    </label>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="<?= $fi ?>" data-type="preland"><i class="bi bi-folder-symlink"></i> Add Existing</a>
-                <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="<?= $fi ?>" data-type="preland"><i class="bi bi-upload"></i> Upload ZIP</a>
+                <?php if (!$isLast) { ?>
+                <p class="step-action-hint" style="font-size:12px;margin-top:6px;">Only the last step can use redirects.</p>
+                <?php } ?>
             </div>
             </div>
 
+            <div class="flow-step-folders" style="display:<?= $step->action === 'folder' ? 'block' : 'none' ?>">
             <div class="flow-group">
-            <span class="flow-group-title">Landing method</span>
-            <div class="form-group-inner">
-                <div class="bt-df-checkbox pull-left">
-                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                        <input type="radio" <?= $flow->land->action === 'folder' ? 'checked' : '' ?> value="folder" name="flow_<?= $fi ?>_land_action" class="flow-land-action" data-fi="<?= $fi ?>" /> Local landing(s) from folder
-                    </label></div></div></div>
-                    <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                        <input type="radio" <?= $flow->land->action === 'redirect' ? 'checked' : '' ?> value="redirect" name="flow_<?= $fi ?>_land_action" class="flow-land-action" data-fi="<?= $fi ?>" /> Redirect(s)
-                    </label></div></div></div>
-                </div>
-            </div>
-            <div class="flow-land-folders" id="flow-land-folders-<?= $fi ?>" style="display:<?= $flow->land->action === 'folder' ? 'block' : 'none' ?>">
-                <div class="flow-land-folder-items" id="flow-land-folder-items-<?= $fi ?>">
-                <?php foreach ($flow->land->folderNames as $li => $lf) { ?>
+            <span class="flow-group-title">Folders</span>
+                <div class="flow-step-folder-items">
+                <?php foreach ($step->folderNames as $ii => $fn) { ?>
                     <div class="form-group-inner flow-path-item">
                         <div class="row">
-                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Landing folder:</label></div>
-                            <div class="col-lg-3"><input type="text" class="form-control flow-land-folder" value="<?= htmlspecialchars($lf) ?>" placeholder="land1" readonly /></div>
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Folder:</label></div>
+                            <div class="col-lg-3"><input type="text" class="form-control flow-step-folder" value="<?= htmlspecialchars($fn) ?>" placeholder="folder1" readonly /></div>
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
-                                <input type="number" step="1" class="form-control flow-land-weight" value="<?= $flow->land->weights[$li] ?? '' ?>" placeholder="%" style="width:70px" />
+                                <input type="number" step="1" class="form-control flow-step-weight" value="<?= $step->weights[$ii] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-3"><div class="btn-group btn-group-sm"><a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn flow-land-mode" data-mode="<?= $flow->land->isDirectLoad($lf) ? 'direct' : 'base' ?>" data-modes="base,direct" title="Loading mode"><i class="bi <?= $flow->land->isDirectLoad($lf) ? 'bi-hdd-network' : 'bi-house-door' ?>"></i></a><a href="javascript:void(0)" class="btn btn-warning flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a><a href="javascript:void(0)" class="btn btn-danger flow-remove-land-folder" title="Delete"><i class="bi bi-trash"></i></a></div></div>
+                            <div class="col-lg-3"><div class="btn-group btn-group-sm"><a href="javascript:void(0)" class="btn btn-outline-secondary load-mode-btn flow-step-mode" data-mode="<?= $step->isDirectLoad($fn) ? 'direct' : 'base' ?>" data-modes="base,direct" title="Loading mode"><i class="bi <?= $step->isDirectLoad($fn) ? 'bi-hdd-network' : 'bi-house-door' ?>"></i></a><a href="javascript:void(0)" class="btn btn-warning flow-edit-folder" title="Edit files"><i class="bi bi-pencil-square"></i></a><a href="javascript:void(0)" class="btn btn-danger flow-remove-step-item" title="Delete"><i class="bi bi-trash"></i></a></div></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="<?= $fi ?>" data-type="land"><i class="bi bi-folder-symlink"></i> Add Existing</a>
-                <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="<?= $fi ?>" data-type="land"><i class="bi bi-upload"></i> Upload ZIP</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-step-add-existing" data-fi="<?= $fi ?>" data-si="<?= $si ?>"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+                <a href="javascript:void(0)" class="btn btn-info btn-sm flow-step-upload-zip" data-fi="<?= $fi ?>" data-si="<?= $si ?>"><i class="bi bi-upload"></i> Upload ZIP</a>
             </div>
-            <div class="flow-land-redirects" id="flow-land-redirects-<?= $fi ?>" style="display:<?= $flow->land->action === 'redirect' ? 'block' : 'none' ?>">
-                <div class="flow-land-redirect-items" id="flow-land-redirect-items-<?= $fi ?>">
-                <?php foreach ($flow->land->redirectUrls as $ri => $ru) { ?>
+            </div>
+
+            <div class="flow-step-redirects" style="display:<?= $step->action === 'redirect' ? 'block' : 'none' ?>">
+            <div class="flow-group">
+            <span class="flow-group-title">Redirects</span>
+                <div class="flow-step-redirect-items">
+                <?php foreach ($step->redirectUrls as $ri => $ru) { ?>
                     <div class="form-group-inner flow-path-item">
                         <div class="row">
                             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>
-                            <div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="<?= htmlspecialchars($ru) ?>" placeholder="https://..." /></div>
+                            <div class="col-lg-4"><input type="text" class="form-control flow-step-redirect" value="<?= htmlspecialchars(is_array($ru) ? $ru['url'] : $ru) ?>" placeholder="https://..." /></div>
                             <div class="col-lg-2 flow-weight-col" style="display:<?= $flow->distribution === 'weighted' ? 'block' : 'none' ?>">
-                                <input type="number" step="1" class="form-control flow-land-weight" value="<?= $flow->land->weights[$ri] ?? '' ?>" placeholder="%" style="width:70px" />
+                                <input type="number" step="1" class="form-control flow-step-weight" value="<?= $step->weights[$ri] ?? '' ?>" placeholder="%" style="width:70px" />
                             </div>
-                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect" title="Delete"><i class="bi bi-trash"></i></a></div>
+                            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-step-item" title="Delete"><i class="bi bi-trash"></i></a></div>
                         </div>
                     </div>
                 <?php } ?>
                 </div>
-                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="<?= $fi ?>">+ Add Redirect</a>
+                <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-step-add-redirect" data-fi="<?= $fi ?>" data-si="<?= $si ?>">+ Add Redirect</a>
                 <div class="form-group-inner" style="margin-top:10px">
                     <div class="row">
                         <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>
                         <div class="col-lg-3">
-                            <select class="form-select flow-redirect-type" data-fi="<?= $fi ?>">
+                            <select class="form-select flow-step-redirect-type" data-fi="<?= $fi ?>" data-si="<?= $si ?>">
                                 <?php foreach ([301,302,303,307] as $rt) { ?>
-                                <option value="<?= $rt ?>" <?= $flow->land->redirectType === $rt ? 'selected' : '' ?>><?= $rt ?></option>
+                                <option value="<?= $rt ?>" <?= $step->redirectType === $rt ? 'selected' : '' ?>><?= $rt ?></option>
                                 <?php } ?>
                             </select>
                         </div>
@@ -727,6 +638,7 @@ global $c, $db, $campId;
             </div>
             </section>
             <?php } ?>
+            <?php } ?>
 
             <section id="sec-scripts" class="camp-section">
             <div class="flow-group">
@@ -735,32 +647,13 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
                         <label class="login2 pull-left pull-left-pro"> 
-                            <img src="img/info.ico" title="Backfix is a script that will prevent the user from going back from out site. Instead the user fill be shown another money page that you'll choose."/>
+                            <i class="bi bi-info-circle admin-info-icon" title="Backfix is a script that will prevent the user from going back from out site. Instead the user fill be shown another money page that you'll choose."></i>
                             Should we use backfix?</label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-
-                            <div class="row">
-                                <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->backfix === false ? 'checked' : '' ?> value="false" name="scripts.backfix.use" onclick="(document.getElementById('b_backfix').style.display = 'none')" />
-                                            No
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->backfix ? 'checked' : '' ?> value="true" name="scripts.backfix.use" onclick="(document.getElementById('b_backfix').style.display = 'block')" />
-                                            Yes
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->backfix === false ? 'checked' : '' ?> value="false" name="scripts.backfix.use" onclick="(document.getElementById('b_backfix').style.display = 'none')" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->backfix ? 'checked' : '' ?> value="true" name="scripts.backfix.use" onclick="(document.getElementById('b_backfix').style.display = 'block')" /> Yes</label>
                         </div>
                     </div>
                 </div>
@@ -779,7 +672,7 @@ global $c, $db, $campId;
                             </div>
                             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}" value="<?= $bu ?>" name="scripts.backfix.urls[<?= $i ?>]" />
+                                    <input type="text" class="form-control" placeholder="http://ya.ru?pixel={px}&clickid={clickid}" value="<?= $bu ?>" name="scripts.backfix.urls[<?= $i ?>]" />
                                 </div>
                             </div>
                             <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
@@ -792,103 +685,243 @@ global $c, $db, $campId;
                 <a id="add-backfix-url-item" class="btn btn-primary" href="javascript:;">+ Add Backfix URL</a>
             </div>
             </div>
+            <?php
+                $scriptFlowNames = array_map(fn($flow) => $flow->name, $c->black->flows);
+                $scriptFlowStepCounts = [];
+                foreach ($c->black->flows as $flow) {
+                    $scriptFlowStepCounts[$flow->name] = count($flow->steps);
+                }
+                $scriptMaxStepCount = empty($scriptFlowStepCounts) ? 0 : max($scriptFlowStepCounts);
+                $scriptFlowOptionsHtml = '<option value="*">Any flow</option>';
+                foreach ($scriptFlowNames as $flowName) {
+                    $scriptFlowOptionsHtml .= '<option value="' . htmlspecialchars($flowName, ENT_QUOTES) . '">' . htmlspecialchars($flowName) . '</option>';
+                }
+                $nextRedirectRules = $c->scripts->nextRedirectRules;
+                $submitRedirectRules = $c->scripts->submitRedirectRules;
+                if ($c->scripts->nextRedirectUse && empty($nextRedirectRules)) {
+                    $nextRedirectRules[] = ['flow' => '*', 'steps' => '*', 'url' => ''];
+                }
+                if ($c->scripts->submitRedirectUse && empty($submitRedirectRules)) {
+                    $submitRedirectRules[] = ['flow' => '*', 'steps' => '*', 'url' => ''];
+                }
+            ?>
+
+            <div class="flow-group">
+            <span class="flow-group-title">Next Step Redirect</span>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro"> Should we open landing in a new tab and
-                            redirect prelanding page to another URL?</label>
+                        <label class="login2 pull-left pull-left-pro script-toggle-label">
+                            <i class="bi bi-info-circle script-info-icon" title="If a rule matches the current flow and step, the next step opens in a new tab and the current tab is redirected to the rule URL."></i>
+                            Enable Next Step Redirect?</label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->replacePrelanding === false ? 'checked' : '' ?> value="false" name="scripts.prelandingreplace.use" onclick="(document.getElementById('b_10').style.display = 'none')" />
-                                            No
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->replacePrelanding === true ? 'checked' : '' ?> value="true" name="scripts.prelandingreplace.use" onclick="(document.getElementById('b_10').style.display = 'block')" />
-                                            Yes
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->nextRedirectUse === false ? 'checked' : '' ?> value="false" name="scripts.nextredirect.use" data-toggle-target="next_redirect_rules_block" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->nextRedirectUse === true ? 'checked' : '' ?> value="true" name="scripts.nextredirect.use" data-toggle-target="next_redirect_rules_block" /> Yes</label>
                         </div>
                     </div>
                 </div>
             </div>
-            <div id="b_10" style="display:<?= $c->scripts->replacePrelanding === true ? 'block' : 'none' ?>;">
-                <div class="form-group-inner">
-                    <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro"> Prelanding redirect URL:</label>
+            <div id="next_redirect_rules_block" style="display:<?= $c->scripts->nextRedirectUse ? 'block' : 'none' ?>;">
+                <div id="next_redirect_rules_container" class="script-rules-container">
+                    <?php foreach ($nextRedirectRules as $ri => $rule) {
+                        $ruleFlow = (string)($rule['flow'] ?? '*');
+                        $ruleSteps = $rule['steps'] ?? '*';
+                        $ruleStepsValue = $ruleSteps === '*' ? '*' : implode(',', $ruleSteps);
+                        $ruleUrl = (string)($rule['url'] ?? '');
+                    ?>
+                    <div class="form-group-inner script-rule-item" data-rule-kind="next">
+                        <div class="row script-rule-header-row">
+                            <div class="col-lg-2"><label class="login2 pull-left pull-left-pro">Flow</label></div>
+                            <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Steps</label></div>
+                            <div class="col-lg-6"><label class="login2 pull-left pull-left-pro">Redirect current tab to</label></div>
                         </div>
-                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                            <div class="input-group custom-go-button">
-                                <input type="text" name="scripts.prelandingreplace.url" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->replacePrelandingAddress?>" />
+                        <div class="row script-rule-body-row">
+                            <div class="col-lg-2 col-md-4 col-sm-12 col-xs-12">
+                                <select class="form-select script-rule-flow" data-rule-kind="next" name="scripts.nextredirect.rules[<?= $ri ?>][flow]">
+                                    <?= str_replace('value="' . htmlspecialchars($ruleFlow, ENT_QUOTES) . '"', 'value="' . htmlspecialchars($ruleFlow, ENT_QUOTES) . '" selected', $scriptFlowOptionsHtml) ?>
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-4 col-sm-12 col-xs-12">
+                                <input type="hidden" class="script-rule-steps-value" data-rule-kind="next" name="scripts.nextredirect.rules[<?= $ri ?>][steps]" value="<?= htmlspecialchars($ruleStepsValue, ENT_QUOTES) ?>" />
+                                <div class="script-step-chips" data-rule-kind="next"></div>
+                            </div>
+                            <div class="col-lg-6 col-md-3 col-sm-12 col-xs-12">
+                                <input type="text" class="form-control" name="scripts.nextredirect.rules[<?= $ri ?>][url]" value="<?= htmlspecialchars($ruleUrl, ENT_QUOTES) ?>" placeholder="https://example.com/path?clickid={clickid}" />
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-12 col-xs-12 script-rule-remove-col">
+                                <button type="button" class="btn btn-outline-light btn-sm script-rule-move-up" title="Move up"><i class="bi bi-arrow-up"></i></button>
+                                <button type="button" class="btn btn-outline-light btn-sm script-rule-move-down" title="Move down"><i class="bi bi-arrow-down"></i></button>
+                                <a href="javascript:void(0)" class="remove-script-rule-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
                 </div>
+                <a id="add-next-redirect-rule" class="btn btn-primary" href="javascript:;">+ Add Rule</a>
+            </div>
             </div>
 
-
+            <div class="flow-group">
+            <span class="flow-group-title">Form Submit Redirect</span>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro"> Should we open ThankYou page 
-                        in a new tab and redirect landing page to another URL:
-                        </label>
+                        <label class="login2 pull-left pull-left-pro script-toggle-label">
+                            <i class="bi bi-info-circle script-info-icon" title="If a rule matches the current flow and terminal step, form submit opens in a new tab and the current tab is redirected to the rule URL."></i>
+                            Enable Form Submit Redirect?</label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->replaceLanding === false ? 'checked' : '' ?> value="false" name="scripts.landingreplace.use" onclick="(document.getElementById('b_1010').style.display = 'none')" />
-                                            No
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->replaceLanding === true ? 'checked' : '' ?> value="true" name="scripts.landingreplace.use" onclick="(document.getElementById('b_1010').style.display = 'block')" />
-                                            Yes
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->submitRedirectUse === false ? 'checked' : '' ?> value="false" name="scripts.submitredirect.use" data-toggle-target="submit_redirect_rules_block" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->submitRedirectUse === true ? 'checked' : '' ?> value="true" name="scripts.submitredirect.use" data-toggle-target="submit_redirect_rules_block" /> Yes</label>
                         </div>
                     </div>
                 </div>
             </div>
-            <div id="b_1010" style="display:<?= $c->scripts->replaceLanding === true ? 'block' : 'none' ?>;">
+            <div id="submit_redirect_rules_block" style="display:<?= $c->scripts->submitRedirectUse ? 'block' : 'none' ?>;">
+                <div id="submit_redirect_rules_container" class="script-rules-container">
+                    <?php foreach ($submitRedirectRules as $ri => $rule) {
+                        $ruleFlow = (string)($rule['flow'] ?? '*');
+                        $ruleSteps = $rule['steps'] ?? '*';
+                        $ruleStepsValue = $ruleSteps === '*' ? '*' : implode(',', $ruleSteps);
+                        $ruleUrl = (string)($rule['url'] ?? '');
+                    ?>
+                    <div class="form-group-inner script-rule-item" data-rule-kind="submit">
+                    <div class="row script-rule-header-row">
+                        <div class="col-lg-2"><label class="login2 pull-left pull-left-pro">Flow</label></div>
+                        <div class="col-lg-8"><label class="login2 pull-left pull-left-pro">Redirect current tab to</label></div>
+                    </div>
+                    <div class="row script-rule-body-row">
+                        <div class="col-lg-2 col-md-4 col-sm-12 col-xs-12">
+                            <select class="form-select script-rule-flow" data-rule-kind="submit" name="scripts.submitredirect.rules[<?= $ri ?>][flow]">
+                                <?= str_replace('value="' . htmlspecialchars($ruleFlow, ENT_QUOTES) . '"', 'value="' . htmlspecialchars($ruleFlow, ENT_QUOTES) . '" selected', $scriptFlowOptionsHtml) ?>
+                            </select>
+                        </div>
+                            <input type="hidden" class="script-rule-steps-value" data-rule-kind="submit" name="scripts.submitredirect.rules[<?= $ri ?>][steps]" value="*" />
+                            <div class="col-lg-8 col-md-7 col-sm-12 col-xs-12">
+                                <input type="text" class="form-control" name="scripts.submitredirect.rules[<?= $ri ?>][url]" value="<?= htmlspecialchars($ruleUrl, ENT_QUOTES) ?>" placeholder="https://example.com/path?clickid={clickid}" />
+                            </div>
+                            <div class="col-lg-1 col-md-1 col-sm-12 col-xs-12 script-rule-remove-col">
+                                <button type="button" class="btn btn-outline-light btn-sm script-rule-move-up" title="Move up"><i class="bi bi-arrow-up"></i></button>
+                                <button type="button" class="btn btn-outline-light btn-sm script-rule-move-down" title="Move down"><i class="bi bi-arrow-down"></i></button>
+                                <a href="javascript:void(0)" class="remove-script-rule-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
+                </div>
+                <a id="add-submit-redirect-rule" class="btn btn-primary" href="javascript:;">+ Add Rule</a>
+            </div>
+            </div>
+
+            <div class="flow-group">
+            <span class="flow-group-title">Event Tracking</span>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">Track scroll depth?</label>
+                    </div>
+                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->scrollTrackingUse === false ? 'checked' : '' ?> value="false" name="scripts.events.scroll.use" data-toggle-target="scroll_tracking_block" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->scrollTrackingUse === true ? 'checked' : '' ?> value="true" name="scripts.events.scroll.use" data-toggle-target="scroll_tracking_block" /> Yes</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="scroll_tracking_block" style="display:<?= $c->scripts->scrollTrackingUse ? 'block' : 'none' ?>;">
                 <div class="form-group-inner">
                     <div class="row">
-                        <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                            <label class="login2 pull-left pull-left-pro"> Landing redirect URL:</label>
+                        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
+                            <label class="login2 pull-left pull-left-pro">Scroll thresholds, %</label>
                         </div>
-                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                            <div class="input-group custom-go-button">
-                                <input type="text" name="scripts.landingreplace.url" class="form-control" placeholder="http://ya.ru?pixel={px}&subid={subid}&prelanding={prelanding}" value="<?= $c->scripts->replaceLandingAddress ?>" />
-                            </div>
+                        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
+                            <input type="text" class="form-control" name="scripts.events.scroll.thresholds" value="<?= htmlspecialchars(implode(',', $c->scripts->scrollTrackingThresholds), ENT_QUOTES) ?>" placeholder="50,75,90" />
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">Track visible time on page?</label>
+                    </div>
+                    <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->timeTrackingUse === false ? 'checked' : '' ?> value="false" name="scripts.events.time.use" data-toggle-target="time_tracking_block" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->timeTrackingUse === true ? 'checked' : '' ?> value="true" name="scripts.events.time.use" data-toggle-target="time_tracking_block" /> Yes</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="time_tracking_block" style="display:<?= $c->scripts->timeTrackingUse ? 'block' : 'none' ?>;">
+                <div class="form-group-inner">
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
+                            <label class="login2 pull-left pull-left-pro">Time thresholds, seconds</label>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
+                            <input type="text" class="form-control" name="scripts.events.time.thresholds" value="<?= htmlspecialchars(implode(',', $c->scripts->timeTrackingThresholds), ENT_QUOTES) ?>" placeholder="30,60,120" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <template id="script-rule-template-next">
+                <div class="form-group-inner script-rule-item" data-rule-kind="__KIND__">
+                    <div class="row script-rule-header-row">
+                        <div class="col-lg-2"><label class="login2 pull-left pull-left-pro">Flow</label></div>
+                        <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Steps</label></div>
+                        <div class="col-lg-6"><label class="login2 pull-left pull-left-pro">Redirect current tab to</label></div>
+                    </div>
+                    <div class="row script-rule-body-row">
+                        <div class="col-lg-2 col-md-4 col-sm-12 col-xs-12">
+                            <select class="form-select script-rule-flow" data-rule-kind="__KIND__" name="scripts.__FIELD__.rules[__INDEX__][flow]">
+                                <?= $scriptFlowOptionsHtml ?>
+                            </select>
+                        </div>
+                        <div class="col-lg-3 col-md-4 col-sm-12 col-xs-12">
+                            <input type="hidden" class="script-rule-steps-value" data-rule-kind="__KIND__" name="scripts.__FIELD__.rules[__INDEX__][steps]" value="*" />
+                            <div class="script-step-chips" data-rule-kind="__KIND__"></div>
+                        </div>
+                        <div class="col-lg-6 col-md-3 col-sm-12 col-xs-12">
+                            <input type="text" class="form-control" name="scripts.__FIELD__.rules[__INDEX__][url]" value="" placeholder="https://example.com/path?clickid={clickid}" />
+                        </div>
+                        <div class="col-lg-1 col-md-1 col-sm-12 col-xs-12 script-rule-remove-col">
+                            <button type="button" class="btn btn-outline-light btn-sm script-rule-move-up" title="Move up"><i class="bi bi-arrow-up"></i></button>
+                            <button type="button" class="btn btn-outline-light btn-sm script-rule-move-down" title="Move down"><i class="bi bi-arrow-down"></i></button>
+                            <a href="javascript:void(0)" class="remove-script-rule-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <template id="script-rule-template-submit">
+                <div class="form-group-inner script-rule-item" data-rule-kind="submit">
+                    <div class="row script-rule-header-row">
+                        <div class="col-lg-2"><label class="login2 pull-left pull-left-pro">Flow</label></div>
+                        <div class="col-lg-8"><label class="login2 pull-left pull-left-pro">Redirect current tab to</label></div>
+                    </div>
+                    <div class="row script-rule-body-row">
+                        <div class="col-lg-2 col-md-4 col-sm-12 col-xs-12">
+                            <select class="form-select script-rule-flow" data-rule-kind="submit" name="scripts.submitredirect.rules[__INDEX__][flow]">
+                                <?= $scriptFlowOptionsHtml ?>
+                            </select>
+                        </div>
+                        <input type="hidden" class="script-rule-steps-value" data-rule-kind="submit" name="scripts.submitredirect.rules[__INDEX__][steps]" value="*" />
+                        <div class="col-lg-8 col-md-7 col-sm-12 col-xs-12">
+                            <input type="text" class="form-control" name="scripts.submitredirect.rules[__INDEX__][url]" value="" placeholder="https://example.com/path?clickid={clickid}" />
+                        </div>
+                        <div class="col-lg-1 col-md-1 col-sm-12 col-xs-12 script-rule-remove-col">
+                            <button type="button" class="btn btn-outline-light btn-sm script-rule-move-up" title="Move up"><i class="bi bi-arrow-up"></i></button>
+                            <button type="button" class="btn btn-outline-light btn-sm script-rule-move-down" title="Move down"><i class="bi bi-arrow-down"></i></button>
+                            <a href="javascript:void(0)" class="remove-script-rule-item btn btn-danger btn-sm" title="Delete"><i class="bi bi-trash"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </template>
             <div class="form-group-inner">
                 <div class="row">
                     <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12">
@@ -896,28 +929,9 @@ global $c, $db, $campId;
                         </label>
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
-                        <div class="bt-df-checkbox pull-left">
-
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->imagesLazyLoad === false ? 'checked' : '' ?> value="false" name="scripts.imageslazyload" />
-                                            No
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                                    <div class="i-checks pull-left">
-                                        <label>
-                                            <input type="radio" <?= $c->scripts->imagesLazyLoad === true ? 'checked' : '' ?> value="true" name="scripts.imageslazyload" />
-                                            Yes
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="ywb-radios">
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->imagesLazyLoad === false ? 'checked' : '' ?> value="false" name="scripts.imageslazyload" /> No</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->scripts->imagesLazyLoad === true ? 'checked' : '' ?> value="true" name="scripts.imageslazyload" /> Yes</label>
                         </div>
                     </div>
                 </div>
@@ -945,14 +959,14 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
-                        <img src="img/info.ico" title="Put it into your Affiliate Network's postback URL. Change macros names if needed. Subid, payout and status parameters are required. Currency is optional, will be USD if omitted." />
+                        <i class="bi bi-info-circle admin-info-icon" title="Put it into your Affiliate Network's postback URL. Change macros names if needed. Subid, payout and status parameters are required. Currency is optional, will be USD if omitted."></i>
                         Your postback URL example:
                     </label>
                     </div>
                     <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
                         <div class="input-group custom-go-button">
                             <?php $cloakerRoot = dirname(get_cloaker_path()); ?>
-                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/postback.php?subid={sub1}&payout={payout}&currency=USD&status={status}"/>
+                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/api/postback.php?clickid={sub1}&payout={payout}&currency=USD&status={status}"/>
                         </div>
                     </div>
                 </div>
@@ -1039,7 +1053,7 @@ global $c, $db, $campId;
                         <div class="row">
                             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                 <label class="login2 pull-left pull-left-pro">
-                                    <img src="img/info.ico" title="Inside the S2S-postback address you can use the following macros: {subid}, {prelanding}, {landing}, {px}, {domain}, {status}" />
+                                    <i class="bi bi-info-circle admin-info-icon" title="Inside the S2S-postback address you can use the following macros: {clickid}, {userid}, {px}, {domain}, {status}"></i>
                                     Address:
                                 </label>
                                 <br /><br />
@@ -1101,13 +1115,13 @@ global $c, $db, $campId;
                 <div class="row">
                     <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
                         <label class="login2 pull-left pull-left-pro">
-                        <img src="img/info.ico" title="API methods are described in docs" />
+                        <i class="bi bi-info-circle admin-info-icon" title="API methods are described in docs"></i>
                         This campaign's API URL:
                     </label>
                     </div>
                     <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
                         <div class="input-group custom-go-button">
-                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/phpconnect.php?apikey=<?= $c->apiKey ?>"/>
+                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/api/phpconnect.php?apikey=<?= $c->apiKey ?>"/>
                         </div>
                     </div>
                 </div>
@@ -1190,6 +1204,199 @@ global $c, $db, $campId;
             minLimit: 1,
             removeConfirm: false
         });
+
+        window.scriptRedirectFlowStepCounts = <?= json_encode($scriptFlowStepCounts) ?>;
+        window.scriptRedirectMaxStepCount = <?= (int)$scriptMaxStepCount ?>;
+        function getRuleTemplateHtml(kind, index) {
+            const templateId = kind === 'submit' ? 'script-rule-template-submit' : 'script-rule-template-next';
+            return document.getElementById(templateId).innerHTML
+                .replaceAll('__KIND__', kind)
+                .replaceAll('__INDEX__', String(index));
+        }
+
+        function updateScriptRuleNames(kind) {
+            document.querySelectorAll(`[data-rule-kind="${kind}"]`).forEach((item, index) => {
+                item.querySelectorAll('input[name], select[name]').forEach((input) => {
+                    input.name = input.name.replace(/rules\[\d+\]/, `rules[${index}]`);
+                });
+            });
+        }
+
+        function parseRuleSteps(value) {
+            if (!value || value === '*') return '*';
+            const steps = String(value)
+                .split(',')
+                .map((s) => s.trim())
+                .filter((s) => s !== '' && !Number.isNaN(Number(s)))
+                .map((s) => Number(s));
+            if (steps.length === 0) return '*';
+            return [...new Set(steps)].sort((a, b) => a - b);
+        }
+
+        function serializeRuleSteps(steps) {
+            if (steps === '*' || !Array.isArray(steps) || steps.length === 0) return '*';
+            return steps.join(',');
+        }
+
+        function renderStepChipsForRule(item) {
+            if (!item) return;
+            const flowSelect = item.querySelector('.script-rule-flow');
+            const hiddenInput = item.querySelector('.script-rule-steps-value');
+            const chipsContainer = item.querySelector('.script-step-chips');
+            if (!flowSelect || !hiddenInput || !chipsContainer) return;
+
+            const flowName = flowSelect.value;
+            const stepCount = flowName === '*'
+                ? Number(window.scriptRedirectMaxStepCount || 0)
+                : Number(window.scriptRedirectFlowStepCounts[flowName] || 0);
+            let selectedSteps = parseRuleSteps(hiddenInput.value);
+
+            if (stepCount <= 0) {
+                hiddenInput.value = '*';
+                chipsContainer.innerHTML = '<button type="button" class="script-step-chip active" data-steps-any="true">Any step</button>';
+                return;
+            }
+
+            if (selectedSteps !== '*') {
+                selectedSteps = selectedSteps.filter((step) => step >= 0 && step < stepCount);
+                if (selectedSteps.length === 0) {
+                    selectedSteps = '*';
+                }
+            }
+
+            let html = '<button type="button" class="script-step-chip' + (selectedSteps === '*' ? ' active' : '') + '" data-steps-any="true">Any</button>';
+            for (let step = 0; step < stepCount; step++) {
+                const active = selectedSteps !== '*' && selectedSteps.includes(step);
+                html += '<button type="button" class="script-step-chip' + (active ? ' active' : '') + '" data-step-value="' + step + '">Step ' + (step + 1) + '</button>';
+            }
+            chipsContainer.innerHTML = html;
+            hiddenInput.value = serializeRuleSteps(selectedSteps);
+        }
+
+        function initializeScriptRuleSelects(kind) {
+            document.querySelectorAll(`.script-rule-item[data-rule-kind="${kind}"]`).forEach(renderStepChipsForRule);
+        }
+
+        function addScriptRule(kind) {
+            const container = document.getElementById(`${kind}_redirect_rules_container`);
+            if (!container) return;
+            const index = container.querySelectorAll('.script-rule-item').length;
+            container.insertAdjacentHTML('beforeend', getRuleTemplateHtml(kind, index));
+            updateScriptRuleNames(kind);
+            initializeScriptRuleSelects(kind);
+        }
+
+        function toggleScriptRulesBlock(targetId, enabled) {
+            const block = document.getElementById(targetId);
+            if (!block) return;
+            block.style.display = enabled ? 'block' : 'none';
+        }
+
+        function collectRulesForKind(kind) {
+            return Array.from(document.querySelectorAll(`.script-rule-item[data-rule-kind="${kind}"]`)).map((item) => {
+                const flow = item.querySelector('.script-rule-flow')?.value || '*';
+                const stepsInput = item.querySelector('.script-rule-steps-value');
+                const stepsRaw = (stepsInput?.value || '').trim();
+                const url = (item.querySelector('input[name*="[url]"]')?.value || '').trim();
+                if (!url) return null;
+
+                const steps = kind === 'submit' ? '*' : parseRuleSteps(stepsRaw);
+
+                return { flow, steps, url };
+            }).filter(Boolean);
+        }
+
+        window.collectScriptRedirectRules = function () {
+            return {
+                next: collectRulesForKind('next'),
+                submit: collectRulesForKind('submit'),
+            };
+        };
+
+        document.querySelectorAll('input[data-toggle-target]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+                toggleScriptRulesBlock(radio.dataset.toggleTarget, radio.value === 'true');
+            });
+        });
+
+        document.getElementById('add-next-redirect-rule')?.addEventListener('click', () => addScriptRule('next'));
+        document.getElementById('add-submit-redirect-rule')?.addEventListener('click', () => addScriptRule('submit'));
+
+        document.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.remove-script-rule-item');
+            if (removeBtn) {
+                const ruleItem = removeBtn.closest('.script-rule-item');
+                if (!ruleItem) return;
+                const kind = ruleItem.dataset.ruleKind;
+                ruleItem.remove();
+                if (kind) updateScriptRuleNames(kind);
+                return;
+            }
+
+            const moveUpBtn = e.target.closest('.script-rule-move-up');
+            if (moveUpBtn) {
+                const ruleItem = moveUpBtn.closest('.script-rule-item');
+                const kind = ruleItem?.dataset.ruleKind;
+                if (!ruleItem || !kind) return;
+                const prev = ruleItem.previousElementSibling;
+                if (prev) {
+                    ruleItem.parentNode.insertBefore(ruleItem, prev);
+                    updateScriptRuleNames(kind);
+                }
+                return;
+            }
+
+            const moveDownBtn = e.target.closest('.script-rule-move-down');
+            if (moveDownBtn) {
+                const ruleItem = moveDownBtn.closest('.script-rule-item');
+                const kind = ruleItem?.dataset.ruleKind;
+                if (!ruleItem || !kind) return;
+                const next = ruleItem.nextElementSibling;
+                if (next) {
+                    ruleItem.parentNode.insertBefore(next, ruleItem);
+                    updateScriptRuleNames(kind);
+                }
+                return;
+            }
+
+            const chip = e.target.closest('.script-step-chip');
+            if (chip) {
+                const ruleItem = chip.closest('.script-rule-item');
+                const hiddenInput = ruleItem?.querySelector('.script-rule-steps-value');
+                if (!ruleItem || !hiddenInput) return;
+
+                let selected = parseRuleSteps(hiddenInput.value);
+                const isAny = chip.dataset.stepsAny === 'true';
+
+                if (isAny) {
+                    hiddenInput.value = '*';
+                    renderStepChipsForRule(ruleItem);
+                    return;
+                }
+
+                const stepValue = Number(chip.dataset.stepValue);
+                if (selected === '*') {
+                    selected = [];
+                }
+                if (!selected.includes(stepValue)) {
+                    selected.push(stepValue);
+                } else {
+                    selected = selected.filter((step) => step !== stepValue);
+                }
+                hiddenInput.value = serializeRuleSteps(selected);
+                renderStepChipsForRule(ruleItem);
+                return;
+            }
+        });
+
+        document.addEventListener('change', (e) => {
+            if (e.target.matches('.script-rule-flow')) {
+                renderStepChipsForRule(e.target.closest('.script-rule-item'));
+            }
+        });
+
+        initializeScriptRuleSelects('next');
+        initializeScriptRuleSelects('submit');
         
     </script>
     <script type="module" src="js/campsettings/load-mode.js"></script>
@@ -1310,10 +1517,10 @@ global $c, $db, $campId;
     <template id="tpl-redirect-row">
         <div class="form-group-inner flow-path-item"><div class="row">
             <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect URL:</label></div>
-            <div class="col-lg-4"><input type="text" class="form-control flow-land-redirect" value="" placeholder="https://..." /></div>
+            <div class="col-lg-4"><input type="text" class="form-control flow-step-redirect" value="" placeholder="https://..." /></div>
             <div class="col-lg-2 flow-weight-col" style="display:none">
-                <input type="number" step="1" class="form-control flow-land-weight" value="" placeholder="%" style="width:70px" /></div>
-            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-land-redirect" title="Delete"><i class="bi bi-trash"></i></a></div>
+                <input type="number" step="1" class="form-control flow-step-weight" value="" placeholder="%" style="width:70px" /></div>
+            <div class="col-lg-1"><a href="javascript:void(0)" class="btn btn-danger btn-sm flow-remove-step-item" title="Delete"><i class="bi bi-trash"></i></a></div>
         </div></div>
     </template>
 
@@ -1333,59 +1540,60 @@ global $c, $db, $campId;
 
         <div class="flow-thompson-opts" id="flow-thompson-opts-__FI__" style="display:none">
             <div class="form-group-inner"><label class="login2 pull-left pull-left-pro">Optimize for:</label>
-            <div class="bt-df-checkbox pull-left">
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="Lead" name="flow___FI___optimize_for" class="flow-optimize-for" data-fi="__FI__" /> Lead</label></div></div></div>
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="Purchase" name="flow___FI___optimize_for" class="flow-optimize-for" data-fi="__FI__" /> Purchase</label></div></div></div>
+            <div class="ywb-radios">
+                <label class="ywb-radio-label"><input type="radio" checked value="Lead" name="flow___FI___optimize_for" class="flow-optimize-for" data-fi="__FI__" /> Lead</label>
+                <label class="ywb-radio-label"><input type="radio" value="Purchase" name="flow___FI___optimize_for" class="flow-optimize-for" data-fi="__FI__" /> Purchase</label>
             </div></div>
             <div class="form-group-inner flow-optimize-mode-wrap" id="flow-optimize-mode-wrap-__FI__" style="display:none">
             <label class="login2 pull-left pull-left-pro">Optimize mode:</label>
-            <div class="bt-df-checkbox pull-left">
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" checked value="funnels" name="flow___FI___optimize_mode" class="flow-optimize-mode" data-fi="__FI__" /> Funnels (preland+land combos)</label></div></div></div>
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label><input type="radio" value="separate" name="flow___FI___optimize_mode" class="flow-optimize-mode" data-fi="__FI__" /> Separate (independent)</label></div></div></div>
+            <div class="ywb-radios">
+                <label class="ywb-radio-label"><input type="radio" checked value="funnels" name="flow___FI___optimize_mode" class="flow-optimize-mode" data-fi="__FI__" /> Funnels (step combos)</label>
+                <label class="ywb-radio-label"><input type="radio" value="separate" name="flow___FI___optimize_mode" class="flow-optimize-mode" data-fi="__FI__" /> Separate (independent per step)</label>
             </div></div></div></div>
 
-        <div class="flow-group"><span class="flow-group-title">Prelanding method</span>
-        <div class="form-group-inner">
-            <div class="bt-df-checkbox pull-left">
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                    <input type="radio" checked value="none" name="flow___FI___preland_action" class="flow-preland-action" data-fi="__FI__" /> Don't use prelanding
-                </label></div></div></div>
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                    <input type="radio" value="folder" name="flow___FI___preland_action" class="flow-preland-action" data-fi="__FI__" /> Local prelanding(s) from folder
-                </label></div></div></div>
-            </div></div>
-
-        <div class="flow-preland-folders" id="flow-preland-folders-__FI__" style="display:none">
-            <div class="flow-preland-items" id="flow-preland-items-__FI__"></div>
-            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="__FI__" data-type="preland"><i class="bi bi-folder-symlink"></i> Add Existing</a>
-            <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="__FI__" data-type="preland"><i class="bi bi-upload"></i> Upload ZIP</a>
-        </div></div>
-
-        <div class="flow-group"><span class="flow-group-title">Landing method</span>
-        <div class="form-group-inner">
-            <div class="bt-df-checkbox pull-left">
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                    <input type="radio" checked value="folder" name="flow___FI___land_action" class="flow-land-action" data-fi="__FI__" /> Local landing(s) from folder
-                </label></div></div></div>
-                <div class="row"><div class="col-lg-12"><div class="i-checks pull-left"><label>
-                    <input type="radio" value="redirect" name="flow___FI___land_action" class="flow-land-action" data-fi="__FI__" /> Redirect(s)
-                </label></div></div></div>
-            </div></div>
-
-        <div class="flow-land-folders" id="flow-land-folders-__FI__" style="display:block">
-            <div class="flow-land-folder-items" id="flow-land-folder-items-__FI__"></div>
-            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-existing" data-fi="__FI__" data-type="land"><i class="bi bi-folder-symlink"></i> Add Existing</a>
-            <a href="javascript:void(0)" class="btn btn-info btn-sm flow-upload-zip" data-fi="__FI__" data-type="land"><i class="bi bi-upload"></i> Upload ZIP</a>
+        <div class="flow-group"><span class="flow-group-title">Steps</span>
+        <div id="steps-list-__FI__" class="steps-list"></div>
+        <div style="margin-top:10px;">
+            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-step" data-fi="__FI__"><i class="bi bi-plus-circle"></i> Add Step</a>
+        </div>
         </div>
 
-        <div class="flow-land-redirects" id="flow-land-redirects-__FI__" style="display:none">
-            <div class="flow-land-redirect-items" id="flow-land-redirect-items-__FI__"></div>
-            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-add-land-redirect" data-fi="__FI__">+ Add Redirect</a>
+        </section>
+    </template>
+
+    <template id="tpl-step-section">
+        <section id="sec-step-__FI__-__SI__" class="camp-section step-section" data-flow-index="__FI__" data-step-index="__SI__">
+        <h5 class="flow-section-title">__FLOWNAME__ &rsaquo; Step __STEPNUM__</h5>
+
+        <div class="flow-group"><span class="flow-group-title">Action</span>
+        <div class="form-group-inner">
+            <div class="ywb-radios">
+                <label class="ywb-radio-label">
+                    <input type="radio" checked value="folder" name="flow___FI___step___SI___action" class="flow-step-action" data-fi="__FI__" data-si="__SI__" /> Local page(s) from folder
+                </label>
+                <label class="ywb-radio-label">
+                    <input type="radio" value="redirect" name="flow___FI___step___SI___action" class="flow-step-action" data-fi="__FI__" data-si="__SI__" /> Redirect(s)
+                </label>
+            </div>
+        </div></div>
+
+        <div class="flow-step-folders" style="display:block">
+        <div class="flow-group"><span class="flow-group-title">Folders</span>
+            <div class="flow-step-folder-items"></div>
+            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-step-add-existing" data-fi="__FI__" data-si="__SI__"><i class="bi bi-folder-symlink"></i> Add Existing</a>
+            <a href="javascript:void(0)" class="btn btn-info btn-sm flow-step-upload-zip" data-fi="__FI__" data-si="__SI__"><i class="bi bi-upload"></i> Upload ZIP</a>
+        </div></div>
+
+        <div class="flow-step-redirects" style="display:none">
+        <div class="flow-group"><span class="flow-group-title">Redirects</span>
+            <div class="flow-step-redirect-items"></div>
+            <a href="javascript:void(0)" class="btn btn-primary btn-sm flow-step-add-redirect" data-fi="__FI__" data-si="__SI__">+ Add Redirect</a>
             <div class="form-group-inner" style="margin-top:10px"><div class="row">
                 <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>
-                <div class="col-lg-3"><select class="form-select flow-redirect-type" data-fi="__FI__">
+                <div class="col-lg-3"><select class="form-select flow-step-redirect-type" data-fi="__FI__" data-si="__SI__">
                     <option value="301">301</option><option value="302" selected>302</option><option value="303">303</option><option value="307">307</option>
-                </select></div></div></div></div></div>
+                </select></div></div></div>
+        </div></div>
 
         </section>
     </template>

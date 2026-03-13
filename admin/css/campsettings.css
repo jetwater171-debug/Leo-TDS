@@ -268,6 +268,80 @@
     background: rgba(0, 0, 0, 0.1);
 }
 
+.script-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-info-icon,
+.script-info-icon {
+    color: #8fb8ff;
+    font-size: 14px;
+    cursor: help;
+    margin-right: 6px;
+}
+
+.script-rules-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.script-rule-item {
+    border: 1px solid #2a3f6a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.script-rule-header-row {
+    margin-bottom: 6px;
+}
+
+.script-rule-header-row .login2 {
+    color: #90a4c7;
+    font-size: 12px;
+}
+
+.script-rule-remove-col {
+    display: flex;
+    align-items: end;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.script-step-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 38px;
+    align-items: center;
+}
+
+.script-step-chip {
+    border: 1px solid #35548a;
+    background: transparent;
+    color: #9fb9e8;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.script-step-chip:hover {
+    background: rgba(80, 140, 255, 0.12);
+    color: #e8f0ff;
+}
+
+.script-step-chip.active {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
 .step-list-row:hover {
     background: rgba(255, 255, 255, 0.04);
 }

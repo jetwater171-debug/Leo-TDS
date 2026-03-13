@@ -365,23 +365,191 @@ class ScriptsSettings implements JsonSerializable
 {
     public bool $backfix;
     public array $backfixUrls;
-    public bool $replacePrelanding;
-    public string $replacePrelandingAddress;
-    public bool $replaceLanding;
-    public string $replaceLandingAddress;
+    public bool $nextRedirectUse;
+    public array $nextRedirectRules;
+    public bool $submitRedirectUse;
+    public array $submitRedirectRules;
+    public bool $scrollTrackingUse;
+    public array $scrollTrackingThresholds;
+    public bool $timeTrackingUse;
+    public array $timeTrackingThresholds;
     public bool $imagesLazyLoad;
 
     public static function fromArray($arr): ScriptsSettings
     {
         $ss = new ScriptsSettings();
-        $ss->backfix = $arr['backfix']['use'] ?? false;
+        $ss->backfix = self::toBool($arr['backfix']['use'] ?? false);
         $ss->backfixUrls = $arr['backfix']['urls'] ?? [];
-        $ss->replacePrelanding = $arr['prelandingreplace']['use'] ?? false;
-        $ss->replacePrelandingAddress = $arr['prelandingreplace']['url'] ?? '';
-        $ss->replaceLanding = $arr['landingreplace']['use'] ?? false;
-        $ss->replaceLandingAddress = $arr['landingreplace']['url'] ?? '';
-        $ss->imagesLazyLoad = $arr['imageslazyload'] ?? false;
+        $ss->nextRedirectUse = self::toBool($arr['nextredirect']['use'] ?? false);
+        $ss->nextRedirectRules = self::normalizeRedirectRules($arr['nextredirect']['rules'] ?? []);
+        $ss->submitRedirectUse = self::toBool($arr['submitredirect']['use'] ?? false);
+        $ss->submitRedirectRules = self::normalizeRedirectRules($arr['submitredirect']['rules'] ?? []);
+        $ss->scrollTrackingUse = self::toBool($arr['events']['scroll']['use'] ?? false);
+        $ss->scrollTrackingThresholds = self::normalizeThresholds($arr['events']['scroll']['thresholds'] ?? [50]);
+        $ss->timeTrackingUse = self::toBool($arr['events']['time']['use'] ?? false);
+        $ss->timeTrackingThresholds = self::normalizeThresholds($arr['events']['time']['thresholds'] ?? [60]);
+        $ss->imagesLazyLoad = self::toBool($arr['imageslazyload'] ?? false);
         return $ss;
+    }
+
+    private static function toBool($value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        }
+        return (bool)$value;
+    }
+
+    private static function normalizeRedirectRules($rules): array
+    {
+        if (!is_array($rules)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($rules as $rule) {
+            if (!is_array($rule)) {
+                continue;
+            }
+
+            $url = trim((string)($rule['url'] ?? ''));
+            if ($url === '') {
+                continue;
+            }
+
+            $flow = trim((string)($rule['flow'] ?? '*'));
+            if ($flow === '') {
+                $flow = '*';
+            }
+
+            $steps = self::normalizeRuleSteps($rule['steps'] ?? '*');
+            if ($steps === []) {
+                continue;
+            }
+
+            $normalized[] = [
+                'flow' => $flow,
+                'steps' => $steps,
+                'url' => $url,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private static function normalizeThresholds($thresholds): array
+    {
+        if (is_string($thresholds)) {
+            $thresholds = array_map('trim', explode(',', $thresholds));
+        }
+        if (!is_array($thresholds)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($thresholds as $threshold) {
+            if (!is_numeric($threshold)) {
+                continue;
+            }
+            $threshold = (int)$threshold;
+            if ($threshold <= 0) {
+                continue;
+            }
+            $normalized[$threshold] = $threshold;
+        }
+
+        ksort($normalized);
+        return array_values($normalized);
+    }
+
+    private static function normalizeRuleSteps($steps): array|string
+    {
+        if ($steps === '*' || $steps === null) {
+            return '*';
+        }
+
+        if (is_string($steps)) {
+            $steps = trim($steps);
+            if ($steps === '' || $steps === '*') {
+                return '*';
+            }
+            $steps = array_map('trim', explode(',', $steps));
+        }
+
+        if (!is_array($steps)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($steps as $step) {
+            if ($step === '*' || $step === '') {
+                return '*';
+            }
+            if (!is_numeric($step)) {
+                continue;
+            }
+            $step = (int)$step;
+            if ($step < 0) {
+                continue;
+            }
+            $normalized[$step] = $step;
+        }
+
+        if (empty($normalized)) {
+            return [];
+        }
+
+        ksort($normalized);
+        return array_values($normalized);
+    }
+
+    public function getNextRedirectRule(string $flowName, int $stepIndex): ?array
+    {
+        return $this->findRedirectRule($this->nextRedirectUse, $this->nextRedirectRules, $flowName, $stepIndex);
+    }
+
+    public function getSubmitRedirectRule(string $flowName, int $stepIndex): ?array
+    {
+        return $this->findRedirectRule($this->submitRedirectUse, $this->submitRedirectRules, $flowName, $stepIndex);
+    }
+
+    public function getConfiguredEventMetricFields(): array
+    {
+        $fields = [];
+        if ($this->scrollTrackingUse) {
+            foreach ($this->scrollTrackingThresholds as $threshold) {
+                $fields[] = 'event.scroll_' . $threshold;
+            }
+        }
+        if ($this->timeTrackingUse) {
+            foreach ($this->timeTrackingThresholds as $threshold) {
+                $fields[] = 'event.stay_' . $threshold . 's';
+            }
+        }
+        return $fields;
+    }
+
+    private function findRedirectRule(bool $enabled, array $rules, string $flowName, int $stepIndex): ?array
+    {
+        if (!$enabled) {
+            return null;
+        }
+
+        foreach ($rules as $rule) {
+            $ruleFlow = (string)($rule['flow'] ?? '*');
+            $ruleSteps = $rule['steps'] ?? '*';
+
+            $flowMatches = $ruleFlow === '*' || $ruleFlow === $flowName;
+            $stepMatches = $ruleSteps === '*' || (is_array($ruleSteps) && in_array($stepIndex, $ruleSteps, true));
+            if ($flowMatches && $stepMatches) {
+                return $rule;
+            }
+        }
+
+        return null;
     }
 
     public function jsonSerialize(): array
@@ -392,15 +560,25 @@ class ScriptsSettings implements JsonSerializable
                     "use" => $this->backfix,
                     "urls" => $this->backfixUrls
                 ],
-                "replacePrelanding" => [
-                    "use" => $this->replacePrelanding,
-                    "url" => $this->replacePrelandingAddress
+                "nextredirect" => [
+                    "use" => $this->nextRedirectUse,
+                    "rules" => $this->nextRedirectRules
                 ],
-                "replaceLanding" => [
-                    "use" => $this->replaceLanding,
-                    "url" => $this->replaceLandingAddress
+                "submitredirect" => [
+                    "use" => $this->submitRedirectUse,
+                    "rules" => $this->submitRedirectRules
                 ],
-                "imagesLazyLoad" => $this->imagesLazyLoad
+                "events" => [
+                    "scroll" => [
+                        "use" => $this->scrollTrackingUse,
+                        "thresholds" => $this->scrollTrackingThresholds
+                    ],
+                    "time" => [
+                        "use" => $this->timeTrackingUse,
+                        "thresholds" => $this->timeTrackingThresholds
+                    ]
+                ],
+                "imageslazyload" => $this->imagesLazyLoad
             ]
         ];
     }

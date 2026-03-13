@@ -85,110 +85,227 @@ function dl_serve_local(string $baseDir, string $folderName, string $reqPath, ar
     exit();
 }
 
-// Determine direct-load mode: single 'dl' key in session (whites) or cookie (blacks)
-$dlMode = session_read('dl') ?: get_cookie('dl');
+function dl_send_static_file(string $filePath, array $mimeTypes): void
+{
+    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    $mime = $mimeTypes[$ext] ?? mime_content_type($filePath) ?: 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: public, max-age=86400');
+    readfile($filePath);
+    exit();
+}
 
-if (!empty($dlMode)) {
-    $reqPath = dl_get_req_path();
+function dl_not_found(string $message = 'Not Found'): void
+{
+    http_response_code(404);
+    echo $message;
+    exit();
+}
 
-    // Skip root, admin, js, and existing cloaker files
-    $isCloakerFile = file_exists(__DIR__ . '/' . $reqPath) && !is_dir(__DIR__ . '/' . $reqPath);
-    if ($reqPath !== '' && !str_starts_with($reqPath, 'admin') && !str_starts_with($reqPath, 'js/') && !$isCloakerFile) {
+function dl_handle_black_step_route(string $reqPath, array $mimeTypes): bool
+{
+    if (!preg_match('#^__dl/([^/]+)/([0-9]+)(?:/(.*))?$#', $reqPath, $m)) {
+        return false;
+    }
 
-        // ── Landing/Prelanding direct load (black — from cookies) ──
-        if ($dlMode === 'land' || $dlMode === 'preland') {
-            $folder = get_cookie($dlMode === 'land' ? 'landing' : 'prelanding');
-            if (!empty($folder)) {
-                dl_serve_local(
-                    __DIR__ . '/' . get_cache_path('landingFolder'),
-                    $folder,
-                    $reqPath,
-                    $dlMimeTypes,
-                    get_cache_path('landingFolder')
-                );
-            }
+    $clickid = rawurldecode($m[1]);
+    $stepIndex = (int)$m[2];
+    $innerPath = trim(rawurldecode((string)($m[3] ?? '')), '/');
+    if (str_contains($innerPath, '..')) {
+        dl_not_found('Invalid path');
+    }
+
+    require_once __DIR__ . '/db/db.php';
+    require_once __DIR__ . '/campaign.php';
+    require_once __DIR__ . '/htmlprocessing.php';
+    require_once __DIR__ . '/redirect.php';
+
+    if (!isset($GLOBALS['db']) || !($GLOBALS['db'] instanceof Db)) {
+        $GLOBALS['db'] = new Db();
+    }
+    $db = $GLOBALS['db'];
+    $click = $db->get_click_by_clickid($clickid);
+    if (empty($click)) {
+        dl_not_found('Click not found');
+    }
+
+    set_clickid($clickid);
+
+    $maxReachedStep = (int)($click['step'] ?? 0);
+    if ($stepIndex > $maxReachedStep) {
+        dl_not_found('Step is not reached yet');
+    }
+
+    $campId = (int)$click['campaign_id'];
+    $settings = $db->get_campaign_settings($campId);
+    if (empty($settings)) {
+        dl_not_found('Campaign not found');
+    }
+    $campaign = new Campaign($campId, $settings);
+
+    $flow = null;
+    foreach ($campaign->black->flows as $f) {
+        if ($f->name === ($click['flow'] ?? '')) {
+            $flow = $f;
+            break;
         }
+    }
+    if ($flow === null || !isset($flow->steps[$stepIndex])) {
+        dl_not_found('Flow or step not found');
+    }
 
-        // ── White folder direct load (white — from session) ──
-        if ($dlMode === 'white') {
-            $folder = session_read('white');
-            if (!empty($folder)) {
-                dl_serve_local(
-                    __DIR__ . '/' . get_cache_path('whiteFolder'),
-                    $folder,
-                    $reqPath,
-                    $dlMimeTypes,
-                    get_cache_path('whiteFolder'),
-                    true
-                );
-            }
+    $path = $click['path'] ?? [];
+    if (!is_array($path) || !isset($path[$stepIndex])) {
+        dl_not_found('Path is invalid');
+    }
+
+    $step = $flow->steps[$stepIndex];
+    $variant = $path[$stepIndex];
+    if ($step->isRedirect()) {
+        $url = $step->getRedirectUrlByLabel($variant);
+        redirect($url, $step->redirectType, true);
+        exit();
+    }
+    if (!$step->isFolder()) {
+        dl_not_found('Step is not a folder');
+    }
+
+    $landingBase = __DIR__ . '/' . get_cache_path('landingFolder') . '/' . $variant;
+    $realBase = realpath($landingBase);
+    if ($realBase === false) {
+        dl_not_found('Folder not found');
+    }
+
+    if ($innerPath === '') {
+        echo load_step($campaign, $flow, $stepIndex, $variant, $clickid, true);
+        exit();
+    }
+
+    $candidate = realpath($realBase . '/' . $innerPath);
+    if ($candidate === false || !str_starts_with($candidate, $realBase)) {
+        dl_not_found();
+    }
+
+    if (is_dir($candidate)) {
+        echo load_step($campaign, $flow, $stepIndex, $variant, $clickid, true, $innerPath);
+        exit();
+    }
+    if (!is_file($candidate)) {
+        dl_not_found();
+    }
+
+    $ext = strtolower(pathinfo($candidate, PATHINFO_EXTENSION));
+    if (in_array($ext, ['php', 'html', 'htm'], true)) {
+        echo load_step($campaign, $flow, $stepIndex, $variant, $clickid, true, $innerPath);
+        exit();
+    }
+
+    dl_send_static_file($candidate, $mimeTypes);
+
+    return true;
+}
+
+$reqPath = dl_get_req_path();
+
+if (dl_handle_black_step_route($reqPath, $dlMimeTypes)) {
+    return;
+}
+
+$dlMode = get_cookie('dl');
+if (empty($dlMode)) {
+    $dlMode = session_read('dl');
+}
+
+if (empty($dlMode)) {
+    return;
+}
+
+// Skip root, admin, js, and existing cloaker files
+$isCloakerFile = file_exists(__DIR__ . '/' . $reqPath) && !is_dir(__DIR__ . '/' . $reqPath);
+if ($reqPath !== '' && !str_starts_with($reqPath, 'admin') && !str_starts_with($reqPath, 'js/') && !$isCloakerFile) {
+
+    // Black directload is handled only via __dl/<clickid>/<step>/... route above.
+
+    // ── White folder direct load
+    if ($dlMode === 'white') {
+        $folder = session_read('white');
+        if (!empty($folder)) {
+            dl_serve_local(
+                __DIR__ . '/' . get_cache_path('whiteFolder'),
+                $folder,
+                $reqPath,
+                $dlMimeTypes,
+                get_cache_path('whiteFolder'),
+                true
+            );
         }
+    }
 
-        // ── White CURL direct load (white — proxy + cache, from session) ──
-        if ($dlMode === 'white_curl') {
-            $baseUrl = rtrim(session_read('white') ?: '', '/');
-            if (!empty($baseUrl)) {
-                $cacheDir = __DIR__ . '/' . get_cache_path('whiteCurlCache') . '/' . md5($baseUrl);
-                $cachePath = $cacheDir . '/' . str_replace('/', DIRECTORY_SEPARATOR, $reqPath);
+    // ── White CURL direct load (white — proxy + cache, from session) ──
+    if ($dlMode === 'white_curl') {
+        $baseUrl = rtrim(session_read('white') ?: '', '/');
+        if (!empty($baseUrl)) {
+            $cacheDir = __DIR__ . '/' . get_cache_path('whiteCurlCache') . '/' . md5($baseUrl);
+            $cachePath = $cacheDir . '/' . str_replace('/', DIRECTORY_SEPARATOR, $reqPath);
 
-                // Try serving from cache first
-                if (is_file($cachePath)) {
-                    $ext = strtolower(pathinfo($cachePath, PATHINFO_EXTENSION));
-                    $mime = $dlMimeTypes[$ext] ?? mime_content_type($cachePath) ?: 'application/octet-stream';
+            // Try serving from cache first
+            if (is_file($cachePath)) {
+                $ext = strtolower(pathinfo($cachePath, PATHINFO_EXTENSION));
+                $mime = $dlMimeTypes[$ext] ?? mime_content_type($cachePath) ?: 'application/octet-stream';
+                header('Content-Type: ' . $mime);
+                header('Content-Length: ' . filesize($cachePath));
+                header('Cache-Control: public, max-age=86400');
+                readfile($cachePath);
+                exit();
+            }
+
+            // Cache miss — fetch via CURL
+            $resourceUrl = $baseUrl . '/' . $reqPath;
+            $ch = curl_init($resourceUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_USERAGENT => $_SERVER['HTTP_USER_AGENT'] ?? 'Mozilla/5.0',
+            ]);
+            $content = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && $content !== false) {
+                // Sanitize HTML subpages (remove trackers, add noindex/nofollow)
+                $ext = strtolower(pathinfo($reqPath, PATHINFO_EXTENSION));
+                $isHtml = in_array($ext, ['html', 'htm', 'php']) ||
+                    (stripos($contentType ?? '', 'text/html') !== false);
+                if ($isHtml) {
+                    require_once __DIR__ . '/htmlprocessing.php';
+                    $content = sanitize_white_html($content);
+                }
+
+                // Save to cache (processed HTML or raw resource)
+                $cacheFileDir = dirname($cachePath);
+                if (!is_dir($cacheFileDir)) {
+                    @mkdir($cacheFileDir, 0755, true);
+                }
+                @file_put_contents($cachePath, $content);
+
+                // Serve
+                if ($contentType) {
+                    header('Content-Type: ' . $contentType);
+                } else {
+                    $mime = $dlMimeTypes[$ext] ?? 'application/octet-stream';
                     header('Content-Type: ' . $mime);
-                    header('Content-Length: ' . filesize($cachePath));
-                    header('Cache-Control: public, max-age=86400');
-                    readfile($cachePath);
-                    exit();
                 }
-
-                // Cache miss — fetch via CURL
-                $resourceUrl = $baseUrl . '/' . $reqPath;
-                $ch = curl_init($resourceUrl);
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => false,
-                    CURLOPT_TIMEOUT => 15,
-                    CURLOPT_USERAGENT => $_SERVER['HTTP_USER_AGENT'] ?? 'Mozilla/5.0',
-                ]);
-                $content = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-                curl_close($ch);
-
-                if ($httpCode === 200 && $content !== false) {
-                    // Sanitize HTML subpages (remove trackers, add noindex/nofollow)
-                    $ext = strtolower(pathinfo($reqPath, PATHINFO_EXTENSION));
-                    $isHtml = in_array($ext, ['html', 'htm', 'php']) ||
-                              (stripos($contentType ?? '', 'text/html') !== false);
-                    if ($isHtml) {
-                        require_once __DIR__ . '/htmlprocessing.php';
-                        $content = sanitize_white_html($content);
-                    }
-
-                    // Save to cache (processed HTML or raw resource)
-                    $cacheFileDir = dirname($cachePath);
-                    if (!is_dir($cacheFileDir)) {
-                        @mkdir($cacheFileDir, 0755, true);
-                    }
-                    @file_put_contents($cachePath, $content);
-
-                    // Serve
-                    if ($contentType) {
-                        header('Content-Type: ' . $contentType);
-                    } else {
-                        $mime = $dlMimeTypes[$ext] ?? 'application/octet-stream';
-                        header('Content-Type: ' . $mime);
-                    }
-                    header('Content-Length: ' . strlen($content));
-                    header('Cache-Control: public, max-age=86400');
-                    echo $content;
-                    exit();
-                }
-                // If CURL failed, fall through to normal TDS
+                header('Content-Length: ' . strlen($content));
+                header('Cache-Control: public, max-age=86400');
+                echo $content;
+                exit();
             }
+            // If CURL failed, fall through to normal TDS
         }
     }
 }

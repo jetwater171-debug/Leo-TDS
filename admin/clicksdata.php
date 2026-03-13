@@ -4,9 +4,13 @@ require_once __DIR__ . '/../settings.php';
 require_once __DIR__ . '/dates.php';
 
 $campId = isset($_GET['campId']) ? (int)$_GET['campId'] : null;
-$filter = $_GET['filter'] ?? 'allowed';
+$view = $_GET['view'] ?? 'allowed';
+$allowedViews = ['allowed', 'blocked', 'leads', 'trafficback'];
+if (!in_array($view, $allowedViews, true)) {
+    $view = 'allowed';
+}
 
-if ($filter === 'trafficback') {
+if ($view === 'trafficback') {
     require_once __DIR__ . '/../db/db.php';
     global $db;
     $gs = $db->get_common_settings();
@@ -31,20 +35,21 @@ $size = max(1, min(5000, (int)($_GET['size'] ?? 500)));
 
 $sortField = $_GET['sort'] ?? 'time';
 $sortDir = $_GET['dir'] ?? 'desc';
+$searchTerm = trim((string)($_GET['search'] ?? ''));
 
 // Read filters and columns from saved settings
 $filters = [];
 $paramColumns = [];
-$filterKeyMap = ['allowed' => 'allowedFilters', 'single' => 'allowedFilters', 'blocked' => 'blockedFilters', 'leads' => 'leadsFilters', 'trafficback' => 'trafficBackFilters'];
-$filterKey = $filterKeyMap[$filter] ?? 'allowedFilters';
+$filterKeyMap = ['allowed' => 'allowedFilters', 'blocked' => 'blockedFilters', 'leads' => 'leadsFilters', 'trafficback' => 'trafficBackFilters'];
+$filterKey = $filterKeyMap[$view] ?? 'allowedFilters';
 
-if ($filter === 'trafficback') {
+if ($view === 'trafficback') {
     $filters = $gs['statistics'][$filterKey] ?? [];
     $tableColumns = $gs['statistics']['trafficBack'] ?? [];
 } else {
     $s = $db->get_campaign_settings($campId);
     $filters = $s['statistics'][$filterKey] ?? [];
-    $columnKey = ($filter === 'leads') ? 'leads' : (($filter === 'blocked') ? 'blocked' : 'allowed');
+    $columnKey = ($view === 'leads') ? 'leads' : (($view === 'blocked') ? 'blocked' : 'allowed');
     $tableColumns = $s['statistics'][$columnKey] ?? [];
 }
 
@@ -56,16 +61,7 @@ foreach ($tableColumns as $col) {
     }
 }
 
-// Handle 'single' filter (subid lookup) — not paginated, always small
-if ($filter === 'single') {
-    $subid = $_GET['subid'] ?? '';
-    $dataset = $db->get_clicks_by_subid($subid);
-    header('Content-Type: application/json');
-    echo json_encode(['last_page' => 1, 'data' => is_array($dataset) && isset($dataset[0]) ? $dataset : [$dataset]]);
-    exit;
-}
-
-$result = $db->get_clicks_paginated($filter, $startDate, $endDate, $campId, $page, $size, $sortField, $sortDir, $filters, $paramColumns);
+$result = $db->get_clicks_paginated($view, $startDate, $endDate, $campId, $page, $size, $sortField, $sortDir, $filters, $paramColumns, $searchTerm);
 
 header('Content-Type: application/json');
 echo json_encode($result);

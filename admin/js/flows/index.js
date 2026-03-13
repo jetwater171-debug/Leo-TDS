@@ -2,18 +2,22 @@ import { collectFlowsData } from './collectors.js';
 import { openFolderPicker } from './folder-picker.js';
 import {
     initFlowCounter,
-    handlePrelandActionChange,
-    handleLandActionChange,
+    handleStepActionChange,
     handleDistChange,
-    handleRemoveItem,
-    handleAddExisting,
-    handleUploadZipClick,
-    handleAddRedirect,
+    handleRemoveStepItem,
+    handleStepAddExisting,
+    handleStepUploadZip,
+    handleStepAddRedirect,
     handleEditFolder,
+    handleAddStep,
+    handleRemoveStep,
+    handleMoveStepUp,
+    handleMoveStepDown,
     handleMoveUp,
     handleMoveDown,
     handleDeleteFlow,
-    handleAddFlow
+    handleAddFlow,
+    handleRedirectUrlChange
 } from './handlers.js';
 
 // ── Window exports for backward compat with inline scripts ──
@@ -22,19 +26,22 @@ window.openFolderPicker = openFolderPicker;
 
 // ── Event dispatch maps ──
 var clickSelectors = [
-    { sel: '.flow-remove-preland, .flow-remove-land-folder, .flow-remove-land-redirect', fn: handleRemoveItem },
-    { sel: '.flow-add-existing', fn: handleAddExisting },
-    { sel: '.flow-upload-zip', fn: handleUploadZipClick },
-    { sel: '.flow-add-land-redirect', fn: handleAddRedirect },
+    { sel: '.flow-remove-step-item', fn: handleRemoveStepItem },
+    { sel: '.flow-step-add-existing', fn: handleStepAddExisting },
+    { sel: '.flow-step-upload-zip', fn: handleStepUploadZip },
+    { sel: '.flow-step-add-redirect', fn: handleStepAddRedirect },
     { sel: '.flow-edit-folder', fn: handleEditFolder },
+    { sel: '.flow-add-step', fn: handleAddStep },
+    { sel: '.flow-remove-step', fn: handleRemoveStep },
+    { sel: '.flow-move-step-up', fn: handleMoveStepUp },
+    { sel: '.flow-move-step-down', fn: handleMoveStepDown },
     { sel: '.flow-move-up', fn: handleMoveUp },
     { sel: '.flow-move-down', fn: handleMoveDown },
     { sel: '.flow-delete', fn: handleDeleteFlow }
 ];
 
 var changeSelectors = [
-    { sel: '.flow-preland-action', fn: handlePrelandActionChange },
-    { sel: '.flow-land-action', fn: handleLandActionChange },
+    { sel: '.flow-step-action', fn: handleStepActionChange },
     { sel: '.flow-dist', fn: handleDistChange }
 ];
 
@@ -55,6 +62,13 @@ document.addEventListener('change', function (e) {
             changeSelectors[i].fn(e);
             return;
         }
+    }
+});
+
+// ── Delegated input listener (for redirect URL slug updates) ──
+document.addEventListener('input', function (e) {
+    if (e.target.classList.contains('flow-step-redirect')) {
+        handleRedirectUrlChange(e);
     }
 });
 

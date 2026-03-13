@@ -9,8 +9,9 @@ $passOk = check_password(false);
 if (!$passOk)
     return send_camp_result("Error: password check not passed!",true);
 
-$action = $_REQUEST['action'];
+$action = $_REQUEST['action'] ?? '';
 $name = $_REQUEST['name']??'';
+$name = is_string($name) ? trim($name) : '';
 $campId = $_REQUEST['campId']??-1;
 add_log('trace','CampEditor action: '.$action.', name: '.$name.', campId: '.$campId);
 switch ($action) {
@@ -20,9 +21,18 @@ switch ($action) {
             return send_camp_result("Error adding new campaign!",true);
         break;
     case 'dup':
+        if (empty($name)) {
+            return send_camp_result("Error: campaign name can not be empty!", true);
+        }
         $clonedId = $db->clone_campaign($campId);
         if ($clonedId===false)
             return send_camp_result("Error duplicating campaign!",true);
+        if (!empty($name)) {
+            $renRes = $db->rename_campaign((int)$clonedId, $name);
+            if ($renRes === false) {
+                return send_camp_result("Error renaming cloned campaign!", true);
+            }
+        }
         break;
     case 'del':
         $delRes = $db->delete_campaign($campId);
@@ -39,14 +49,18 @@ switch ($action) {
         foreach($_POST as $key=>$value){
             if ($key==="filters"){ //special case cause we store filters in json format
                 $arrFilters=json_decode($value,true);
-                $s['white']['filters'] = $arrFilters;
+                if (is_array($arrFilters)) {
+                    $s['white']['filters'] = $arrFilters;
+                }
             }
             else if ($key==="flows"){ //flows are stored as json
                 $arrFlows=json_decode($value,true);
                 if (is_array($arrFlows)) {
                     foreach ($arrFlows as &$flow) {
-                        normalize_flow_weights($flow, 'prelanding');
-                        normalize_flow_weights($flow, 'landing');
+                        foreach (($flow['steps'] ?? []) as &$step) {
+                            normalize_step_weights($step);
+                        }
+                        unset($step);
                     }
                     unset($flow);
                     $s['black']['flows'] = $arrFlows;
@@ -63,6 +77,14 @@ switch ($action) {
             else if ($key==="domains_list"){
                 $arr = json_decode($value, true);
                 if (is_array($arr)) $s['domains'] = $arr;
+            }
+            else if ($key==="scripts_nextredirect_rules_json"){
+                $arr = json_decode($value, true);
+                $s['scripts']['nextredirect']['rules'] = is_array($arr) ? $arr : [];
+            }
+            else if ($key==="scripts_submitredirect_rules_json"){
+                $arr = json_decode($value, true);
+                $s['scripts']['submitredirect']['rules'] = is_array($arr) ? $arr : [];
             }
             else if ($key==="white_domainspecific"){
                 $arr = json_decode($value, true);
@@ -92,9 +114,8 @@ function send_camp_result($msg,$error=false): void
     echo $json;
 }
 
-function normalize_flow_weights(array &$flow, string $section): void {
-    if (($flow['distribution'] ?? 'equal') !== 'weighted') return;
-    $weights = $flow[$section]['weights'] ?? [];
+function normalize_step_weights(array &$step): void {
+    $weights = $step['weights'] ?? [];
     if (empty($weights)) return;
     $total = array_sum($weights);
     $count = count($weights);
@@ -103,9 +124,10 @@ function normalize_flow_weights(array &$flow, string $section): void {
         $remainder = 100 - $base * $count;
         $result = array_fill(0, $count, $base);
         for ($i = 0; $i < $remainder; $i++) $result[$i]++;
-        $flow[$section]['weights'] = $result;
+        $step['weights'] = $result;
         return;
     }
+    if ($total === 100) return;
     $exact = array_map(fn($w) => $w / $total * 100, $weights);
     $floored = array_map('floor', $exact);
     $remainders = [];
@@ -119,11 +141,11 @@ function normalize_flow_weights(array &$flow, string $section): void {
         $floored[$idx]++;
         $diff--;
     }
-    $flow[$section]['weights'] = array_map('intval', $floored);
+    $step['weights'] = array_map('intval', $floored);
 }
 
 function setArrayValue(&$array, $underscoreString, $newValue) {
-    // Split the underscrore notation string into keys
+    // Split the underscore notation string into keys
     $keys = explode('_', $underscoreString);
     
     // Traverse the array using each key

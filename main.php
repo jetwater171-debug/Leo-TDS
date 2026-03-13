@@ -116,76 +116,143 @@ function black(Campaign $c, int $flowIndex, array $clickparams): CloakerAction
 {
     global $db;
 
-    $cursubid = set_subid();
-    set_px();
+    $userid = set_userid();
+    $clickid = generate_clickid($userid);
+    set_clickid($clickid);
 
     $flow = $c->black->flows[$flowIndex];
-    $bl = $flow->land;
-    $landings = match ($bl->action) {
-        'redirect' => $bl->redirectUrls,
-        'folder' => $bl->folderNames,
-        default => []
-    };
-    $isfolderland = $bl->action == 'folder';
+    $steps = $flow->steps;
+
+    if (empty($steps)) {
+        return new CloakerAction('black', 'die', "No steps defined in flow: " . $flow->name);
+    }
 
     $abtest = new AbTest($c);
-    $bp = $flow->preland;
     $isThompson = $flow->distribution === 'thompson';
 
-    switch ($bp->action) {
-        case 'none': //no prelanding
-            if ($isThompson) {
-                $landing = $abtest->select_thompson_variant($landings, 'land', $flow->name, $flow->optimize_for);
-            } else {
-                $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $flow->distribution, $bl->weights);
-                $landing = $res[0];
-            }
-            set_cookie('landing', $landing);
-            $db->add_black_click($cursubid, $clickparams, '', $landing, $flow->name, $c->campaignId);
-
-            $action = match ($bl->action) {
-                'folder' => new CloakerAction(
-                    'black',
-                    'html',
-                    load_landing($c, $flow->hasPrelanding(), $landing, $bl->isDirectLoad($landing))
-                ),
-                'redirect' => new CloakerAction(
-                    'black',
-                    'redirect',
-                    $landing,
-                    $bl->redirectType
-                ),
-                default => new CloakerAction('black', 'die', "No such landing action found: " . $bl->action)
-            };
-            break;
-        case 'folder': //local prelanding
-            $prelandings = $bp->folderNames;
-            if (empty($prelandings)) {
-                add_error_log("No prelanding folders found in campaign {$c->campaignId}!", false, true);
-            }
-
-            if ($isThompson && $flow->optimize_mode === 'funnels') {
-                [$prelanding, $landing] = $abtest->select_thompson_funnel(
-                    $prelandings, $landings, $flow->name, $flow->optimize_for
-                );
-            } elseif ($isThompson) {
-                $prelanding = $abtest->select_thompson_variant($prelandings, 'preland', $flow->name, $flow->optimize_for);
-                $landing = $abtest->select_thompson_variant($landings, 'land', $flow->name, $flow->optimize_for);
-            } else {
-                $res = $abtest->select_distributed($prelandings, 'prelanding', true, $flow->distribution, $bp->weights);
-                $prelanding = $res[0];
-                $res = $abtest->select_distributed($landings, 'landing', $isfolderland, $flow->distribution, $bl->weights);
-                $landing = $res[0];
-            }
-            set_cookie('prelanding', $prelanding);
-            set_cookie('landing', $landing);
-
-            $db->add_black_click($cursubid, $clickparams, $prelanding, $landing, $flow->name, $c->campaignId);
-            $action = new CloakerAction('black', 'html', load_prelanding($c, $prelanding, $bp->isDirectLoad($prelanding)));
-            break;
-        default:
-            $action = new CloakerAction('black', 'die', "No such prelanding action found: " . $bp->action);
-            break;
+    $plannedPath = [];
+    if ($c->saveUserFlow) {
+        $plannedPath = get_saved_flow_path($c->campaignId, $flow->name, $steps);
     }
-    return $action;
+
+    if (empty($plannedPath)) {
+        // Select variant for each step -> build planned path
+        if ($isThompson && $flow->optimize_mode === 'funnels') {
+            $allStepItems = [];
+            foreach ($steps as $step) {
+                $allStepItems[] = $step->getItems();
+            }
+            $plannedPath = $abtest->select_thompson_funnel_multi($allStepItems, $flow->name, $flow->optimize_for);
+        } else {
+            foreach ($steps as $si => $step) {
+                $items = $step->getItems();
+                if (empty($items)) {
+                    add_error_log("No items found for step $si in flow {$flow->name}, campaign {$c->campaignId}!", false, true);
+                }
+
+                if ($isThompson) {
+                    $chosen = $abtest->select_thompson_variant($items, $si, $flow->name, $flow->optimize_for);
+                } else {
+                    $isFolder = $step->isFolder();
+                    $res = $abtest->select_distributed($items, "step_$si", $isFolder, $flow->distribution, $step->weights);
+                    $chosen = $res[0];
+                }
+                $plannedPath[] = $chosen;
+            }
+        }
+    }
+
+    if (!is_valid_planned_path($plannedPath, $steps)) {
+        return new CloakerAction('black', 'die', "Invalid planned path for flow: " . $flow->name);
+    }
+
+    if ($c->saveUserFlow) {
+        save_flow_path($c->campaignId, $flow->name, $plannedPath);
+    }
+
+    // Record one click per full pass and first entered step.
+    if (!$db->add_black_click($userid, $clickid, $clickparams, $plannedPath, $flow->name, $c->campaignId)) {
+        return new CloakerAction('black', 'die', 'Failed to record click');
+    }
+    if (!$db->add_click_step($clickid, 0, $plannedPath[0])) {
+        return new CloakerAction('black', 'die', 'Failed to record step entry');
+    }
+
+    // Serve step 0 content
+    $step0 = $steps[0];
+    $chosenVariant = $plannedPath[0];
+
+    if ($step0->isRedirect()) {
+        $url = $step0->getRedirectUrlByLabel($chosenVariant);
+        $mp = new MacrosProcessor($c, $clickparams);
+        $url = $mp->replace_url_macros($url);
+        return new CloakerAction('black', 'redirect', $url, $step0->redirectType);
+    }
+
+    if ($step0->isDirectLoad($chosenVariant)) {
+        $dlUrl = get_directload_step_url($clickid, 0);
+        return new CloakerAction('black', 'redirect', $dlUrl, 302);
+    }
+
+    $html = load_step($c, $flow, 0, $chosenVariant, $clickid, false);
+    return new CloakerAction('black', 'html', $html);
+}
+
+function get_saved_flow_path(int $campId, string $flowName, array $steps): array
+{
+    $state = get_saved_paths_state();
+    $saved = $state[(string)$campId][$flowName] ?? [];
+    if (!is_array($saved) || !is_valid_planned_path($saved, $steps)) {
+        return [];
+    }
+    return array_values($saved);
+}
+
+function save_flow_path(int $campId, string $flowName, array $path): void
+{
+    $state = get_saved_paths_state();
+    $campKey = (string)$campId;
+    if (!isset($state[$campKey]) || !is_array($state[$campKey])) {
+        $state[$campKey] = [];
+    }
+    $state[$campKey][$flowName] = array_values($path);
+    $json = json_encode($state);
+    if ($json !== false) {
+        set_cookie('saved_paths', base64_encode($json));
+    }
+}
+
+function get_saved_paths_state(): array
+{
+    $raw = get_cookie('saved_paths');
+    if (empty($raw)) {
+        return [];
+    }
+    $decodedRaw = base64_decode($raw, true);
+    if ($decodedRaw === false) {
+        $decodedRaw = $raw;
+    }
+    $decoded = json_decode($decodedRaw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function is_valid_planned_path(array $path, array $steps): bool
+{
+    if (count($path) !== count($steps)) {
+        return false;
+    }
+
+    foreach ($steps as $idx => $step) {
+        $variant = $path[$idx] ?? null;
+        if (!is_string($variant) || $variant === '') {
+            return false;
+        }
+
+        $items = $step->getItems();
+        if (!in_array($variant, $items, true)) {
+            return false;
+        }
+    }
+
+    return true;
 }

@@ -193,7 +193,7 @@ $dataset = $db->get_campaigns(
 
             document.getElementById("trafficBackStats").onclick = () => {
                 let startDateEndDateParams = getStartDateEndDateParams();
-                window.location.href = `clicks.php?filter=trafficback${startDateEndDateParams}`;
+                window.location.href = `clicks.php?view=trafficback${startDateEndDateParams}`;
             };
 
             document.getElementById("downloadCsv").onclick = () => {

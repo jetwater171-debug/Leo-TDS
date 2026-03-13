@@ -23,7 +23,7 @@ class AbTest
 
         $item = '';
 
-        if ($this->campaign->saveUserFlow) {
+        if ($this->campaign->saveUserFlow && !str_starts_with($item_type, 'step_')) {
             $item = $this->get_saved_item($item_type, $items, $is_folder);
         }
 
@@ -81,7 +81,7 @@ class AbTest
 
         $item = '';
 
-        if ($this->campaign->saveUserFlow) {
+        if ($this->campaign->saveUserFlow && !str_starts_with($item_type, 'step_')) {
             $item = $this->get_saved_item($item_type, $items, $is_folder);
         }
 
@@ -142,15 +142,15 @@ class AbTest
 
     /**
      * Thompson Sampling: pick best single variant (separate mode).
-     * @param string|int $stepIndex step index or label
+     * @param int $stepIndex step index
      * @return string winning variant name
      */
-    public function select_thompson_variant(array $items, string|int $stepIndex, string $flowName, string $status): string
+    public function select_thompson_variant(array $items, int $stepIndex, string $flowName, string $status): string
     {
         if (empty($items)) return '';
 
         global $db;
-        $stats = $db->get_variant_stats($this->campaign->campaignId, $flowName, (int)$stepIndex, $status);
+        $stats = $db->get_variant_stats($this->campaign->campaignId, $flowName, $stepIndex, $status);
 
         $statsMap = [];
         foreach ($stats as $row) {

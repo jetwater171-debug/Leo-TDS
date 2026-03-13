@@ -10,6 +10,10 @@ $timeRange = Dates::get_time_range($c->statistics->timezone);
 $curTableIndex = $_GET['table']?? 0;
 
 $ss = $c->statistics;
+$allCampaigns = $db->get_campaigns_list();
+usort($allCampaigns, function ($a, $b) {
+    return strnatcasecmp((string)($a['name'] ?? ''), (string)($b['name'] ?? ''));
+});
 if (count($ss->tables)>0){
     $tSettings = $ss->tables[$curTableIndex];
     $tFilters = isset($tSettings->filters) ? (array)$tSettings->filters : [];
@@ -26,6 +30,8 @@ if (count($ss->tables)>0){
     );
     $dJson = json_encode($dataset);
     $tName = $tSettings->name;
+    $tDomId = 'statsTable_' . intval($curTableIndex);
+    $tJsVar = 'statsTable' . intval($curTableIndex);
     $tColumns = Tabulator::get_stats_columns($tSettings->columns, $tName, $tSettings->groupby);
 }
 ?>
@@ -39,7 +45,7 @@ if (count($ss->tables)>0){
     <?php include __DIR__."/statstableeditor.html" ?>
 
     <script>
-        let availableClmns = <?= json_encode(AvailableColumns::get_columns_for_type('stats')) ?>;
+        let availableClmns = <?= json_encode(AvailableColumns::get_stats_columns_for_campaign($c, $db, $campId)) ?>;
         let availableDimensions = <?= json_encode(AvailableColumns::get_columns_for_type('groupby')) ?>;
     </script>
     <div class="buttons-block" style="display: flex; justify-content: space-between; align-items: center;">
@@ -63,25 +69,85 @@ if (count($ss->tables)>0){
         </div>
         <?php if (count($ss->tables)>0){ ?>
         <div>
-            <button id="columnsSelect<?=$tName?>" title="Edit table" class="btn btn-info" style="margin-left: 8px;"><i
+            <button id="columnsSelect<?=$tDomId?>" title="Edit table" class="btn btn-info" style="margin-left: 8px;"><i
                     class="bi bi-layout-three-columns"></i></button>
-            <button id="download<?=$tName?>" title="Download table as XLSX" class="btn btn-success" style="margin-left: 8px;"><i
+            <button id="share<?=$tDomId?>" title="Share table to other campaigns" class="btn btn-primary" style="margin-left: 8px;"><i
+                    class="bi bi-share-fill"></i></button>
+            <button id="download<?=$tDomId?>" title="Download table as XLSX" class="btn btn-success" style="margin-left: 8px;"><i
                     class="bi bi-download"></i></button>
-            <button id="delete<?=$tName?>" title="Delete table" class="btn btn-danger" style="margin-left: 8px;"><i
+            <button id="delete<?=$tDomId?>" title="Delete table" class="btn btn-danger" style="margin-left: 8px;"><i
                     class="bi bi-trash-fill"></i></button>
         </div>
         <?php } ?>
     </div>
     <?php if (count($ss->tables)>0){ ?>
+    <style>
+        #shareStatsModal { max-width: 760px !important; width: min(760px, 94vw) !important; }
+        #shareStatsModal .modal-body { padding: 14px 16px; }
+        #shareStatsModal .modal-footer { padding: 12px 16px; }
+        #shareStatsTitle { margin: 0 0 10px; font-size: 24px; font-weight: 600; line-height: 1.2; color: #e2e8f0; }
+        #shareStatsSearch { margin-bottom: 10px; }
+        #shareStatsList {
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid #2a3245;
+            border-radius: 8px;
+            background: #11192c;
+            padding: 4px 8px;
+        }
+        #shareStatsList .share-camp-row {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 6px;
+            margin: 0;
+            border-bottom: 1px solid #25324a;
+            color: #e2e8f0;
+            font-size: 17px;
+            cursor: pointer;
+        }
+        #shareStatsList .share-camp-row:last-child { border-bottom: none; }
+        #shareStatsList .share-camp-row:hover { background: rgba(255,255,255,0.04); }
+        #shareStatsList .share-camp-checkbox { width: 18px; height: 18px; flex: 0 0 18px; }
+        #shareStatsList .share-camp-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    </style>
+    <div id="shareStatsModal" class="ywbmodal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h5 id="shareStatsTitle">Share Table "<?=htmlspecialchars($tName)?>"</h5>
+                <input type="text" id="shareStatsSearch" class="form-control" placeholder="Quick filter campaigns...">
+                <div id="shareStatsList">
+                    <?php foreach ($allCampaigns as $campRow) {
+                        $cid = (int)$campRow['id'];
+                        $cname = (string)$campRow['name'];
+                        if ($cid === (int)$campId) continue;
+                        $lower = strtolower($cname . ' #' . $cid);
+                    ?>
+                        <label class="share-camp-row" data-search="<?=htmlspecialchars($lower)?>">
+                            <input type="checkbox" class="share-camp-checkbox" value="<?=$cid?>">
+                            <span class="share-camp-name"><?=htmlspecialchars($cname)?> (id:<?=$cid?>)</span>
+                        </label>
+                    <?php } ?>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="shareStatsCancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="shareStatsConfirm">OK</button>
+            </div>
+        </div>
+    </div>
+    <?php } ?>
+    <?php if (count($ss->tables)>0){ ?>
     <div class="tabulator-scroll-wrapper">
-    <div id="t<?=$tName?>" style="clear: both;"></div>
+    <div id="<?=$tDomId?>" style="clear: both;"></div>
     </div>
     <script>
-        let t<?=$tName?>Data = <?=$dJson?>;
-        let t<?=$tName?>Columns = <?=$tColumns?>;
-        let t<?=$tName?>Table = new Tabulator('#t<?=$tName?>', {
+        let <?=$tJsVar?>Data = <?=$dJson?>;
+        let <?=$tJsVar?>Columns = <?=$tColumns?>;
+        let <?=$tJsVar?>Table = new Tabulator('#<?=$tDomId?>', {
             layout: "fitData",
-            columns: t<?=$tName?>Columns,
+            columns: <?=$tJsVar?>Columns,
             nestedFieldSeparator: false,
             columnCalcs: "both",
             pagination: "local",
@@ -92,7 +158,7 @@ if (count($ss->tables)>0){
             dataTreeBranchElement:false,
             dataTreeStartExpanded:false,
             dataTreeChildIndent: 15,
-            data: t<?=$tName?>Data,
+            data: <?=$tJsVar?>Data,
             columnDefaults:{
                 tooltip:true,
             },
@@ -101,7 +167,7 @@ if (count($ss->tables)>0){
             }
         });
 
-        t<?=$tName?>Table.on("columnResized", async function (column) {
+        <?=$tJsVar?>Table.on("columnResized", async function (column) {
             let updatedColumn = { field: column.getField(), width: column.getWidth() };
             await fetch("clmnseditor.php?action=width&name=<?=$tName?>&table=stats&campid=<?=$campId?>", {
                 method: "POST",
@@ -118,9 +184,9 @@ if (count($ss->tables)>0){
             window.location.href = newUrl.href;
         });
         
-        document.getElementById("download<?=$tName?>").onclick = () => {
-            const treeData = t<?=$tName?>Data;
-            const table = t<?=$tName?>Table;
+        document.getElementById("download<?=$tDomId?>").onclick = () => {
+            const treeData = <?=$tJsVar?>Data;
+            const table = <?=$tJsVar?>Table;
 
             // Get visible columns from Tabulator
             const cols = table.getColumns().filter(c => c.isVisible() && c.getField());
@@ -205,7 +271,7 @@ if (count($ss->tables)>0){
                 XLSX.writeFile(wb, `<?=$tName?>${getDateSuffix()}.xlsx`);
             }
         };
-        document.getElementById("columnsSelect<?=$tName?>").onclick = async () => {
+        document.getElementById("columnsSelect<?=$tDomId?>").onclick = async () => {
             let selectedClmns = <?= json_encode($tSettings->columns) ?>;
             let selectedDimensions = <?= json_encode($tSettings->groupby) ?>;
             
@@ -229,9 +295,59 @@ if (count($ss->tables)>0){
                 showClose: false
             });
         };
-        $('#delete<?=$tName?>').click((e) => {
+        $('#delete<?=$tDomId?>').click((e) => {
             deleteStatsTable('<?=$tName?>', 'clmnseditor.php?action=delstats&name=<?=$tName?>&campid=<?=$campId?>');
         });
+
+        document.getElementById('share<?=$tDomId?>').onclick = () => {
+            const search = document.getElementById('shareStatsSearch');
+            if (search) search.value = '';
+            document.querySelectorAll('.share-camp-row').forEach(row => {
+                row.style.display = '';
+            });
+            $('#shareStatsModal').modal({
+                modalClass: 'ywbmodal',
+                fadeDuration: 200,
+                fadeDelay: 0.8,
+                showClose: false,
+            });
+        };
+
+        document.getElementById('shareStatsCancel').onclick = () => {
+            jQuery.modal.close();
+        };
+
+        document.getElementById('shareStatsSearch').addEventListener('input', (e) => {
+            const q = (e.target.value || '').trim().toLowerCase();
+            document.querySelectorAll('.share-camp-row').forEach(row => {
+                const text = (row.dataset.search || '').toLowerCase();
+                row.style.display = q === '' || text.includes(q) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('shareStatsConfirm').onclick = async () => {
+            const targetCampIds = [...document.querySelectorAll('.share-camp-checkbox:checked')].map(cb => parseInt(cb.value, 10)).filter(Boolean);
+            if (targetCampIds.length === 0) {
+                alert('Select at least one campaign');
+                return;
+            }
+
+            try {
+                const res = await fetch('clmnseditor.php?action=sharestats&name=<?=$tName?>&campid=<?=$campId?>', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: '<?=$tName?>', targetCampIds }),
+                });
+                const data = await res.json();
+                if (data.error) {
+                    throw new Error(data.result || 'Share failed');
+                }
+                alert(data.result || 'Table shared');
+                jQuery.modal.close();
+            } catch (err) {
+                alert('Error sharing table: ' + err.message);
+            }
+        };
     </script>
     <?php } ?>
     <script>

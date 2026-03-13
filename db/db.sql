@@ -1,4 +1,4 @@
-PRAGMA foreign_keys = off;
+PRAGMA foreign_keys = on;
 BEGIN IMMEDIATE;
 CREATE TABLE campaigns
 (
@@ -24,10 +24,11 @@ CREATE TABLE IF NOT EXISTS clicks (
 	clientver REAL,
 	ua TEXT,
 	userid TEXT NOT NULL,
-	clickid TEXT NOT NULL DEFAULT '',
+	clickid TEXT NOT NULL,
 	flow TEXT,
 	path TEXT DEFAULT '[]',
 	step INTEGER DEFAULT 0,
+	events TEXT DEFAULT '{}',
 	params TEXT,
 	leaddata TEXT,
 	status TEXT,
@@ -41,8 +42,21 @@ CREATE TABLE IF NOT EXISTS clicks (
 CREATE INDEX IF NOT EXISTS idx_camp_time ON clicks (campaign_id,time);
 CREATE INDEX IF NOT EXISTS idx_camp_time_status ON clicks (campaign_id,time,status);
 CREATE INDEX IF NOT EXISTS idx_userid ON clicks (userid);
-CREATE INDEX IF NOT EXISTS idx_clickid ON clicks (clickid);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_clickid ON clicks (clickid);
 CREATE INDEX IF NOT EXISTS idx_camp_flow ON clicks (campaign_id,flow);
+CREATE INDEX IF NOT EXISTS idx_camp_flow_step ON clicks (campaign_id,flow,step);
+
+CREATE TABLE IF NOT EXISTS click_event_log (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	clickid TEXT NOT NULL,
+	time INTEGER NOT NULL,
+	step_index INTEGER NOT NULL,
+	event_name TEXT NOT NULL,
+	event_value NUMERIC NOT NULL,
+	FOREIGN KEY (clickid) REFERENCES clicks (clickid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_event_clickid_time ON click_event_log (clickid,time);
+CREATE INDEX IF NOT EXISTS idx_event_name_time ON click_event_log (event_name,time);
 
 CREATE INDEX IF NOT EXISTS idx_country ON clicks (country);
 CREATE INDEX IF NOT EXISTS idx_lang ON clicks (lang);
@@ -55,6 +69,18 @@ CREATE INDEX IF NOT EXISTS idx_isp ON clicks (isp);
 CREATE INDEX IF NOT EXISTS idx_client ON clicks (client);
 CREATE INDEX IF NOT EXISTS idx_clientver ON clicks (clientver);
 CREATE INDEX IF NOT EXISTS idx_step ON clicks (step);
+
+CREATE TABLE IF NOT EXISTS click_steps (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	clickid TEXT NOT NULL,
+	step INTEGER NOT NULL,
+	variant TEXT NOT NULL,
+	time INTEGER NOT NULL,
+	UNIQUE (clickid, step),
+	FOREIGN KEY (clickid) REFERENCES clicks (clickid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_click_steps_clickid_step ON click_steps (clickid,step);
+CREATE INDEX IF NOT EXISTS idx_click_steps_step_variant ON click_steps (step,variant);
 
 CREATE TABLE IF NOT EXISTS blocked (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,

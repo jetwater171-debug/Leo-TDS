@@ -1,79 +1,52 @@
-// ── Collect prelanding data from a flow section ──
-function collectPrelandData(sec) {
-    var prelandAction = 'none';
-    var prelandRadio = sec.querySelector('input.flow-preland-action:checked');
-    if (prelandRadio) prelandAction = prelandRadio.value;
+// ── Collect a single step's data from a step section element ──
+function collectStepData(stepSec) {
+    var action = 'folder';
+    var actionRadio = stepSec.querySelector('input.flow-step-action:checked');
+    if (actionRadio) action = actionRadio.value;
 
-    var prelandFolders = [];
-    var prelandWeights = [];
-    var prelandLoadmode = {};
-    sec.querySelectorAll('.flow-preland-folder').forEach(function (inp) {
-        if (inp.value.trim()) {
-            var folder = inp.value.trim();
-            prelandFolders.push(folder);
-            var weightInp = inp.closest('.flow-path-item').querySelector('.flow-preland-weight');
-            prelandWeights.push(parseInt(weightInp ? weightInp.value : 0, 10) || 0);
-            var modeBtn = inp.closest('.flow-path-item').querySelector('.flow-preland-mode');
-            if (modeBtn) prelandLoadmode[folder] = modeBtn.dataset.mode || 'base';
-        }
-    });
-
-    return {
-        action: prelandAction,
-        folders: prelandFolders,
-        distribution: 'equal',
-        weights: prelandWeights,
-        directload: prelandLoadmode
-    };
-}
-
-// ── Collect landing data from a flow section ──
-function collectLandData(sec) {
-    var landAction = 'folder';
-    var landRadio = sec.querySelector('input.flow-land-action:checked');
-    if (landRadio) landAction = landRadio.value;
-
-    var landFolders = [];
-    var landRedirectUrls = [];
-    var landWeights = [];
+    var folders = [];
+    var redirectUrls = [];
+    var weights = [];
     var redirectType = 302;
-    var landLoadmode = {};
+    var folderloadtypes = {};
 
-    if (landAction === 'folder') {
-        sec.querySelectorAll('.flow-land-folder').forEach(function (inp) {
+    if (action === 'folder') {
+        stepSec.querySelectorAll('.flow-step-folder').forEach(function (inp) {
             if (inp.value.trim()) {
                 var folder = inp.value.trim();
-                landFolders.push(folder);
-                var w = inp.closest('.flow-path-item').querySelector('.flow-land-weight');
-                landWeights.push(parseInt(w ? w.value : 0, 10) || 0);
-                var modeBtn = inp.closest('.flow-path-item').querySelector('.flow-land-mode');
-                if (modeBtn) landLoadmode[folder] = modeBtn.dataset.mode || 'base';
+                folders.push(folder);
+                var w = inp.closest('.flow-path-item').querySelector('.flow-step-weight');
+                weights.push(parseInt(w ? w.value : 0, 10) || 0);
+                var modeBtn = inp.closest('.flow-path-item').querySelector('.flow-step-mode');
+                if (modeBtn) folderloadtypes[folder] = modeBtn.dataset.mode || 'base';
             }
         });
     } else {
-        sec.querySelectorAll('.flow-land-redirect').forEach(function (inp) {
+        stepSec.querySelectorAll('.flow-step-redirect').forEach(function (inp) {
             if (inp.value.trim()) {
-                landRedirectUrls.push(inp.value.trim());
-                var w = inp.closest('.flow-path-item').querySelector('.flow-land-weight');
-                landWeights.push(parseInt(w ? w.value : 0, 10) || 0);
+                var url = inp.value.trim();
+                var host = '';
+                try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) { host = 'redirect'; }
+                redirectUrls.push({ url: url, label: host });
+                var w = inp.closest('.flow-path-item').querySelector('.flow-step-weight');
+                weights.push(parseInt(w ? w.value : 0, 10) || 0);
             }
         });
-        var rtSel = sec.querySelector('select.flow-redirect-type');
+        var rtSel = stepSec.querySelector('select.flow-step-redirect-type');
         if (rtSel) redirectType = parseInt(rtSel.value);
     }
 
     return {
-        action: landAction,
-        folders: landFolders,
-        redirect: { urls: landRedirectUrls, type: redirectType },
-        distribution: 'equal',
-        weights: landWeights,
-        directload: landLoadmode
+        action: action,
+        folders: folders,
+        redirect: { urls: redirectUrls, type: redirectType },
+        weights: weights,
+        folderloadtypes: folderloadtypes
     };
 }
 
 // ── Collect distribution settings from a flow section ──
-function collectDistributionData(sec, fi) {
+function collectDistributionData(sec) {
     var flowDist = 'equal';
     var flowDistSel = sec.querySelector('.flow-dist');
     if (flowDistSel) flowDist = flowDistSel.value;
@@ -109,9 +82,13 @@ export function collectFlowsData() {
         var filters = {};
         try { filters = fb.queryBuilder('getRules') || {}; } catch (e) {}
 
-        var preland = collectPrelandData(sec);
-        var land = collectLandData(sec);
-        var dist = collectDistributionData(sec, fi);
+        var dist = collectDistributionData(sec);
+
+        // Collect steps from separate step sections
+        var steps = [];
+        document.querySelectorAll('.step-section[data-flow-index="' + fi + '"]').forEach(function (stepSec) {
+            steps.push(collectStepData(stepSec));
+        });
 
         flows.push({
             name: name,
@@ -119,8 +96,7 @@ export function collectFlowsData() {
             distribution: dist.distribution,
             optimize_for: dist.optimize_for,
             optimize_mode: dist.optimize_mode,
-            prelanding: preland,
-            landing: land
+            steps: steps
         });
     });
     return JSON.stringify(flows);

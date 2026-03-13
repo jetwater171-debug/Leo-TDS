@@ -2,7 +2,7 @@
 
 function get_cloaker_path(bool $withPrefix = true, bool $withSlashEnd = true): string
 {
-    $domain = $_SERVER['HTTP_HOST'];
+    $domain = get_request_host();
     if ($withPrefix) {
         $prefix = is_https() ? 'https://' : 'http://';
         $fullpath = $prefix . $domain . '/';
@@ -13,8 +13,8 @@ function get_cloaker_path(bool $withPrefix = true, bool $withSlashEnd = true): s
     array_pop($script_path);
 
     if (count($script_path) > 0) {
-        //Dirty hack for js-connections
-        if ($script_path[count($script_path) - 1] === 'js') {
+        // Dirty hack for alternate entrypoint folders.
+        if (in_array($script_path[count($script_path) - 1], ['js', 'api'], true)) {
             array_pop($script_path);
         }
         if (count($script_path) > 0) {
@@ -33,20 +33,85 @@ function get_cloaker_path(bool $withPrefix = true, bool $withSlashEnd = true): s
 
 function is_https(): bool
 {
-    if (str_contains($_SERVER['HTTP_HOST'], '127.0.0.1')) {
-        return true; //for debug
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        return true;
     }
 
-    $isSecure = false;
-    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
-        $isSecure = true;
-    } elseif (
-        !empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ||
-        !empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] == 'on'
-    ) {
-        $isSecure = true;
-    } elseif ($_SERVER['SERVER_PORT'] == 443) {
-        $isSecure = true;
+    $host = (string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+    if (is_local_host($host)) {
+        // On localhost/127.0.0.1 we should not trust forwarded headers,
+        // otherwise dev setups can accidentally force https redirects.
+        return false;
     }
-    return $isSecure;
+
+    if ((int)($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+        return true;
+    }
+
+    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') {
+        return true;
+    }
+    if (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) === 'on') {
+        return true;
+    }
+
+    return false;
+}
+
+function get_request_host(): string
+{
+    $host = get_forwarded_host();
+    if ($host === '') {
+        $host = (string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost');
+    }
+    if ($host === '') {
+        $host = 'localhost';
+    }
+
+    if (str_contains($host, ':')) {
+        return $host;
+    }
+
+    $port = get_request_port();
+    $https = is_https();
+    $isDefaultPort = ($https && $port === 443) || (!$https && $port === 80);
+    if ($port > 0 && !$isDefaultPort) {
+        return $host . ':' . $port;
+    }
+
+    return $host;
+}
+
+function get_forwarded_host(): string
+{
+    $raw = trim((string)($_SERVER['HTTP_X_FORWARDED_HOST'] ?? ''));
+    if ($raw === '') {
+        return '';
+    }
+    $parts = explode(',', $raw);
+    return trim($parts[0]);
+}
+
+function get_request_port(): int
+{
+    $forwardedPort = trim((string)($_SERVER['HTTP_X_FORWARDED_PORT'] ?? ''));
+    if ($forwardedPort !== '' && ctype_digit($forwardedPort)) {
+        return (int)$forwardedPort;
+    }
+    return (int)($_SERVER['SERVER_PORT'] ?? 0);
+}
+
+function is_local_host(string $host): bool
+{
+    $host = trim($host);
+    if ($host === '') {
+        return false;
+    }
+
+    if (str_contains($host, ':')) {
+        $host = explode(':', $host, 2)[0];
+    }
+
+    $host = strtolower($host);
+    return $host === 'localhost' || $host === '127.0.0.1' || $host === '::1';
 }

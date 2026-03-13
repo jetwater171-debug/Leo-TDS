@@ -24,6 +24,15 @@ class Tabulator
             $width = $columns[$i]['width'] ?? -1;
             if (array_key_exists($field, $columnSettings)) {
                 $tabulatorColumns[] = $columnSettings[$field];
+            } elseif (str_starts_with($field, 'event.')) {
+                $title = $columns[$i]['title'] ?? ucwords(str_replace('_', ' ', substr($field, 6)));
+                $tabulatorColumns[] = [
+                    'title' => $title,
+                    'field' => $field,
+                    'sorter' => 'number',
+                    'hozAlign' => 'right',
+                    'bottomCalc' => 'sum',
+                ];
             } else {
                 $tabulatorColumns[] = ["title" => $field, "field" => $field];
             }
@@ -45,14 +54,17 @@ class Tabulator
 
         $defaultColumns =
         [
-            "subid" => [
-                "title" => "Subid",
-                "field" => "subid",
-                "formatter" => "link",
-                "formatterParams" => [
-                        "urlPrefix" => "clicks.php?campId=$campId&filter=single&subid="
-                    ],
-                "headerTooltip" => "Unique click id",
+            "userid" => [
+                "title" => "UserID",
+                "field" => "userid",
+                "headerTooltip" => "Persistent user identifier",
+                "headerSort" => false,
+                "editor" => false,
+            ],
+            "clickid" => [
+                "title" => "ClickID",
+                "field" => "clickid",
+                "headerTooltip" => "Click identifier for full funnel pass",
                 "headerSort" => false,
                 "editor" => false,
             ],

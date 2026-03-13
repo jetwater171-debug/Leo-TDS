@@ -95,13 +95,27 @@
       "use": false,
       "urls": []
     },
-    "prelandingreplace": {
+    "nextredirect": {
       "use": false,
-      "url": "https://ya.ru"
+      "rules": []
     },
-    "landingreplace": {
+    "submitredirect": {
       "use": false,
-      "url": "https://ya.ru"
+      "rules": []
+    },
+    "events": {
+      "scroll": {
+        "use": false,
+        "thresholds": [
+          50
+        ]
+      },
+      "time": {
+        "use": false,
+        "thresholds": [
+          60
+        ]
+      }
     },
     "imageslazyload": false
   },
@@ -405,7 +419,7 @@
     },
     "s2s": [
       {
-        "url": "https://eu.roerads.com/conversion/aid/45141/ed52562686164ba2?click_id={hash:c.clickid}",
+        "url": "https://eu.roerads.com/conversion/aid/45141/ed52562686164ba2?click_id={hash:clickid}",
         "method": "GET",
         "events": [
           "Purchase"

@@ -191,6 +191,14 @@ body {
     top: 0;
     z-index: 10;
     background-color: #152036;
+    width: max-content;
+    min-width: 100%;
+}
+
+.tabulator-scroll-wrapper .tabulator .tabulator-header .tabulator-header-contents,
+.tabulator-scroll-wrapper .tabulator .tabulator-header .tabulator-header-contents .tabulator-headers {
+    width: max-content;
+    min-width: 100%;
 }
 
 .buttons-block {

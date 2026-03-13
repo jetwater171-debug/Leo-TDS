@@ -11,14 +11,6 @@
         "width": 90
       },
       {
-        "field": "lpclicks",
-        "width": 90
-      },
-      {
-        "field": "lpctr",
-        "width": 90
-      },
-      {
         "field": "cra",
         "width": -1
       },
