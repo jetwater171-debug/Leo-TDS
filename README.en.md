@@ -1,5 +1,5 @@
 ```
-                            Yellow Cloaker
+                            Yellow TDS
     _            __     __  _ _             __          __  _
    | |           \ \   / / | | |            \ \        / / | |
    | |__  _   _   \ \_/ /__| | | _____      _\ \  /\  / /__| |__
@@ -15,11 +15,11 @@ Bitcoin: bc1qqv99jasckntqnk0pkjnrjtpwu0yurm0qd0gnqv
 Ethereum: 0xBC118D3FDE78eE393A154C29A4545c575506ad6B
 ```
 
-# Yellow Cloaker - Documentation (EN)
+# Yellow TDS - Documentation (EN)
 
 ## What this project is
 
-Yellow Cloaker is a PHP traffic routing app that decides per-visitor action (`white`/`black`/`trafficback`) using campaign rules, with click logging, lead tracking, postbacks, and an admin UI.
+Yellow TDS is a PHP traffic routing app that decides per-visitor action (`white`/`black`/`trafficback`) using campaign rules, with click logging, lead tracking, postbacks, and an admin UI.
 
 ## Current requirements
 
@@ -102,7 +102,7 @@ Endpoint: `phpconnect.php`
 
 Constraints:
 - `POST` only
-- `User-Agent` must contain `YellowCloaker`
+- `User-Agent` must contain `YellowTDS`
 - JSON body with `api_key` and request params (`tds_ua`, `tds_ref`, `tds_ip`, ...)
 
 Reference client: `phpclient.php`.
