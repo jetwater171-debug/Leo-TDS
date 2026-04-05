@@ -1,7 +1,7 @@
 [English version](README.en.md)
 
 ```
-                            Yellow Cloaker
+                            Yellow TDS
     _            __     __  _ _             __          __  _
    | |           \ \   / / | | |            \ \        / / | |
    | |__  _   _   \ \_/ /__| | | _____      _\ \  /\  / /__| |__
@@ -17,11 +17,11 @@ Bitcoin: bc1qqv99jasckntqnk0pkjnrjtpwu0yurm0qd0gnqv
 Ethereum: 0xBC118D3FDE78eE393A154C29A4545c575506ad6B
 ```
 
-# Yellow Cloaker - Документация (RU)
+# Yellow TDS - Документация (RU)
 
 ## Что это
 
-Yellow Cloaker - PHP-приложение для маршрутизации трафика по правилам кампании: `white`/`black`/`trafficback`, с логированием кликов, лидами, постбэками и UI для управления.
+Yellow TDS - PHP-приложение для маршрутизации трафика по правилам кампании: `white`/`black`/`trafficback`, с логированием кликов, лидами, постбэками и UI для управления.
 
 ## Актуальные требования
 
@@ -104,7 +104,7 @@ SQLite в `db/<dbConnection>`.
 
 Ограничения:
 - только `POST`
-- `User-Agent` должен содержать `YellowCloaker`
+- `User-Agent` должен содержать `YellowTDS`
 - тело: JSON с `api_key` и параметрами (`tds_ua`, `tds_ref`, `tds_ip`, ...)
 
 Пример клиента есть в `phpclient.php`.
