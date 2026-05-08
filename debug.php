@@ -44,6 +44,12 @@ class DebugMethods
             error_log($msg);
             add_error_log($msg);
 
+            if ($exception instanceof RuntimeException && str_starts_with($exception->getMessage(), 'Configuration error:')) {
+                http_response_code(500);
+                echo htmlspecialchars($exception->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                return;
+            }
+
             echo "An unexpected error occurred. Please try again later.";
         });
     }
