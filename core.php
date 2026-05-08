@@ -182,16 +182,16 @@ class FiltrationCore
         switch ($operator) {
             case 'param_in':
             case 'in':
-                $values = explode(',', $val);
+                $values = $this->split_filter_values($val);
                 $check = $this->in_arrayi($paramValue, $values);
                 break;
             case 'param_not_in':
             case 'not_in':
-                $values = explode(',', $val);
+                $values = $this->split_filter_values($val);
                 $check = !$this->in_arrayi($paramValue, $values);
                 break;
             case 'contains':
-                $values = explode(',', $val);
+                $values = $this->split_filter_values($val);
                 $contains = false;
                 foreach ($values as $value) {
                     if (empty($value))
@@ -206,7 +206,7 @@ class FiltrationCore
                 }
                 break;
             case 'not_contains':
-                $values = explode(',', $val);
+                $values = $this->split_filter_values($val);
                 $contains = false;
                 foreach ($values as $value) {
                     if (empty($value)) {
@@ -247,6 +247,11 @@ class FiltrationCore
             }
         }
         return false;
+    }
+
+    private function split_filter_values(string $val): array
+    {
+        return array_map('trim', explode(',', $val));
     }
 
     private function match_url_param_filter(array $filter): bool
