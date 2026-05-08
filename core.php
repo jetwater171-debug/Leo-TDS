@@ -142,38 +142,9 @@ class FiltrationCore
         } else {
             switch ($curParamName) {
                 case 'urlparam':
-                    $clickQS = $this->click_params['qs'];
-                    $pName = is_array($val) ? (string) ($val[0] ?? '') : (string) $val;
-                    $paramExists = $pName !== '' && array_key_exists($pName, $clickQS);
-
-                    if ($filter['operator'] === 'param_exists') {
-                        if ($paramExists) {
-                            $this->matched_filters[] = $curParamName;
-                            return true;
-                        }
-                        break;
-                    }
-
-                    if ($filter['operator'] === 'param_not_exists') {
-                        if (!$paramExists) {
-                            $this->matched_filters[] = $curParamName;
-                            return true;
-                        }
-                        break;
-                    }
-
-                    $pValues = is_array($val) ? (string) ($val[1] ?? '') : '';
-                    if (!$paramExists) {
-                        if ($filter['operator'] === 'param_not_in'){
-                            $this->matched_filters[] = $curParamName;
-                            return true;
-                        }
-                    } else {
-                        $check = $this->operator($pValues, $filter['operator'], (string) $clickQS[$pName]);
-                        if ($check) {
-                            $this->matched_filters[] = $curParamName;
-                            return true;
-                        }
+                    if ($this->match_url_param_filter($filter)) {
+                        $this->matched_filters[] = $curParamName;
+                        return true;
                     }
                     break;
                 case 'vpntor':
@@ -276,6 +247,30 @@ class FiltrationCore
             }
         }
         return false;
+    }
+
+    private function match_url_param_filter(array $filter): bool
+    {
+        $val = $filter['value'] ?? '';
+        $operator = $filter['operator'] ?? '';
+        $clickQS = $this->click_params['qs'];
+        $pName = is_array($val) ? (string) ($val[0] ?? '') : (string) $val;
+        $paramExists = $pName !== '' && array_key_exists($pName, $clickQS);
+
+        if ($operator === 'param_exists') {
+            return $paramExists;
+        }
+
+        if ($operator === 'param_not_exists') {
+            return !$paramExists;
+        }
+
+        $pValues = is_array($val) ? (string) ($val[1] ?? '') : '';
+        if (!$paramExists) {
+            return $operator === 'param_not_in';
+        }
+
+        return $this->operator($pValues, $operator, (string) $clickQS[$pName]);
     }
 
     public function click_matches_filters(array $filters): bool
