@@ -270,11 +270,11 @@ class FiltrationCore
             return !$paramExists;
         }
 
-        $pValues = is_array($val) ? (string) ($val[1] ?? '') : '';
         if (!$paramExists) {
             return $operator === 'param_not_in';
         }
 
+        $pValues = is_array($val) ? (string) ($val[1] ?? '') : '';
         return $this->operator($pValues, $operator, (string) $clickQS[$pName]);
     }
 
