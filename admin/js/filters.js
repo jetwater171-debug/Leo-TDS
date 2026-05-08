@@ -148,7 +148,9 @@ var tdsFilters = [
         placeholder: ['URL parameter name', 'value(s) separated by comma'],
         operators: [
             'param_in',
-            'param_not_in'
+            'param_not_in',
+            'param_exists',
+            'param_not_exists'
         ],
         size: 30
     }
@@ -168,5 +170,19 @@ var paramOperators = [
     multiple: false,
     apply_to: ['string'],
     label: 'not in'
+  },
+  {
+    type: 'param_exists',
+    nb_inputs: 1,
+    multiple: false,
+    apply_to: ['string'],
+    label: 'exists'
+  },
+  {
+    type: 'param_not_exists',
+    nb_inputs: 1,
+    multiple: false,
+    apply_to: ['string'],
+    label: 'not exists'
   }
 ];

@@ -142,16 +142,34 @@ class FiltrationCore
         } else {
             switch ($curParamName) {
                 case 'urlparam':
-                    $pName = $val[0];
-                    $pValues = $val[1];
                     $clickQS = $this->click_params['qs'];
-                    if (!isset($clickQS[$pName])) {
+                    $pName = is_array($val) ? (string) ($val[0] ?? '') : (string) $val;
+                    $paramExists = $pName !== '' && array_key_exists($pName, $clickQS);
+
+                    if ($filter['operator'] === 'param_exists') {
+                        if ($paramExists) {
+                            $this->matched_filters[] = $curParamName;
+                            return true;
+                        }
+                        break;
+                    }
+
+                    if ($filter['operator'] === 'param_not_exists') {
+                        if (!$paramExists) {
+                            $this->matched_filters[] = $curParamName;
+                            return true;
+                        }
+                        break;
+                    }
+
+                    $pValues = is_array($val) ? (string) ($val[1] ?? '') : '';
+                    if (!$paramExists) {
                         if ($filter['operator'] === 'param_not_in'){
                             $this->matched_filters[] = $curParamName;
                             return true;
                         }
                     } else {
-                        $check = $this->operator($pValues, $filter['operator'], $clickQS[$pName]);
+                        $check = $this->operator($pValues, $filter['operator'], (string) $clickQS[$pName]);
                         if ($check) {
                             $this->matched_filters[] = $curParamName;
                             return true;
