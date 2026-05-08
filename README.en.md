@@ -15,142 +15,65 @@ Bitcoin: bc1qqv99jasckntqnk0pkjnrjtpwu0yurm0qd0gnqv
 Ethereum: 0xBC118D3FDE78eE393A154C29A4545c575506ad6B
 ```
 
-# Yellow TDS - Documentation (EN)
+# Yellow TDS
 
-## What this project is
+Yellow TDS is a traffic distribution system for routing traffic according to campaign rules. The project includes the filtering engine, SQLite storage, admin panel, statistics, click logs, postback handling, and multiple integration modes.
 
-Yellow TDS is a PHP traffic routing app that decides per-visitor action (`white`/`black`/`trafficback`) using campaign rules, with click logging, lead tracking, postbacks, and an admin UI.
+## What This Product Does
 
-## Current requirements
+The system receives incoming traffic and decides what should be returned for each request:
 
-- PHP `>= 8.2`
-- PHP extensions: `curl`, `sqlite3`
-- Valid HTTPS on your domain
-- Writable project directories (`db`, `logs`, `cache`, sessions)
+- the white branch for blocked or filtered traffic
+- the black branch for allowed traffic
+- trafficback when no campaign matches
 
-Runtime checks are enforced in `debug.php`.
+Key capabilities:
 
-## Quick start
+- campaign-based routing by domain
+- white and black logic
+- multi-step funnels and flows
+- equal, weighted, and Thompson Sampling distribution
+- JS bot detection
+- S2S postbacks
+- statistics, custom tables, and click views
+- JS Connect and PHP Connect
 
-1. Deploy contents of `fromfolder/` to your hosting.
-2. Edit `settings.php` and set at least:
-- `adminPassword`
-- `adminDomain` (optional)
-- `dbConnection` (SQLite filename inside `db/`)
-- `debug` (`false` for production)
-- `maxMindKey` (optional, for GeoLite2 auto-updates)
-3. Open `https://your-domain/admin/` and sign in.
-4. Create a campaign, configure domains, white/black actions, filters, postbacks, then save.
+## Quick Start
 
-## Main request flow
+1. Deploy the contents to your server/hosting.
+2. Open `settings.php` and configure at least:
+   - `adminPassword`
+   - `dbConnection`
+   - `debug` (`false` in production)
+   - `adminDomain` if needed
+3. Make sure PHP can write to:
+   - `db/`
+   - `logs/`
+   - `caching/`
+4. Open `/admin/`.
+5. Create a campaign, add domains, configure white/black behavior, and save.
 
-- `index.php` -> `tds.php` -> selects action (`white`, `black`, `trafficback`)
-- `core.php` collects click params: IP, GEO, ISP, OS, browser, UA, query params
-- `next.php` and `send.php` handle step transitions + form forwarding
-- `postback.php` receives S2S status updates and updates leads
+## Main Entry Points
 
-## Data storage
+- `index.php` — main runtime entry point
+- `js/index.php` — JS Connect
+- `phpconnect.php` — PHP Connect API
+- `postback.php` — incoming postbacks
+- `send.php` — lead form submission relay
+- `next.php` — funnel step transitions
+- `admin/` — admin panel
 
-SQLite database file: `db/<dbConnection>`.
+## Full Documentation
 
-Main tables:
-- `campaigns` - campaign JSON settings
-- `clicks` - allowed clicks and leads
-- `blocked` - filtered clicks
-- `trafficback` - clicks without matching campaign
-- `common` - global UI settings
+The full bilingual documentation lives inside this repository:
 
-Schema: `db/db.sql`.
+- [English documentation](docs/en/index.md)
+- [Русская документация](docs/ru/index.md)
 
-## Admin panel
+Recommended reading order:
 
-Main pages:
-- `admin/index.php` - campaigns list
-- `admin/campsettings.php` - campaign settings
-- `admin/clicks.php` - allowed/blocked/leads/trafficback logs
-- `admin/statistics.php` - aggregated stats tables
-
-Campaign settings blocks include:
-- Domains
-- Safe page (white): `folder`, `redirect`, `curl`, `error`
-- Money page (black): multi-step flows (`steps[]`, folder/redirect per step)
-- Filters (query-builder, AND/OR groups)
-- Scripts (backfix, transit/landing replace, lazy images)
-- Statistics (timezone, columns/tables/grouping)
-- Postbacks (incoming + outgoing S2S)
-- API key for `phpconnect.php`
-
-## Integrations
-
-### JS connect
-
-Include:
-
-```html
-<script src="https://your-domain/js/index.php"></script>
-```
-
-`js/index.php` can return JS to:
-- replace page content
-- show iframe
-- do meta redirect
-- process JS-check flow
-
-### PHP API
-
-Endpoint: `phpconnect.php`
-
-Constraints:
-- `POST` only
-- `User-Agent` must contain `YellowTDS`
-- JSON body with `api_key` and request params (`tds_ua`, `tds_ref`, `tds_ip`, ...)
-
-Reference client: `phpclient.php`.
-
-### Postback
-
-Endpoint: `postback.php`
-
-Required params:
-- `clickid`
-- `status`
-- `payout`
-
-Optional:
-- `currency` (`USD` default, converted via `currency.php`)
-
-## UTP (Universal Thank You Page)
-
-If `settings.php -> useUTP = true`, lead flow uses `thankyou/index.php`.
-
-UTP features:
-- template selection/generation
-- translation via `thankyou/translator.php`
-- caching in `thankyou/cache/`
-- macro replacement (`{NAME}`, `{PHONE}`, `{CLICKID}`)
-
-## Logs and maintenance
-
-Logs are written to `logs/<subdir>/`.
-
-Common folders:
-- `logs/error`
-- `logs/login`
-- `logs/postback`
-- `logs/trace` (when `debug=true`)
-
-GeoLite2 updater: `bases/update.php` (requires `maxMindKey`).
-
-## Security checklist
-
-- Change default `adminPassword` immediately.
-- Set `adminDomain` if admin must be restricted to one host.
-- Keep `debug=false` in production.
-- Do not expose real keys/passwords in public repos.
-- On nginx, block direct access to SQLite DB files.
-
-## Notes about current version
-
-- Campaign settings source of truth is UI + SQLite, not per-campaign PHP variables.
-- `admin/autoupdate.php` has partial implementation; file-copy step is currently disabled (TODO).
-- Some sample/dev folders in repo (`black`, `white`, `student`) are not mandatory for production.
+1. [Product Overview](docs/en/overview.md)
+2. [How It Works](docs/en/how-it-works.md)
+3. [Admin Login](docs/en/admin-login.md)
+4. [Campaign Settings](docs/en/campaign-settings.md)
+5. [Statistics](docs/en/statistics.md)

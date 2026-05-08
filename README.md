@@ -1,7 +1,7 @@
 [English version](README.en.md)
 
 ```
-                            Yellow TDS
+                            yellowtds
     _            __     __  _ _             __          __  _
    | |           \ \   / / | | |            \ \        / / | |
    | |__  _   _   \ \_/ /__| | | _____      _\ \  /\  / /__| |__
@@ -17,143 +17,67 @@ Bitcoin: bc1qqv99jasckntqnk0pkjnrjtpwu0yurm0qd0gnqv
 Ethereum: 0xBC118D3FDE78eE393A154C29A4545c575506ad6B
 ```
 
-# Yellow TDS - Документация (RU)
 
-## Что это
 
-Yellow TDS - PHP-приложение для маршрутизации трафика по правилам кампании: `white`/`black`/`trafficback`, с логированием кликов, лидами, постбэками и UI для управления.
+# Yellow TDS
 
-## Актуальные требования
+Yellow TDS — TDS для маршрутизации трафика по правилам кампаний. Проект включает движок фильтрации и распределения трафика, SQLite-хранилище, админ-панель, статистику, click logs, postback-обработку и несколько режимов интеграции.
 
-- PHP `>= 8.2`
-- Расширения PHP: `curl`, `sqlite3`
-- Рабочий HTTPS на домене
-- Права записи для папки проекта (создаются/обновляются `db`, `logs`, `cache`, сессии)
+## Что это за продукт
 
-Проверки выполняются в `debug.php` при каждом запросе.
+Система принимает входящий трафик и для каждого запроса решает, что нужно отдать пользователю:
+
+- white-ветку для нежелательного или отфильтрованного трафика
+- black-ветку для целевого трафика
+- trafficback, если кампания не найдена или не подходит
+
+Ключевые возможности:
+
+- кампании с привязкой по доменам
+- white и black логика
+- multi-step funnels и flows
+- equal, weighted и Thompson Sampling distribution
+- JS bot detection
+- S2S postbacks
+- статистика, custom tables и click views
+- JS Connect и PHP Connect
 
 ## Быстрый старт
 
-1. Разверните содержимое папки `fromfolder/` на хостинге.
-2. Откройте `settings.php` и минимум задайте:
-- `adminPassword`
-- `adminDomain` (опционально)
-- `dbConnection` (имя SQLite-файла в `db/`)
-- `debug` (`false` для production)
-- `maxMindKey` (если нужен автоапдейт GeoLite2)
-3. Откройте `https://your-domain/admin/` и авторизуйтесь.
-4. Создайте кампанию, заполните домены, white/black, фильтры, постбэки, сохраните.
+1. Разверните содержимое на хостинге.
+2. Откройте `settings.php` и задайте как минимум:
+   - `adminPassword`
+   - `dbConnection`
+   - `debug` (`false` для production)
+   - `adminDomain` при необходимости
+3. Убедитесь, что PHP может писать в:
+   - `db/`
+   - `logs/`
+   - `caching/`
+4. Откройте `/admin/`.
+5. Создайте кампанию, добавьте домены, настройте white/black, сохраните.
 
-## Основной поток
+## Основные точки входа
 
-- `index.php` -> `tds.php` -> выбор действия (`white`, `black`, `trafficback`)
-- `core.php` собирает параметры клика: IP, GEO, ISP, OS, browser, UA, query params
-- `next.php` и `send.php` обрабатывают переходы по шагам воронки и отправку форм
-- `postback.php` принимает S2S-статусы и обновляет лиды
+- `index.php` — основной runtime entry point
+- `js/index.php` — JS Connect
+- `phpconnect.php` — PHP Connect API
+- `postback.php` — входящие постбэки
+- `send.php` — отправка лид-форм
+- `next.php` — переходы по шагам воронки
+- `admin/` — админ-панель
 
-## Где хранятся данные
+## Где читать полную документацию
 
-SQLite в `db/<dbConnection>`.
+Полная двуязычная документация находится в репозитории:
 
-Основные таблицы:
-- `campaigns` - кампании и их JSON-настройки
-- `clicks` - разрешенные клики и лиды
-- `blocked` - отфильтрованные клики
-- `trafficback` - клики без подходящей кампании
-- `common` - общие настройки UI
+- [Русская документация](docs/ru/index.md)
+- [English documentation](docs/en/index.md)
 
-Схема: `db/db.sql`.
+Рекомендуемый порядок чтения:
 
-## Админка
-
-Основные страницы:
-- `admin/index.php` - список кампаний
-- `admin/campsettings.php` - настройки кампании
-- `admin/clicks.php` - allowed/blocked/leads/trafficback
-- `admin/statistics.php` - агрегированные таблицы
-
-Ключевые блоки настройки кампании:
-- Domains
-- Safe page (white): `folder`, `redirect`, `curl`, `error`
-- Money page (black): multi-step flows (`steps[]`, folder/redirect на каждом шаге)
-- Filters (query-builder, AND/OR группы)
-- Scripts (backfix, replace transit/landing, lazy images)
-- Statistics (timezone, tables/columns/grouping)
-- Postbacks (входящий + исходящий S2S)
-- API key для `phpconnect.php`
-
-## Интеграции
-
-### JS connect
-
-Подключение скрипта:
-
-```html
-<script src="https://your-domain/js/index.php"></script>
-```
-
-`js/index.php` может:
-- вернуть JS с подменой контента
-- показать iframe
-- отдать meta-redirect
-- обработать JS-check сценарий
-
-### PHP API
-
-Эндпойнт: `phpconnect.php`
-
-Ограничения:
-- только `POST`
-- `User-Agent` должен содержать `YellowTDS`
-- тело: JSON с `api_key` и параметрами (`tds_ua`, `tds_ref`, `tds_ip`, ...)
-
-Пример клиента есть в `phpclient.php`.
-
-### Postback
-
-Эндпойнт: `postback.php`
-
-Обязательные параметры:
-- `clickid`
-- `status`
-- `payout`
-
-Опционально:
-- `currency` (по умолчанию `USD`, есть конвертация в `currency.php`)
-
-## UTP (Universal Thank You Page)
-
-Если `settings.php -> useUTP = true`, после лида используется `thankyou/index.php`.
-
-UTP:
-- выбирает/генерирует шаблон
-- переводит текст через `thankyou/translator.php`
-- кеширует страницы в `thankyou/cache/`
-- подставляет макросы (`{NAME}`, `{PHONE}`, `{CLICKID}`)
-
-## Логи и обслуживание
-
-Логи пишутся в `logs/<subdir>/`.
-
-Часто используемые:
-- `logs/error`
-- `logs/login`
-- `logs/postback`
-- `logs/trace` (при `debug=true`)
-
-Обновление GeoLite2: `bases/update.php` (использует `maxMindKey`).
-
-## Важно по безопасности
-
-- Сразу смените `adminPassword`.
-- Ограничьте `adminDomain`, если админка должна открываться только с одного домена.
-- Держите `debug=false` на бою.
-- Не храните репозиторий с рабочими ключами/паролями в публичном доступе.
-- Если используете nginx, закройте прямой доступ к SQLite-файлу.
-
-## Примечания по текущей версии
-
-- Источник правды для кампаний - UI + SQLite, не ручной `settings.php` кампаний.
-- Автоапдейтер в `admin/autoupdate.php` частично заготовлен (копирование файлов сейчас отключено TODO).
-- В некоторых dev-конфигах в репозитории есть тестовые папки (`black`, `white`, `student`) и они не обязательны для production.
-
+1. [Обзор продукта](docs/ru/overview.md)
+2. [Как это работает](docs/ru/how-it-works.md)
+3. [Вход в админку](docs/ru/admin-login.md)
+4. [Кампании и настройки](docs/ru/campaign-settings.md)
+5. [Статистика](docs/ru/statistics.md)
