@@ -3,7 +3,7 @@ require_once __DIR__ . '/../paths.php';
 $jsFsPath = __DIR__ . '/js';
 $jsPath = get_cloaker_path() . 'js';
 ?>
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="<?=$jsPath?>/jquery.js"></script>
 <script src="<?=$jsPath?>/jquery.modal.min.js"></script>
 <script src="<?=$jsPath?>/query-builder.standalone.min.js"></script>
 <script src="<?=$jsPath?>/sortable.min.js"></script>
@@ -11,6 +11,11 @@ $jsPath = get_cloaker_path() . 'js';
 <script src="<?=$jsPath?>/luxon.min.js"></script>
 <script src="<?=$jsPath?>/xlsx.full.min.js"></script>
 <script src="<?=$jsPath?>/jszip.min.js"></script>
-<script src="<?= $jsPath ?>/tabulator.js?v=<?= filemtime($jsFsPath . '/tabulator.js') ?>"></script>
-<script src="<?= $jsPath ?>/campeditor.js?v=<?= filemtime($jsFsPath . '/campeditor.js') ?>"></script>
-<script src="<?= $jsPath ?>/header.js?v=<?= filemtime($jsFsPath . '/header.js') ?>"></script>
+<?php
+$tTime = filemtime($jsFsPath . '/tabulator.js');
+$cTime = filemtime($jsFsPath . '/campeditor.js');
+$hTime = filemtime($jsFsPath . '/header.js'); 
+?>
+<script src="<?=$jsPath?>/tabulator.js?v=<?=$tTime?>"></script>
+<script src="<?=$jsPath?>/campeditor.js?v=<?=$cTime?>"></script>
+<script src="<?=$jsPath?>/header.js?v=<?=$hTime?>"></script>
