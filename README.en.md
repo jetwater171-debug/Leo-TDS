@@ -46,6 +46,7 @@ Key capabilities:
    - `dbConnection`
    - `debug` (`false` in production)
    - `adminDomain` if needed
+   - `adminIp` if needed
 3. Make sure PHP can write to:
    - `db/`
    - `logs/`

@@ -8,6 +8,10 @@ $cloSettings =
 //all others will get a 404
 "adminDomain" => "",
 
+//if you add an IP here, then only users from this IP will be able to access the admin page
+//when behind Cloudflare, the real visitor IP will be taken from CF-Connecting-IP only for real Cloudflare proxy IPs
+"adminIp" => "",
+
 //WARNING:if you are using nginx either change your website's config so that it prevents people from
 //downloading your database, or just rename the db file so security through obscurity will work! :-D
 "dbConnection" => "clicks.db",
