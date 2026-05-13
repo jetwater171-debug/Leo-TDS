@@ -31,13 +31,12 @@ global $c, $db, $campId;
                     <?php } ?>
                     <?php } ?>
                     <li><a href="#sec-scripts">Scripts</a></li>
-                    <li><a href="#sec-statistics">Statistics</a></li>
                     <li><a href="#sec-postbacks">Postbacks</a></li>
                     <li><a href="#sec-api">API</a></li>
                 </ul>
             </nav>
             <div class="camp-content">
-        <form id="campsettings">
+        <form id="campsettings" autocomplete="off">
             <section id="sec-domains" class="camp-section active">
             <div class="form-group-inner">
             <div class="row">
@@ -414,9 +413,9 @@ global $c, $db, $campId;
                     </div>
                     <div class="col-lg-9 col-md-6 col-sm-6 col-xs-12">
                         <div class="ywb-radios">
-                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'replace' ? 'checked' : '' ?> value="replace" name="black_jsconnect" /> Content replace</label>
-                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'iframe' ? 'checked' : '' ?> value="iframe" name="black_jsconnect" /> IFrame</label>
-                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="black_jsconnect" /> Redirect</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'replace' ? 'checked' : '' ?> value="replace" name="black.jsconnect" /> Content replace</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'iframe' ? 'checked' : '' ?> value="iframe" name="black.jsconnect" /> IFrame</label>
+                            <label class="ywb-radio-label"><input type="radio" <?= $c->black->jsconnectAction === 'redirect' ? 'checked' : '' ?> value="redirect" name="black.jsconnect" /> Redirect</label>
                         </div>
                     </div>
                 </div>
@@ -938,20 +937,6 @@ global $c, $db, $campId;
             </div>
             </section>
 
-            <section id="sec-statistics" class="camp-section">
-            <div class="form-group-inner">
-                <div class="row">
-                    <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                        <label class="login2 pull-left pull-left-pro"> Time zone to show statistics:
-                        </label>
-                    </div>
-                    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
-                        <?= select_timezone('statistics.timezone', $c->statistics->timezone); ?>
-                    </div>
-                </div>
-            </div>
-            </section>
-
             <section id="sec-postbacks" class="camp-section">
             <div class="flow-group">
             <span class="flow-group-title">Postback</span>
@@ -1130,10 +1115,17 @@ global $c, $db, $campId;
             </section>
 
             <div class="camp-save-bar">
-                <button class="btn btn-lg btn-primary" type="submit">
+                <button class="btn btn-lg btn-primary" type="submit" id="save-settings-btn">
                     <strong>Save settings</strong>
                 </button>
             </div>
+            <div id="save-settings-overlay" class="save-settings-overlay" aria-hidden="true">
+                <div class="save-settings-overlay-card">
+                    <div class="save-settings-overlay-spinner"></div>
+                    <div class="save-settings-overlay-text">Saving settings...</div>
+                </div>
+            </div>
+            <div id="save-settings-toast" class="save-settings-toast" aria-live="polite" aria-atomic="true"></div>
         </form>
             </div><!-- .camp-content -->
         </div><!-- .camp-layout -->
@@ -1313,11 +1305,20 @@ global $c, $db, $campId;
             };
         };
 
+        function syncToggleTarget(targetId) {
+            const checkedRadio = document.querySelector(`input[data-toggle-target="${targetId}"]:checked`);
+            toggleScriptRulesBlock(targetId, checkedRadio?.value === 'true');
+        }
+
+        const toggleTargets = new Set();
         document.querySelectorAll('input[data-toggle-target]').forEach((radio) => {
+            radio.checked = radio.defaultChecked;
+            toggleTargets.add(radio.dataset.toggleTarget);
             radio.addEventListener('change', () => {
-                toggleScriptRulesBlock(radio.dataset.toggleTarget, radio.value === 'true');
+                syncToggleTarget(radio.dataset.toggleTarget);
             });
         });
+        toggleTargets.forEach(syncToggleTarget);
 
         document.getElementById('add-next-redirect-rule')?.addEventListener('click', () => addScriptRule('next'));
         document.getElementById('add-submit-redirect-rule')?.addEventListener('click', () => addScriptRule('submit'));
@@ -1415,7 +1416,7 @@ global $c, $db, $campId;
             filters: tdsFilters,
             <?php
             if (!empty($c->white->filters)) {
-                echo 'rules: rules_basic';
+                echo 'rules: rules_basic,';
             }
             ?>
         });
@@ -1426,7 +1427,7 @@ global $c, $db, $campId;
             operators: $.fn.queryBuilder.constructor.DEFAULTS.operators.concat(paramOperators),
             filters: tdsFilters,
             <?php if (!empty($flow->filters) && isset($flow->filters['rules'])) { ?>
-            rules: flow_rules_<?= $fi ?>
+            rules: flow_rules_<?= $fi ?>,
             <?php } ?>
         });
         <?php } ?>
@@ -1599,23 +1600,4 @@ global $c, $db, $campId;
     </template>
 
 </body>
-
-<?php
-function select_timezone($selectname, $selected = '')
-{
-    $zones = timezone_identifiers_list();
-    $select = "<select name='" . $selectname . "' class='form-select'>";
-    foreach ($zones as $zone) {
-        $tz = new DateTimeZone($zone);
-        $offset = $tz->getOffset(new DateTime) / 3600;
-        $select .= '<option value="' . $zone . '"';
-        $select .= ($zone == $selected ? ' selected' : '');
-        $select .= '>' . $zone . ' ' . $offset . '</option>';
-    }
-    $select .= '</select>';
-    return $select;
-}
-
-?>
-
 </html>

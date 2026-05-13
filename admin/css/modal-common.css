@@ -301,6 +301,40 @@
     color: white;
 }
 
+/* Custom Columns Modal */
+#customColumnsModal .form-control {
+    background: #1e293b;
+    border-color: #3b4a63;
+    color: #f1f5f9;
+}
+
+#customColumnsModal .form-control:focus {
+    background: #243044;
+    border-color: #0084ff;
+}
+
+#customColumnsModal .form-control::placeholder {
+    color: #64748b;
+}
+
+#customColumnsModal input[type="number"].form-control {
+    -moz-appearance: textfield;
+    text-align: center;
+}
+
+#customColumnsModal input[type="number"].form-control::-webkit-inner-spin-button,
+#customColumnsModal input[type="number"].form-control::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#customColumnsModal select.form-control {
+    appearance: auto;
+    -webkit-appearance: menulist;
+    padding-right: 8px;
+    cursor: pointer;
+}
+
 /* Narrower modal for clicks column editor (no GroupBy section) */
 .ywbmodal-narrow {
     max-width: 680px !important;
