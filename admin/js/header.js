@@ -82,15 +82,129 @@ function typeText(text, element) {
     };
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    flatpickr("#litepicker", {
-        dateFomat: "DD.MM.YY",
-        mode: "range",
-        onClose: function(selectedDates, dateStr, instance) {
-            if (selectedDates.length < 2) return;
-            update_datepicker_dates(selectedDates);
+function getHeaderDateConfig() {
+    const configNode = document.getElementById('headerDateConfig');
+    if (!configNode) return null;
+
+    try {
+        return JSON.parse(configNode.textContent);
+    } catch (error) {
+        console.error('Failed to parse header date config', error);
+        return null;
+    }
+}
+
+function buildTimezoneFooter(instance, config) {
+    if (!instance || !instance.calendarContainer || !config || !config.enabled) return;
+
+    let footer = instance.calendarContainer.querySelector('.flatpickr-tz-footer');
+    if (!footer) {
+        footer = document.createElement('div');
+        footer.className = 'flatpickr-tz-footer';
+        footer.innerHTML = `
+            <label class="flatpickr-tz-label" for="flatpickr-timezone-select">Timezone</label>
+            <select id="flatpickr-timezone-select" class="flatpickr-tz-select"></select>
+        `;
+        instance.calendarContainer.appendChild(footer);
+    }
+
+    const select = footer.querySelector('.flatpickr-tz-select');
+    const selectedTimezone = config.pendingTimezone || config.timezone;
+
+    if (!select.dataset.initialized) {
+        const options = config.options || [];
+        options.forEach((option) => {
+            const optionNode = document.createElement('option');
+            optionNode.value = option.value;
+            optionNode.textContent = option.label;
+            select.appendChild(optionNode);
+        });
+        select.dataset.initialized = 'true';
+    }
+
+    select.value = selectedTimezone;
+    select.disabled = !!config.savingTimezone;
+
+    if (!select.dataset.bound) {
+        select.addEventListener('change', async () => {
+            await saveTimezoneSetting(select.value, config, select);
+        });
+        select.dataset.bound = 'true';
+    }
+}
+
+async function saveTimezoneSetting(timezone, config, select) {
+    if (!timezone || timezone === config.timezone || config.savingTimezone) {
+        return;
+    }
+
+    config.savingTimezone = true;
+    config.pendingTimezone = timezone;
+    if (select) select.disabled = true;
+
+    try {
+        let response;
+        if (config.scope === 'campaign' && config.campId) {
+            response = await fetch(`campeditor.php?action=save&campId=${config.campId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ statistics: { timezone } }),
+            });
+        } else {
+            response = await fetch('commonseditor.php?action=savetimezone', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ timezone }).toString(),
+            });
         }
-    });
+
+        const result = await response.json();
+        if (result.error) {
+            throw new Error(result.result || 'Failed to save timezone');
+        }
+
+        window.location.reload();
+    } catch (error) {
+        alert('Error saving timezone: ' + error.message);
+        config.pendingTimezone = config.timezone;
+        if (select) {
+            select.value = config.timezone;
+            select.disabled = false;
+        }
+    } finally {
+        config.savingTimezone = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const headerDateConfig = getHeaderDateConfig();
+    if (headerDateConfig?.enabled && document.getElementById('litepicker')) {
+        flatpickr('#litepicker', {
+            dateFomat: 'DD.MM.YY',
+            mode: 'range',
+            onReady: function(selectedDates, dateStr, instance) {
+                buildTimezoneFooter(instance, headerDateConfig);
+            },
+            onOpen: function(selectedDates, dateStr, instance) {
+                buildTimezoneFooter(instance, headerDateConfig);
+            },
+            onMonthChange: function(selectedDates, dateStr, instance) {
+                buildTimezoneFooter(instance, headerDateConfig);
+            },
+            onYearChange: function(selectedDates, dateStr, instance) {
+                buildTimezoneFooter(instance, headerDateConfig);
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                buildTimezoneFooter(instance, headerDateConfig);
+                if (selectedDates.length < 2) return;
+                update_datepicker_dates(selectedDates);
+            }
+        });
+    }
 
     const updateBasesLink = document.getElementById('updateBases');
     const loadingAnimation = document.getElementById('loadingAnimation');

@@ -46,53 +46,20 @@ switch ($action) {
         break;
     case 'save':
         $s = $db->get_campaign_settings($campId);
-        foreach($_POST as $key=>$value){
-            if ($key==="filters"){ //special case cause we store filters in json format
-                $arrFilters=json_decode($value,true);
-                if (is_array($arrFilters)) {
-                    $s['white']['filters'] = $arrFilters;
-                }
-            }
-            else if ($key==="flows"){ //flows are stored as json
-                $arrFlows=json_decode($value,true);
-                if (is_array($arrFlows)) {
-                    foreach ($arrFlows as &$flow) {
-                        foreach (($flow['steps'] ?? []) as &$step) {
-                            normalize_step_weights($step);
-                        }
-                        unset($step);
-                    }
-                    unset($flow);
-                    $s['black']['flows'] = $arrFlows;
-                }
-            }
-            else if ($key==="white_folders"){
-                $arr = json_decode($value, true);
-                if (is_array($arr)) $s['white']['folders'] = $arr;
-            }
-            else if ($key==="white_loadmode"){
-                $arr = json_decode($value, true);
-                if (is_array($arr)) $s['white']['loadmode'] = $arr;
-            }
-            else if ($key==="domains_list"){
-                $arr = json_decode($value, true);
-                if (is_array($arr)) $s['domains'] = $arr;
-            }
-            else if ($key==="scripts_nextredirect_rules_json"){
-                $arr = json_decode($value, true);
-                $s['scripts']['nextredirect']['rules'] = is_array($arr) ? $arr : [];
-            }
-            else if ($key==="scripts_submitredirect_rules_json"){
-                $arr = json_decode($value, true);
-                $s['scripts']['submitredirect']['rules'] = is_array($arr) ? $arr : [];
-            }
-            else if ($key==="white_domainspecific"){
-                $arr = json_decode($value, true);
-                if (is_array($arr)) $s['white']['domainfilter']['domains'] = $arr;
-            }
-            else
-                setArrayValue($s,$key,$value);
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($input)) {
+            return send_camp_result("Error: invalid JSON body!", true);
         }
+        if (isset($input['black']['flows']) && is_array($input['black']['flows'])) {
+            foreach ($input['black']['flows'] as &$flow) {
+                foreach (($flow['steps'] ?? []) as &$step) {
+                    normalize_step_weights($step);
+                }
+                unset($step);
+            }
+            unset($flow);
+        }
+        $s = mergeSettingsRecursive($s, $input);
         $saveRes = $db->save_campaign_settings($campId, $s);
         if($saveRes===false)
             return send_camp_result("Error saving campaign!",true);
@@ -144,31 +111,42 @@ function normalize_step_weights(array &$step): void {
     $step['weights'] = array_map('intval', $floored);
 }
 
-function setArrayValue(&$array, $underscoreString, $newValue) {
-    // Split the underscore notation string into keys
-    $keys = explode('_', $underscoreString);
-    
-    // Traverse the array using each key
-    $current = &$array;
-    foreach ($keys as $key) {
-        // If the key doesn't exist, create it as an empty array
-        if (!isset($current[$key])) {
-            $current[$key] = [];
+function mergeSettingsRecursive($current, $incoming) {
+    if (!is_array($incoming)) {
+        if ($incoming === 'false' || $incoming === 'true') {
+            return filter_var($incoming, FILTER_VALIDATE_BOOLEAN);
         }
-        // Move to the next level
-        $current = &$current[$key];
+        return $incoming;
     }
 
-    if (is_string($newValue)&&is_array($current)){
-        $arrValue = (empty($newValue)?[]:explode(',',$newValue));
-        $current = $arrValue;
+    if (!is_array($current) || array_is_list($incoming)) {
+        return compactListRecursive($incoming);
     }
-    else if ($newValue==='false'|| $newValue==='true'){
-        $boolValue=filter_var($newValue,FILTER_VALIDATE_BOOLEAN);
-        $current=$boolValue;
+
+    foreach ($incoming as $key => $value) {
+        $current[$key] = mergeSettingsRecursive($current[$key] ?? null, $value);
     }
-    else{
-        // Set the new value at the final key
-        $current = $newValue;
+
+    return $current;
+}
+
+function compactListRecursive(array $list): array {
+    $result = [];
+    foreach ($list as $value) {
+        if (is_array($value)) {
+            $result[] = array_is_list($value)
+                ? compactListRecursive($value)
+                : mergeSettingsRecursive([], $value);
+            continue;
+        }
+
+        if ($value === 'false' || $value === 'true') {
+            $result[] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            continue;
+        }
+
+        $result[] = $value;
     }
+
+    return $result;
 }
