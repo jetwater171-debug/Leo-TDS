@@ -14,16 +14,6 @@ $tName = $_REQUEST['name']??''; //table name for stats
 $campId = $_REQUEST['campid']??null;
 $postData = file_get_contents('php://input');
 
-//ugly one but we need it!
-if ($action === 'trafficback') {
-    $s = $db->get_common_settings();
-    $s['trafficBackUrl'] = $postData;
-    $res = $db->set_common_settings($s);
-    if ($res===false)
-        return send_clmnseditor_result("Error saving settings!",true);
-    return send_clmnseditor_result("OK");
-}
-
 add_log('trace', "ColumnsEditor action: $action, table: $table, name: $tName, campId: $campId");
 
 switch ($action) {
@@ -134,20 +124,42 @@ function get_new_columns($existingColumns, $newColumnNames): array
 
     // Process each column from the new data
     foreach ($newColumnNames as $cName) {
+        // Support both string and array column formats
+        if (is_array($cName)) {
+            $fieldName = $cName['field'] ?? '';
+            $newColData = $cName;
+        } else {
+            $fieldName = $cName;
+            $newColData = null;
+        }
+
         $found = false;
         foreach ($existingColumns as $existingColumn) {
-            if ($existingColumn['field'] === $cName) {
-                $newColumns[] = $existingColumn;
+            $existingField = is_array($existingColumn) ? ($existingColumn['field'] ?? '') : $existingColumn;
+            if ($existingField === $fieldName) {
+                // Preserve existing width if set by user, merge with new column data
+                if ($newColData !== null) {
+                    $merged = $newColData;
+                    if (isset($existingColumn['width']) && $existingColumn['width'] > 0) {
+                        $merged['width'] = $existingColumn['width'];
+                    }
+                    $newColumns[] = $merged;
+                } else {
+                    $newColumns[] = $existingColumn;
+                }
                 $found = true;
                 break;
             }
         }
         // If column not found, add it with default width
         if (!$found) {
-            if ($cName === 'group')
-                $newColumns[] = ['field' => $cName, 'width' => 100];
-            else
-                $newColumns[] = ['field' => $cName, 'width' => -1];
+            if ($newColData !== null) {
+                $newColumns[] = $newColData;
+            } elseif ($fieldName === 'group') {
+                $newColumns[] = ['field' => $fieldName, 'width' => 100];
+            } else {
+                $newColumns[] = ['field' => $fieldName, 'width' => -1];
+            }
         }
     }
 
@@ -303,11 +315,12 @@ function save_stats_table(int $campId, string $tableName,array $tableConfig): bo
         }
     }
 
-    $allColumnNames = array_merge(['group'], $tableConfig['columns']);
+    $existingColumns = $existingTableIndex >= 0 ? ($s['statistics']['tables'][$existingTableIndex]['columns'] ?? []) : [];
+    $allColumnNames = array_merge([['field' => 'group', 'width' => 100]], $tableConfig['columns']);
     // Create new table object
     $table = [
         'name' => $tableConfig['name'], 
-        'columns' => get_new_columns([], $allColumnNames),
+        'columns' => get_new_columns($existingColumns, $allColumnNames),
         'groupby' => $tableConfig['groupby'],
         'filters' => $tableConfig['filters'] ?? [],
         'orderby' => $tableConfig['orderby'] ?? []
