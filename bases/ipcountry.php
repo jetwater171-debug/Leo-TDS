@@ -8,15 +8,11 @@ function getip(array|null $headers = null): string
 {
     if (is_null($headers)) $headers = $_SERVER;
     
-    $remoteAddr = $headers['REMOTE_ADDR'];
-    
-    //Will return Cloudflare's connecting ip only if requests come from Cloudflare
-    if (isset($headers['HTTP_CF_CONNECTING_IP'])){
-        $cfip = $headers['HTTP_CF_CONNECTING_IP'];
-        if (str_contains(strtolower(getisp($remoteAddr)), "cloudflare"))
-            return $cfip;
-        else
-            add_log("bases", "Fake CloudflareIP: $cfip, RemoteAddr: $remoteAddr");
+    $remoteAddr = (string)($headers['REMOTE_ADDR'] ?? '');
+
+    $trustedCfIp = get_ip_from_cloudfare($headers);
+    if ($trustedCfIp !== null) {
+        return $trustedCfIp;
     }
 
     if ($remoteAddr === '::1' || !is_public_ip($remoteAddr))
@@ -34,12 +30,46 @@ function is_public_ip(string $ip): bool
     ) === $ip;
 }
 
+function is_cloudflare_ip(string $ip): bool
+{
+    if (!is_public_ip($ip)) {
+        return false;
+    }
+
+    try {
+        $isp = getisp($ip);
+    } catch (Throwable $exception) {
+        return false;
+    }
+
+    return is_string($isp) && str_contains(strtolower($isp), 'cloudflare');
+}
+
+function get_ip_from_cloudfare(array $headers): ?string
+{
+    $remoteAddr = trim((string)($headers['REMOTE_ADDR'] ?? ''));
+    $cfip = trim((string)($headers['HTTP_CF_CONNECTING_IP'] ?? ''));
+
+    if ($cfip === '' || !is_public_ip($cfip)) {
+        return null;
+    }
+
+    if (is_cloudflare_ip($remoteAddr)) {
+        return $cfip;
+    }
+
+    add_log("bases", "Fake CloudflareIP: $cfip, RemoteAddr: $remoteAddr");
+    return null;
+}
+
 function getcountry(string $ip): string
 {
     if ($ip === 'Unknown') return 'Unknown';
-    $reader = new GeoIp2Reader(__DIR__ . '/GeoLite2-Country.mmdb');
+
+    $reader = open_geoip_reader('GeoLite2-Country.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
+
     try {
         $record = $reader->country($ip);
         return $record->country->isoCode;
@@ -52,7 +82,7 @@ function getcountry(string $ip): string
 function getisp(string $ip)
 {
     if ($ip === 'Unknown') return 'Unknown';
-    $reader = new GeoIp2Reader(__DIR__ . '/GeoLite2-ASN.mmdb');
+    $reader = open_geoip_reader('GeoLite2-ASN.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
     try {
@@ -61,5 +91,19 @@ function getisp(string $ip)
     } catch (ANFException $exception) {
         add_log("bases", "GetISP AddressNotFoundException: $ip");
         return 'Unknown';
+    }
+}
+
+function open_geoip_reader(string $fileName): GeoIp2Reader
+{
+    $path = __DIR__ . '/' . $fileName;
+    if (!is_readable($path)) {
+        throw new RuntimeException("Configuration error: GeoIP database is missing or unreadable: $path. Set maxMindKey in settings.php and run bases/update.php, or upload $fileName manually.");
+    }
+
+    try {
+        return new GeoIp2Reader($path);
+    } catch (Throwable $exception) {
+        throw new RuntimeException("Configuration error: GeoIP database cannot be opened: $path. " . $exception->getMessage(), 0, $exception);
     }
 }
