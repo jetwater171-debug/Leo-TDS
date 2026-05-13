@@ -74,6 +74,39 @@
     opacity: 1;
 }
 
+.flatpickr-tz-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    border-top: 1px solid #25324a;
+    background: #15213a;
+    text-align: left;
+}
+
+.flatpickr-tz-label {
+    color: #dbe6ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.flatpickr-tz-select {
+    width: 100%;
+    border: 1px solid #2b3f67;
+    border-radius: 8px;
+    background: #0f1930;
+    color: #f8fbff;
+    padding: 8px 10px;
+    outline: none;
+}
+
+.flatpickr-tz-select:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
 @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
