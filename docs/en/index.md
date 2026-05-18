@@ -5,6 +5,7 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 ## Contents
 
 - [Overview](overview.md)
+- [VPS Installation](installation.md)
 - [How It Works](how-it-works.md)
 - [Admin Login](admin-login.md)
 - [Admin Panel](admin-panel.md)
@@ -19,4 +20,3 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 - [API and Endpoints](api-and-endpoints.md)
 - [Testing and Diagnostics](testing-and-diagnostics.md)
 - [Troubleshooting and FAQ](troubleshooting-and-faq.md)
-

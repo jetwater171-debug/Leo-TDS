@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../logging.php';
-require_once __DIR__ . '/geoip2.phar';
+if (!extension_loaded('maxminddb')) {
+    require_once __DIR__ . '/geoip2.phar';
+}
 use GeoIp2\Database\Reader as GeoIp2Reader;
 use GeoIp2\Exception\AddressNotFoundException as ANFException;
 
@@ -66,10 +68,19 @@ function getcountry(string $ip): string
 {
     if ($ip === 'Unknown') return 'Unknown';
 
-    $reader = open_geoip_reader('GeoLite2-Country.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
 
+    if (use_maxminddb_extension()) {
+        $record = read_maxminddb_record('GeoLite2-Country.mmdb', $ip);
+        if ($record === null) {
+            add_log("bases", "GetCountry AddressNotFoundException: $ip");
+            return 'Unknown';
+        }
+        return (string)($record['country']['iso_code'] ?? 'Unknown');
+    }
+
+    $reader = open_geoip_reader('GeoLite2-Country.mmdb');
     try {
         $record = $reader->country($ip);
         return $record->country->isoCode;
@@ -82,9 +93,19 @@ function getcountry(string $ip): string
 function getisp(string $ip)
 {
     if ($ip === 'Unknown') return 'Unknown';
-    $reader = open_geoip_reader('GeoLite2-ASN.mmdb');
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
+
+    if (use_maxminddb_extension()) {
+        $record = read_maxminddb_record('GeoLite2-ASN.mmdb', $ip);
+        if ($record === null) {
+            add_log("bases", "GetISP AddressNotFoundException: $ip");
+            return 'Unknown';
+        }
+        return $record['autonomous_system_organization'] ?? 'Unknown';
+    }
+
+    $reader = open_geoip_reader('GeoLite2-ASN.mmdb');
     try {
         $record = $reader->asn($ip);
         return $record->autonomousSystemOrganization;
@@ -94,7 +115,7 @@ function getisp(string $ip)
     }
 }
 
-function open_geoip_reader(string $fileName): GeoIp2Reader
+function open_geoip_reader(string $fileName): object
 {
     $path = __DIR__ . '/' . $fileName;
     if (!is_readable($path)) {
@@ -103,6 +124,28 @@ function open_geoip_reader(string $fileName): GeoIp2Reader
 
     try {
         return new GeoIp2Reader($path);
+    } catch (Throwable $exception) {
+        throw new RuntimeException("Configuration error: GeoIP database cannot be opened: $path. " . $exception->getMessage(), 0, $exception);
+    }
+}
+
+function use_maxminddb_extension(): bool
+{
+    return extension_loaded('maxminddb') && class_exists('\\MaxMind\\Db\\Reader', false);
+}
+
+function read_maxminddb_record(string $fileName, string $ip): ?array
+{
+    $path = __DIR__ . '/' . $fileName;
+    if (!is_readable($path)) {
+        throw new RuntimeException("Configuration error: GeoIP database is missing or unreadable: $path. Set maxMindKey in settings.php and run bases/update.php, or upload $fileName manually.");
+    }
+
+    try {
+        $reader = new \MaxMind\Db\Reader($path);
+        $record = $reader->get($ip);
+        $reader->close();
+        return is_array($record) ? $record : null;
     } catch (Throwable $exception) {
         throw new RuntimeException("Configuration error: GeoIP database cannot be opened: $path. " . $exception->getMessage(), 0, $exception);
     }

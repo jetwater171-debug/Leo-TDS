@@ -40,6 +40,28 @@ Key capabilities:
 
 ## Quick Start
 
+### VPS Auto-Install
+
+For a clean Debian/Ubuntu VPS, use the auto-installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dvygolov/YellowTDS/main/install.sh | sudo bash
+```
+
+The script asks for a domain, verifies DNS points to the VPS, installs nginx/PHP/HTTPS, the MaxMind C extension, and offers to download GeoLite2 databases.
+
+To add multiple domains to an existing instance:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dvygolov/YellowTDS/main/install.sh | sudo bash -s -- --add-domain
+```
+
+Enter domains comma-separated, for example: `tds1.example.com,tds2.example.com`.
+
+See: [VPS Installation](docs/en/installation.md).
+
+### Manual Install
+
 1. Deploy the contents to your server/hosting.
 2. Open `settings.php` and configure at least:
    - `adminPassword`

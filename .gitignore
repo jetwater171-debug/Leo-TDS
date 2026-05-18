@@ -1,4 +1,5 @@
 /backups
+/.phpunit.cache
 /temp_update
 /logs
 /ycclogs
