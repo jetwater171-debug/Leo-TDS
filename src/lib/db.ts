@@ -10,7 +10,22 @@ if (databaseUrl && databaseUrl.startsWith('postgres://')) {
 let sqlClient = null;
 if (databaseUrl) {
   try {
-    sqlClient = neon(databaseUrl) as any;
+    const neonClient = neon(databaseUrl);
+    sqlClient = Object.assign(
+      (strings: any, ...values: any[]) => {
+        if (typeof strings === 'string') {
+          // Conventional function call: sql("SELECT ...", [...])
+          return neonClient.query(strings, values[0] || []);
+        }
+        // Tagged template call: sql`SELECT ...`
+        return (neonClient as any)(strings, ...values);
+      },
+      {
+        query: (queryText: string, params: any[] = []) => {
+          return neonClient.query(queryText, params);
+        }
+      }
+    ) as any;
   } catch (e) {
     console.error('Falha ao inicializar o cliente Neon SQL:', e);
   }
