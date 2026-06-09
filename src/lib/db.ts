@@ -1,9 +1,23 @@
 import { neon } from '@neondatabase/serverless';
 
-const databaseUrl = process.env.DATABASE_URL;
+let databaseUrl = process.env.DATABASE_URL;
+
+// Normalize postgres:// to postgresql:// (common in Supabase/Heroku)
+if (databaseUrl && databaseUrl.startsWith('postgres://')) {
+  databaseUrl = databaseUrl.replace('postgres://', 'postgresql://');
+}
+
+let sqlClient = null;
+if (databaseUrl) {
+  try {
+    sqlClient = neon(databaseUrl) as any;
+  } catch (e) {
+    console.error('Falha ao inicializar o cliente Neon SQL:', e);
+  }
+}
 
 // Lightweight SQL client
-export const sql = databaseUrl ? (neon(databaseUrl) as any) : null;
+export const sql = sqlClient;
 
 // Helper to check if tables exist and run migrations
 let isInitialized = false;
