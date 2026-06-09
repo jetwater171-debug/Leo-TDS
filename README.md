@@ -1,106 +1,36 @@
-[English version](README.en.md)
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-```
-                            yellowtds
-    _            __     __  _ _             __          __  _
-   | |           \ \   / / | | |            \ \        / / | |
-   | |__  _   _   \ \_/ /__| | | _____      _\ \  /\  / /__| |__
-   | '_ \| | | |   \   / _ \ | |/ _ \ \ /\ / /\ \/  \/ / _ \ '_ \
-   | |_) | |_| |    | |  __/ | | (_) \ V  V /  \  /\  /  __/ |_) |
-   |_.__/ \__, |    |_|\___|_|_|\___/ \_/\_/    \/  \/ \___|_.__/
-           __/ |
-          |___/             https://yellowweb.top
+## Getting Started
 
-If you like this script, PLEASE DONATE!
-USDT TRC20: TKeNEVndhPSKXuYmpEwF4fVtWUvfCnWmra
-Bitcoin: bc1qqv99jasckntqnk0pkjnrjtpwu0yurm0qd0gnqv
-Ethereum: 0xBC118D3FDE78eE393A154C29A4545c575506ad6B
-```
-
-
-
-# Yellow TDS
-
-Yellow TDS — TDS для маршрутизации трафика по правилам кампаний. Проект включает движок фильтрации и распределения трафика, SQLite-хранилище, админ-панель, статистику, click logs, postback-обработку и несколько режимов интеграции.
-
-## Что это за продукт
-
-Система принимает входящий трафик и для каждого запроса решает, что нужно отдать пользователю:
-
-- white-ветку для нежелательного или отфильтрованного трафика
-- black-ветку для целевого трафика
-- trafficback, если кампания не найдена или не подходит
-
-Ключевые возможности:
-
-- кампании с привязкой по доменам
-- white и black логика
-- multi-step funnels и flows
-- equal, weighted и Thompson Sampling distribution
-- JS bot detection
-- S2S postbacks
-- статистика, custom tables и click views
-- JS Connect и PHP Connect
-
-## Быстрый старт
-
-### Автоустановка на VPS
-
-Для чистого Debian/Ubuntu VPS можно использовать автоустановщик:
+First, run the development server:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dvygolov/YellowTDS/main/install.sh | sudo bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Скрипт спросит домен, проверит DNS-привязку к VPS, поставит nginx/PHP/HTTPS, C-расширение MaxMind и предложит скачать GeoLite2 базы.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Чтобы добавить к уже установленному инстансу несколько новых доменов:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/dvygolov/YellowTDS/main/install.sh | sudo bash -s -- --add-domain
-```
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-Домены можно вводить через запятую: `tds1.example.com,tds2.example.com`.
+## Learn More
 
-Подробнее: [Установка на VPS](docs/ru/installation.md).
+To learn more about Next.js, take a look at the following resources:
 
-### Ручная установка
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Разверните содержимое на хостинге.
-2. Откройте `settings.php` и задайте как минимум:
-   - `adminPassword`
-   - `dbConnection`
-   - `debug` (`false` для production)
-   - `adminDomain` при необходимости
-   - `adminIp` при необходимости
-3. Убедитесь, что PHP может писать в:
-   - `db/`
-   - `logs/`
-   - `caching/`
-4. Откройте `/admin/`.
-5. Создайте кампанию, добавьте домены, настройте white/black, сохраните.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Основные точки входа
+## Deploy on Vercel
 
-- `index.php` — основной runtime entry point
-- `js/index.php` — JS Connect
-- `phpconnect.php` — PHP Connect API
-- `postback.php` — входящие постбэки
-- `send.php` — отправка лид-форм
-- `next.php` — переходы по шагам воронки
-- `admin/` — админ-панель
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Где читать полную документацию
-
-Полная двуязычная документация находится в репозитории:
-
-- [Русская документация](docs/ru/index.md)
-- [English documentation](docs/en/index.md)
-
-Рекомендуемый порядок чтения:
-
-1. [Обзор продукта](docs/ru/overview.md)
-2. [Как это работает](docs/ru/how-it-works.md)
-3. [Вход в админку](docs/ru/admin-login.md)
-4. [Кампании и настройки](docs/ru/campaign-settings.md)
-5. [Статистика](docs/ru/statistics.md)
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
