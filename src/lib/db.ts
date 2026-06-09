@@ -109,7 +109,7 @@ const DDL_SCHEMA = `
     network CIDR NOT NULL UNIQUE
   );
 
-  CREATE INDEX IF NOT EXISTS idx_ip_blacklist_network ON ip_blacklist USING gist (network);
+  CREATE INDEX IF NOT EXISTS idx_ip_blacklist_network ON ip_blacklist USING spgist (network);
   CREATE INDEX IF NOT EXISTS idx_camp_time ON clicks (campaign_id, time);
   CREATE INDEX IF NOT EXISTS idx_camp_time_status ON clicks (campaign_id, time, status);
   CREATE INDEX IF NOT EXISTS idx_userid ON clicks (userid);

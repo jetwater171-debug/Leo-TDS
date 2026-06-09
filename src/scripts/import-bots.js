@@ -42,7 +42,7 @@ async function run() {
       id SERIAL PRIMARY KEY,
       network CIDR NOT NULL UNIQUE
     );
-    CREATE INDEX IF NOT EXISTS idx_ip_blacklist_network ON ip_blacklist USING gist (network);
+    CREATE INDEX IF NOT EXISTS idx_ip_blacklist_network ON ip_blacklist USING spgist (network);
   `);
 
   console.log('Lendo bots.txt...');
