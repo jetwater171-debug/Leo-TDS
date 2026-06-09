@@ -4,6 +4,7 @@ import { userAgent } from 'next/server';
 import { sql } from './lib/db';
 import { matchFilters, ClickParams } from './lib/filters';
 import { selectDistributed } from './lib/abtest';
+import { jwtVerify } from 'jose';
 
 // Cache campaigns list for 10 seconds to minimize DB requests
 let cachedCampaigns: any[] | null = null;
@@ -42,7 +43,6 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', req.url));
     }
     try {
-      const { jwtVerify } = await import('jose');
       const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'yellowtds-secret-12345!');
       await jwtVerify(token, JWT_SECRET);
       return NextResponse.next();
