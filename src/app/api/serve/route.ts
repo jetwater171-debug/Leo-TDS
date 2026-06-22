@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // Map file extensions to MIME types
 const MIME_TYPES: Record<string, string> = {
   css: 'text/css',
@@ -161,11 +164,11 @@ export async function GET(req: NextRequest) {
   if (type === 'landing' || type === 'white') {
     const subFolder = type === 'landing' ? 'landings' : 'whites';
     
-    // Security check: prevent directory traversal
-    const safeFile = path.normalize(file).replace(/^(\.\.[\/\\])+/, '');
-    
-    // Resolve absolute path in workspace
-    const filePath = path.join(process.cwd(), 'caching', subFolder, folder || '', safeFile);
+    const basePath = path.resolve(process.cwd(), 'caching', subFolder, folder || '');
+    const requestedPath = path.resolve(basePath, file || 'index.html');
+    const filePath = requestedPath.startsWith(basePath + path.sep) || requestedPath === basePath
+      ? requestedPath
+      : path.join(basePath, 'index.html');
 
     if (!fs.existsSync(filePath)) {
       return new NextResponse('File Not Found', { status: 404 });

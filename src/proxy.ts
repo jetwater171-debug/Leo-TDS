@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import { userAgent } from 'next/server';
 import { sql } from './lib/db';
 import { matchFilters, ClickParams } from './lib/filters';
@@ -11,12 +11,18 @@ let cachedCampaigns: any[] | null = null;
 let lastFetchTime = 0;
 const CACHE_TTL = 10000;
 
+function normalizeHost(host: string): string {
+  return host.toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '');
+}
+
 function matchDomain(domains: string[], host: string): boolean {
+  const normalizedHost = normalizeHost(host);
   return domains.some(d => {
-    if (d === host) return true;
+    const domain = normalizeHost(String(d).trim());
+    if (domain === normalizedHost) return true;
     if (d.includes('*')) {
-      const pattern = new RegExp('^' + d.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
-      return pattern.test(host);
+      const pattern = new RegExp('^' + domain.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
+      return pattern.test(normalizedHost);
     }
     return false;
   });
@@ -29,7 +35,33 @@ function generateUuid(): string {
   ).join('');
 }
 
-export async function middleware(req: NextRequest) {
+function getRequestedFile(pathname: string): string {
+  const file = pathname.replace(/^\/+/, '');
+  return file || 'index.html';
+}
+
+function buildServeUrl(req: NextRequest, params: Record<string, string | number>): URL {
+  const serveUrl = new URL('/api/serve', req.url);
+  for (const [key, value] of Object.entries(params)) {
+    serveUrl.searchParams.set(key, String(value));
+  }
+  return serveUrl;
+}
+
+function pickRedirectUrl(urls: unknown[], fallback = 'https://google.com'): string {
+  const candidates = urls
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object' && 'url' in item) {
+        return String((item as { url?: unknown }).url || '');
+      }
+      return '';
+    })
+    .filter(Boolean);
+  return candidates[Math.floor(Math.random() * candidates.length)] || fallback;
+}
+
+export async function proxy(req: NextRequest, event: NextFetchEvent) {
   const url = req.nextUrl;
   const path = url.pathname;
 
@@ -59,8 +91,7 @@ export async function middleware(req: NextRequest) {
     path.startsWith('/_next') ||
     path.includes('/favicon.ico') ||
     path.includes('/robots.txt') ||
-    path.includes('/sitemap') ||
-    path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|mp4|webm)$/)
+    path.includes('/sitemap')
   ) {
     return NextResponse.next();
   }
@@ -77,7 +108,7 @@ export async function middleware(req: NextRequest) {
       cachedCampaigns = await sql(`SELECT id, settings FROM campaigns`);
       lastFetchTime = now;
     } catch (e) {
-      console.error('Erro ao buscar campanhas no Middleware:', e);
+      console.error('Erro ao buscar campanhas no Proxy:', e);
       cachedCampaigns = cachedCampaigns || [];
     }
   }
@@ -140,14 +171,14 @@ export async function middleware(req: NextRequest) {
 
   // 3. Evaluate White Filters (Safe traffic)
   const whiteFilterGroup = settings.white?.filters || {};
-  const whiteCheck = await matchFilters(whiteFilterGroup, params);
+  const whiteCheck = await matchFilters(whiteFilterGroup, params, false);
 
   // If visitor matches white filters -> Serve White Page (Safe Page)
   if (whiteCheck.matches) {
     const blockReason = whiteCheck.reasons.join(', ') || 'white_filter';
     
     // Log white click asynchronously to avoid blocking the request
-    const logPromise = sql(
+    event.waitUntil(sql(
       `INSERT INTO blocked (campaign_id, time, ip, country, lang, os, osver, device, brand, model, client, clientver, ua, params, reason) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
       [
@@ -167,13 +198,13 @@ export async function middleware(req: NextRequest) {
         JSON.stringify(params.qs),
         blockReason
       ]
-    ).catch((e: any) => console.error('Erro ao registrar clique bloqueado:', e));
+    ).catch((e: unknown) => console.error('Erro ao registrar clique bloqueado:', e)));
 
     // Execute the White action
     const whiteAction = settings.white.action || 'error';
     if (whiteAction === 'redirect') {
       const urls = settings.white.redirect?.urls || [];
-      const urlToRedirect = urls[Math.floor(Math.random() * urls.length)] || 'https://google.com';
+      const urlToRedirect = pickRedirectUrl(urls);
       const redirectType = Number(settings.white.redirect?.type || 302);
       return NextResponse.redirect(urlToRedirect, redirectType);
     }
@@ -185,7 +216,13 @@ export async function middleware(req: NextRequest) {
 
     // Default white folders or curl proxying is rewritten to the internal cloner router
     const folder = settings.white.folders?.[0] || 'default';
-    const serveUrl = new URL(`/api/serve?type=white&campaignId=${campaignId}&folder=${folder}&reason=${encodeURIComponent(blockReason)}`, req.url);
+    const serveUrl = buildServeUrl(req, {
+      type: 'white',
+      campaignId,
+      folder,
+      file: getRequestedFile(path),
+      reason: blockReason
+    });
     return NextResponse.rewrite(serveUrl);
   }
 
@@ -260,7 +297,7 @@ export async function middleware(req: NextRequest) {
     };
 
     // Log black click asynchronously
-    sql(
+    event.waitUntil(sql(
       `INSERT INTO clicks (campaign_id, time, ip, country, lang, os, osver, device, brand, model, client, clientver, ua, userid, clickid, flow, path, step, status, cost, payout) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
       [
@@ -286,7 +323,7 @@ export async function middleware(req: NextRequest) {
         0,
         0
       ]
-    ).catch((e: any) => console.error('Erro ao registrar clique aceito:', e));
+    ).catch((e: unknown) => console.error('Erro ao registrar clique aceito:', e)));
   }
 
   const currentStepIndex = clickSession.step;
@@ -309,7 +346,13 @@ export async function middleware(req: NextRequest) {
     response = NextResponse.redirect(redirectUrl, redirectType);
   } else {
     // Serve landing folder by rewriting internally
-    const serveUrl = new URL(`/api/serve?type=landing&campaignId=${campaignId}&folder=${chosenVariant}&clickid=${clickSession.clickid}`, req.url);
+    const serveUrl = buildServeUrl(req, {
+      type: 'landing',
+      campaignId,
+      folder: chosenVariant,
+      file: getRequestedFile(path),
+      clickid: clickSession.clickid
+    });
     response = NextResponse.rewrite(serveUrl);
   }
 
@@ -321,3 +364,9 @@ export async function middleware(req: NextRequest) {
 
   return response;
 }
+
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)',
+  ],
+};

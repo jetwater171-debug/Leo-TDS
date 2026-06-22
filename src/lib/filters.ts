@@ -23,7 +23,7 @@ export interface FilterRule {
   id: string; // e.g., 'country', 'os', 'vpntor', 'urlparam', 'ipbase'
   field?: string;
   operator: string; // 'in', 'not_in', 'contains', 'not_contains', 'equal', 'not_equal', 'less_or_equal', 'greater_or_equal', 'param_exists', 'param_not_exists'
-  value: any; // Can be string, number, array
+  value: unknown; // Can be string, number, array
 }
 
 export interface FilterGroup {
@@ -66,9 +66,20 @@ export async function matchRule(
   rule: FilterRule,
   params: ClickParams
 ): Promise<{ matches: boolean; reason: string }> {
-  const operator = rule.operator;
+  const operatorAliases: Record<string, string> = {
+    is: 'equal',
+    is_not: 'not_equal',
+    regex: 'regex'
+  };
+  const operator = operatorAliases[rule.operator] || rule.operator;
   const value = rule.value;
-  const id = rule.id;
+  const fieldAliases: Record<string, string> = {
+    ua: 'useragent',
+    query_param: 'urlparam',
+    vpn_proxy: 'vpntor'
+  };
+  const rawId = rule.field || rule.id;
+  const id = fieldAliases[rawId] || rawId;
 
   const standardFields: Record<string, keyof ClickParams> = {
     os: 'os',
@@ -132,10 +143,19 @@ export async function matchRule(
           matches: visitorVal !== compareVal,
           reason: `${id}_not_equal`
         };
+      case 'regex':
+        try {
+          return {
+            matches: new RegExp(String(value), 'i').test(visitorVal),
+            reason: `${id}_regex`
+          };
+        } catch {
+          return { matches: false, reason: `${id}_regex_invalid` };
+        }
       case 'less_or_equal':
       case 'greater_or_equal':
         return {
-          matches: compareVersions(params[paramField] as string || '0', String(value || '0'), operator),
+          matches: compareVersions(String(params[paramField] || '0'), String(value || '0'), operator),
           reason: `${id}_version`
         };
     }
@@ -208,8 +228,8 @@ export async function matchRule(
       };
 
       const isVpn = await checkVpn(params.ip);
-      // rule.value: 1 = block if VPN is NOT detected, 0 = block if VPN IS detected
-      const matches = (value === 0 && isVpn) || (value === 1 && !isVpn);
+      const wantsVpn = value === true || value === 'true' || value === 0 || value === '0';
+      const matches = wantsVpn ? isVpn : !isVpn;
       return { matches, reason: isVpn ? 'vpn_detected' : 'vpn_not_detected' };
     }
 
@@ -239,10 +259,11 @@ export async function matchRule(
 // Match filter group (recursive OR / AND evaluation)
 export async function matchFilters(
   group: FilterGroup,
-  params: ClickParams
+  params: ClickParams,
+  defaultMatches = true
 ): Promise<{ matches: boolean; reasons: string[] }> {
   if (!group || !Array.isArray(group.rules) || group.rules.length === 0) {
-    return { matches: true, reasons: [] }; // No rules means whitelist
+    return { matches: defaultMatches, reasons: [] };
   }
 
   const isAnd = group.condition === 'AND';
@@ -254,7 +275,7 @@ export async function matchFilters(
 
     if ('condition' in rule) {
       // Nested filter group
-      const res = await matchFilters(rule as FilterGroup, params);
+      const res = await matchFilters(rule as FilterGroup, params, defaultMatches);
       result = res.matches;
       reasons = res.reasons;
     } else {

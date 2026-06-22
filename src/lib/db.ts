@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import { Pool } from 'pg';
 
 let databaseUrl = process.env.DATABASE_URL;
 
@@ -7,32 +7,58 @@ if (databaseUrl && databaseUrl.startsWith('postgres://')) {
   databaseUrl = databaseUrl.replace('postgres://', 'postgresql://');
 }
 
-let sqlClient = null;
+type SqlQuery = {
+  (queryText: string, params?: unknown[]): Promise<Record<string, unknown>[]>;
+  (strings: TemplateStringsArray, ...values: unknown[]): Promise<Record<string, unknown>[]>;
+  query: (queryText: string, params?: unknown[]) => Promise<unknown>;
+};
+
+const globalForPg = globalThis as typeof globalThis & {
+  __yellowtdsPool?: Pool;
+};
+
+let poolClient: Pool | null = null;
 if (databaseUrl) {
   try {
-    const neonClient = neon(databaseUrl);
-    sqlClient = Object.assign(
-      (strings: any, ...values: any[]) => {
-        if (typeof strings === 'string') {
-          // Conventional function call: sql("SELECT ...", [...])
-          return neonClient.query(strings, values[0] || []);
-        }
-        // Tagged template call: sql`SELECT ...`
-        return (neonClient as any)(strings, ...values);
-      },
-      {
-        query: (queryText: string, params: any[] = []) => {
-          return neonClient.query(queryText, params);
-        }
-      }
-    ) as any;
+    poolClient = globalForPg.__yellowtdsPool ?? new Pool({
+      connectionString: databaseUrl,
+      max: 15,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+      ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false }
+    });
+    globalForPg.__yellowtdsPool = poolClient;
   } catch (e) {
-    console.error('Falha ao inicializar o cliente Neon SQL:', e);
+    console.error('Falha ao inicializar o Pool do Postgres (pg):', e);
   }
 }
 
-// Lightweight SQL client
-export const sql = sqlClient;
+function templateToSql(strings: TemplateStringsArray): string {
+  return strings.reduce((query, chunk, index) => {
+    return `${query}${chunk}${index < strings.length - 1 ? `$${index + 1}` : ''}`;
+  }, '');
+}
+
+// Small compatibility wrapper for the previous Neon-style SQL helper.
+export const sql = poolClient
+  ? Object.assign(
+      async (strings: string | TemplateStringsArray, ...values: unknown[]) => {
+        if (typeof strings === 'string') {
+          const params = Array.isArray(values[0]) ? values[0] as unknown[] : values;
+          const res = await poolClient!.query(strings, params);
+          return res.rows;
+        }
+        const queryText = templateToSql(strings);
+        const res = await poolClient!.query(queryText, values);
+        return res.rows;
+      },
+      {
+        query: async (queryText: string, params: unknown[] = []) => {
+          return poolClient!.query(queryText, params);
+        }
+      }
+    ) as SqlQuery
+  : null;
 
 // Helper to check if tables exist and run migrations
 let isInitialized = false;
@@ -191,37 +217,24 @@ const DEFAULT_COMMON_SETTINGS = {
 
 export async function ensureDb(): Promise<void> {
   if (!sql) {
-    throw new Error('DATABASE_URL não está definida nas variáveis de ambiente!');
+    throw new Error('DATABASE_URL nao esta definida nas variaveis de ambiente.');
   }
   if (isInitialized) return;
 
   try {
-    // Check if the campaigns table exists
-    const checkTable: any = await sql(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'campaigns'
-      );
-    `);
+    const statements = DDL_SCHEMA.split(';').map(s => s.trim()).filter(Boolean);
+    for (const statement of statements) {
+      await sql(statement);
+    }
 
-    const tableExists = checkTable[0]?.exists;
-
-    if (!tableExists) {
-      console.log('Banco de dados não inicializado. Executando DDL...');
-      // Execute DDL split by statements to avoid transactional errors on some providers
-      const statements = DDL_SCHEMA.split(';').map(s => s.trim()).filter(Boolean);
-      for (const statement of statements) {
-        await sql(statement);
-      }
-
-      // Insert default global settings
+    const commonRows = await sql('SELECT 1 FROM common LIMIT 1');
+    if (commonRows.length === 0) {
       await sql(
         `INSERT INTO common (settings) VALUES ($1)`,
         [JSON.stringify(DEFAULT_COMMON_SETTINGS)]
       );
-      console.log('Banco de dados inicializado com sucesso.');
     }
+
     isInitialized = true;
   } catch (error) {
     console.error('Falha ao inicializar o banco de dados:', error);
@@ -230,11 +243,10 @@ export async function ensureDb(): Promise<void> {
 }
 
 // Wrapper for queries that automatically ensures table structure exists
-export async function dbQuery<T = any>(queryText: string, params: any[] = []): Promise<T[]> {
+export async function dbQuery<T = Record<string, unknown>>(queryText: string, params: unknown[] = []): Promise<T[]> {
   await ensureDb();
   if (!sql) throw new Error('Cliente SQL indisponível.');
   
-  // Format query with placeholders replacing $1, $2 with value bindings
   const result = await sql(queryText, params);
   return result as T[];
 }

@@ -684,7 +684,7 @@ export default function CampaignEditorPage({ params }: PageProps) {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-base font-bold text-white mb-1">Regras de Filtragem Ativas</h3>
-                  <p className="text-xs text-slate-400">Quais condições classificam um visitante como "Página Segura (White)"?</p>
+                  <p className="text-xs text-slate-400">Quais condições classificam um visitante como Pagina Segura (White)?</p>
                 </div>
                 <button
                   onClick={handleAddWhiteRule}

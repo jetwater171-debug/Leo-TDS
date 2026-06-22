@@ -4,8 +4,20 @@ import { SignJWT, jwtVerify } from 'jose';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'yellowtds-secret-12345!');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '12345qweasd';
 
+function hasProductionSecrets(): boolean {
+  if (process.env.NODE_ENV !== 'production') return true;
+  return Boolean(process.env.JWT_SECRET && process.env.ADMIN_PASSWORD);
+}
+
 export async function POST(req: NextRequest) {
   try {
+    if (!hasProductionSecrets()) {
+      return NextResponse.json(
+        { success: false, msg: 'Configure ADMIN_PASSWORD e JWT_SECRET no Vercel antes de usar em producao.' },
+        { status: 500 }
+      );
+    }
+
     const body = await req.json();
     const password = body.password;
 
