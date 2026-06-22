@@ -2,20 +2,34 @@
 
 Configure estas variaveis em Production, Preview e Development no Vercel.
 
+## Supabase project
+
+Estas sao as envs publicas do projeto Supabase. A anon key fica em:
+Supabase > Project Settings > API > Project API keys > anon public.
+
 ```env
-DATABASE_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+NEXT_PUBLIC_SUPABASE_URL=https://ecghpnltsptaeoqnhrxm.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=cole-a-anon-key-aqui
+```
+
+## Admin do painel
+
+```env
 ADMIN_PASSWORD=troque-por-uma-senha-forte
 JWT_SECRET=gere-um-segredo-longo-com-32-ou-mais-caracteres
 ```
 
-Opcional:
+## Banco usado pelo backend
+
+O app atual grava campanhas, cliques, bloqueios e postbacks pelo backend Node.
+Para isso, ele ainda precisa de uma conexao Postgres server-side:
 
 ```env
-NEXT_PUBLIC_APP_NAME=YellowTDS
+DATABASE_URL=cole-a-connection-string-do-supabase-aqui
 ```
 
 Notas:
 
-- Use a connection string do Supabase Transaction Pooler na porta `6543` para Vercel.
-- Nao use a senha padrao antiga em producao. O login bloqueia se `ADMIN_PASSWORD` ou `JWT_SECRET` estiverem ausentes no Vercel.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` pode ficar no frontend; ela nao substitui a conexao server-side do banco.
+- Nao coloque senha direta do banco em variaveis `NEXT_PUBLIC_*`.
 - `.env` deve ficar apenas local. No deploy, use o painel do Vercel.
