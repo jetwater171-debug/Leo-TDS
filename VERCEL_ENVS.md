@@ -3,23 +3,15 @@
 Configure estas variaveis em Production, Preview e Development no Vercel.
 
 ```env
-DATABASE_URL=postgresql://postgres.ecghpnltsptaeoqnhrxm:SENHA_URL_ENCODED@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://ecghpnltsptaeoqnhrxm.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=cole-a-service-role-key-aqui
 ADMIN_PASSWORD=troque-por-uma-senha-forte
 JWT_SECRET=gere-um-segredo-longo-com-32-ou-mais-caracteres
 ```
 
-Para senha com caracteres especiais, use URL encoding dentro da `DATABASE_URL`.
-
-Exemplo:
-
-```txt
-! vira %21
-@ vira %40
-```
-
 Notas:
 
-- Use apenas `DATABASE_URL` para a conexao Supabase/Postgres deste projeto.
-- Na Vercel, use o Supabase Pooler. O host direto `db.ecghpnltsptaeoqnhrxm.supabase.co:5432` pode resolver apenas IPv6 e falhar em serverless.
-- Nao coloque a senha real em arquivos commitados.
+- Use `SUPABASE_SERVICE_ROLE_KEY`, nao `NEXT_PUBLIC_SUPABASE_ANON_KEY`, para o backend administrativo.
+- Nunca coloque `SUPABASE_SERVICE_ROLE_KEY` com prefixo `NEXT_PUBLIC_`.
+- Rode `supabase.sql` no SQL Editor do Supabase antes do primeiro uso.
 - `.env` deve ficar apenas local. No deploy, use o painel do Vercel.
