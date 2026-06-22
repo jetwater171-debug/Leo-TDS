@@ -63,6 +63,34 @@ export const sql = poolClient
 // Helper to check if tables exist and run migrations
 let isInitialized = false;
 
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+export function formatDatabaseError(error: unknown): string {
+  const message = toErrorMessage(error);
+
+  if (
+    message.includes('ENOTFOUND') ||
+    message.includes('ENETUNREACH') ||
+    message.includes('getaddrinfo') ||
+    message.includes('Network is unreachable')
+  ) {
+    return [
+      'Falha ao conectar no Supabase/Postgres.',
+      'Na Vercel, use a connection string do Supabase Pooler em DATABASE_URL.',
+      'Evite o host direto db.<project-ref>.supabase.co:5432, porque ele pode resolver apenas IPv6 e quebrar em serverless.',
+    ].join(' ');
+  }
+
+  if (message.includes('password authentication failed')) {
+    return 'Falha de autenticacao no Supabase/Postgres. Confira usuario, senha e se caracteres especiais da senha estao URL-encoded.';
+  }
+
+  return message;
+}
+
 const DDL_SCHEMA = `
   CREATE TABLE IF NOT EXISTS campaigns (
     id SERIAL PRIMARY KEY,
@@ -238,15 +266,19 @@ export async function ensureDb(): Promise<void> {
     isInitialized = true;
   } catch (error) {
     console.error('Falha ao inicializar o banco de dados:', error);
-    throw error;
+    throw new Error(formatDatabaseError(error));
   }
 }
 
 // Wrapper for queries that automatically ensures table structure exists
 export async function dbQuery<T = Record<string, unknown>>(queryText: string, params: unknown[] = []): Promise<T[]> {
   await ensureDb();
-  if (!sql) throw new Error('Cliente SQL indisponível.');
+  if (!sql) throw new Error('Cliente SQL indisponivel.');
   
-  const result = await sql(queryText, params);
-  return result as T[];
+  try {
+    const result = await sql(queryText, params);
+    return result as T[];
+  } catch (error) {
+    throw new Error(formatDatabaseError(error));
+  }
 }
